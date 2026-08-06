@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, dom, fileinfo, mysql, sqlite3, pdo_sqlite
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      # No .env file is committed (Blueprint v1.0 §8 — never commit real or
+      # placeholder-that-resembles-real credentials). .env.example has no
+      # credentials in it either (every DB_*/VBULLETIN_* value is blank —
+      # see task 0.2), so copying it here is safe: it's an ephemeral,
+      # never-committed runtime file that exists only for this CI run.
+      # phpunit.xml overrides DB/cache/mail to safe in-memory testing
+      # values regardless of what this .env contains.
+      - name: Create ephemeral .env for this run
+        run: cp .env.example .env
+
+      - name: Generate ephemeral app key for the test run
+        run: php artisan key:generate --ansi
+
+      - name: Run full test suite (includes architecture tests, Blueprint v1.0 §2)
+        run: vendor/bin/pest

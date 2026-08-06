@@ -1,0 +1,19 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app
+        - routes
+
+    # Level 5: a reasonable starting point for Wave 4 (Roadmap-recommended
+    # per the pre-Wave-4 review's "must do" item) — catches real type
+    # errors and undefined-method/property mistakes without demanding the
+    # heavier generics/template annotations higher levels require, which
+    # would be disproportionate for a codebase this size right now. Raise
+    # incrementally in a later wave once the baseline is clean and stable,
+    # not as a one-shot jump.
+    level: 5
+
+    excludePaths:
+        - app/Domain/*/Providers/*

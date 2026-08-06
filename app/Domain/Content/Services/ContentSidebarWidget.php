@@ -1,0 +1,506 @@
+<?php
+
+namespace App\Domain\Content\Services;
+
+use App\Domain\Content\Models\Channel;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+
+/**
+ * ============================================================================
+ * TRACEABILITY (Blueprint v1.0 §4, P-016) — read before modifying
+ * ============================================================================
+ *
+ * 1. EXACT LEGACY FUNCTIONS REPLACED
+ *    - anasheed/functions.php: most_downloaded_list() [L842-861],
+ *      most_recent_list() [L862-881] (the reference/original copy — its
+ *      most_recent_html() [L882-910] builder is the one the others copied)
+ *    - w2acd/functions.php: most_downloaded_list() [L181-196],
+ *      most_recent_list() [L197-211]
+ *    - telawah/functions.php: most_downloaded_list() [L309-329],
+ *      most_recent_list() [L330-350]
+ *    - live-stream/functions.php: most_viewed_list() [L145-168],
+ *      most_recent_list() [L169-192]
+ *    Four modules, 8 source functions, confirmed independently
+ *    reimplemented (not shared) despite the near-identical names.
+ *
+ * 2. DIFFERENCES BETWEEN THE LEGACY IMPLEMENTATIONS
+ *    - Tables/columns differ per module (expected — different content
+ *      types): nuke_anasheed_anasheed (id, title, frame, downcount,
+ *      mytime), nuke_w2acd_w2acd (id, title, hits, banner, thumbnail,
+ *      mytime), nuke_telawah_telawah (id, title, hits, mytime),
+ *      nuke_islamic_khotab (id, title, hits, channel_id — live-stream's
+ *      copy queries khotab's own table, not a live-stream-specific one).
+ *    - LIMIT differs per copy with no evident reason: anasheed uses 7,
+ *      w2acd uses 6, telawah and live-stream use 10.
+ *    - Optional filter differs by dimension: anasheed filters by
+ *      `group_id` (only when a Group object is passed); live-stream
+ *      filters by `channel_id`. telawah has no filter parameter at all.
+ *      **w2acd accepts a `$Group` parameter but never uses it anywhere in
+ *      the query — a dead parameter**, confirmed by reading the full
+ *      function body, not assumed.
+ *    - "Most recent" ordering differs: anasheed/w2acd/telawah order by a
+ *      `mytime` column; live-stream orders by `id DESC` instead (khotab's
+ *      table has no `mytime`-equivalent column available to this query).
+ *    - Output/presentation differs sharply: anasheed and w2acd both call
+ *      a shared `most_recent_html()` builder that renders a thumbnail per
+ *      row (via `thumbnail()`/a comma-split `thumbnail` column
+ *      respectively) — **w2acd's copy computes `$basefolder =
+ *      floor($item->id/1000)` and then never uses it, a second dead
+ *      value in the same function**, and instead builds its thumbnail
+ *      path from the `thumbnail` column's first comma-separated segment
+ *      under `images/cds_image2/`, not the `media/` MediaPathResolver
+ *      convention at all. telawah and live-stream render plain text
+ *      links with no thumbnail logic whatsoever.
+ *    - URL prefix: anasheed and w2acd both link to `var-item-{id}.htm`
+ *      (correct for anasheed's own URL scheme) — **w2acd's copy reusing
+ *      this same prefix instead of its own `cds-item-{id}.htm` is a
+ *      confirmed bug** (already cataloged in P-016/w2acd.md §5, not a
+ *      new finding here, but directly relevant to what this service must
+ *      NOT reproduce).
+ *
+ * 3. HOW THE DIFFERENCES WERE RECONCILED
+ *    One explicitly-named public method per confirmed real function (8
+ *    total), each with its own confirmed table/columns/filter/limit — not
+ *    one generic method. A private query-building helper factors out only
+ *    the genuinely identical mechanical shape (build a query, apply an
+ *    optional WHERE, order, limit, select) so the 8 public methods stay
+ *    short without pretending the underlying data shapes are the same.
+ *
+ * 4. BEHAVIOR PRESERVED EXACTLY
+ *    Every table, column, filter dimension, LIMIT value, and ORDER BY
+ *    column is reproduced as found per module, including live-stream's
+ *    `id DESC` proxy-for-recency ordering and w2acd's confirmed-dead
+ *    `$Group`/`$basefolder` values (the query itself never filtered by
+ *    group in the legacy code, so this service's `w2acdMostDownloaded()`/
+ *    `w2acdMostRecent()` correctly take no group parameter at all — adding
+ *    one that silently did nothing would be worse than omitting it).
+ *
+ * 5. BEHAVIOR INTENTIONALLY CHANGED, AND WHY
+ *    - Data/presentation split: legacy's most_recent_html()-style builders
+ *      mix querying and HTML string-building in the same function. These
+ *      methods return data only (a Collection of stdClass rows); thumbnail
+ *      markup is Wave 3/4 Blade-view work once real item partials exist,
+ *      not invented here ahead of need — consistent with how
+ *      ContentListingService was scoped.
+ *    - w2acd's `var-item-` URL bug and the dead `$basefolder` computation
+ *      are not reproduced at all, since this service returns raw column
+ *      data (id/title/hits/etc.), not rendered links — there is no URL to
+ *      get wrong at this layer. The correct `cds-item-{id}.htm` URL
+ *      construction is a Wave 4 view-layer decision, out of this
+ *      service's scope, not silently fixed or silently ported broken here.
+ *    - SQL injection: none of the four modules' original queries are
+ *      parameterized (raw string concatenation for the optional filter
+ *      values); every method here uses bound parameters instead. No
+ *      observable behavior changes.
+ *
+ * 6. RISK IF THIS RECONCILIATION IS WRONG
+ *    Every real content-type module (5, per Blueprint §4: khotab,
+ *    anasheed, w2acd, telawah, live-stream) is a named consumer — a wrong
+ *    LIMIT, filter column, or ORDER BY here reproduces incorrectly across
+ *    all of them simultaneously. Specifically: mixing up which module
+ *    filters by group vs. channel vs. not at all would silently show the
+ *    wrong sidebar scope; reproducing live-stream's `id DESC` fallback
+ *    everywhere instead of only where khotab's table lacks a recency
+ *    column would silently misorder the other modules' genuinely
+ *    time-ordered results.
+ *
+ * 7. TESTS PROVING BEHAVIORAL EQUIVALENCE
+ *    tests/Feature/Content/ContentSidebarWidgetTest.php — one seeded
+ *    fixture dataset per module, asserting the exact filter/limit/order
+ *    behavior confirmed above, including an explicit test that no group
+ *    filter exists for w2acd's two methods (proving the dead parameter
+ *    was correctly dropped, not silently reintroduced).
+ *
+ * ============================================================================
+ * WAVE 3 ADDITIONS
+ * ============================================================================
+ *
+ * - mostViewedLiveChannels(): live-stream/functions.php's
+ *   most_viewed_channels() [L36-55] — a *sixth* module for this pattern,
+ *   but querying `nuke_sat_channels` itself (via Channel's
+ *   eligibleForLiveStream() scope, ordered by ch_visits DESC LIMIT 10),
+ *   not a content-item table. Doesn't fit the private query() helper's
+ *   single-filter-column shape (the eligibility filter is 3 conditions),
+ *   so it's written directly rather than forced through it.
+ * - channelMostDownloadedKhotabItems()/channelMostRecentKhotabItems():
+ *   channels/channel.php:100,110 — NOT a call to live-stream's
+ *   most_viewed_list()/most_recent_list() despite computing a
+ *   similar-sounding thing. This is a *different* legacy code path — a
+ *   direct call to shared-core's generic topitems() helper
+ *   (`topitems('hits', "channel_id='X' and vedio='1'", "hits DESC", 5)`),
+ *   which happens to differ from live-stream's own pair in three
+ *   confirmed ways: LIMIT 5 not 10, an explicit `vedio='1'` filter
+ *   live-stream's version lacks, and "most recent" here orders by
+ *   `time DESC` (not `id DESC`, since this call site does have a usable
+ *   time column in scope). Reproducing topitems()'s raw-WHERE-fragment
+ *   genericity was considered and rejected — with exactly one real call
+ *   site in scope, two explicitly-parameterized methods are safer and
+ *   clearer than importing that design smell for a single caller.
+ * ============================================================================
+ */
+class ContentSidebarWidget
+{
+    // ---- anasheed ---------------------------------------------------
+
+    public function anasheedMostDownloaded(?int $groupId = null): Collection
+    {
+        return $this->query('nuke_anasheed_anasheed', ['id', 'title', 'frame', 'downcount'], 'group_id', $groupId, 'hits', 7);
+    }
+
+    public function anasheedMostRecent(?int $groupId = null): Collection
+    {
+        return $this->query('nuke_anasheed_anasheed', ['id', 'title', 'frame', 'mytime'], 'group_id', $groupId, 'mytime', 7);
+    }
+
+    // ---- w2acd (no group filter — confirmed dead parameter in legacy) ----
+
+    public function w2acdMostDownloaded(): Collection
+    {
+        return $this->query('nuke_w2acd_w2acd', ['id', 'title', 'hits', 'banner', 'thumbnail'], null, null, 'hits', 6);
+    }
+
+    public function w2acdMostRecent(): Collection
+    {
+        return $this->query('nuke_w2acd_w2acd', ['id', 'title', 'mytime', 'banner', 'thumbnail'], null, null, 'mytime', 6);
+    }
+
+    // ---- telawah (no filter parameter in legacy at all) ----
+
+    public function telawahMostDownloaded(): Collection
+    {
+        return $this->query('nuke_telawah_telawah', ['id', 'title'], null, null, 'hits', 10);
+    }
+
+    public function telawahMostRecent(): Collection
+    {
+        return $this->query('nuke_telawah_telawah', ['id', 'title'], null, null, 'mytime', 10);
+    }
+
+    // ---- live-stream (queries khotab's own table; filters by channel, not group) ----
+
+    public function liveStreamMostViewed(int $channelId = 0): Collection
+    {
+        return $this->query('nuke_islamic_khotab', ['id', 'title'], 'channel_id', $channelId ?: null, 'hits', 10);
+    }
+
+    /** Orders by `id DESC`, not a time column — khotab's table has none available to this query, matching legacy exactly. */
+    public function liveStreamMostRecent(int $channelId = 0): Collection
+    {
+        return $this->query('nuke_islamic_khotab', ['id', 'title'], 'channel_id', $channelId ?: null, 'id', 10);
+    }
+
+    // ---- Wave 3: live-stream's channel-directory widget + channels/channel.php's topitems()-derived pair ----
+
+    public function mostViewedLiveChannels(): Collection
+    {
+        return Channel::eligibleForLiveStream()
+            ->orderByDesc('ch_visits')
+            ->limit(10)
+            ->get(['id', 'title']);
+    }
+
+    public function channelMostDownloadedKhotabItems(int $channelId): Collection
+    {
+        return DB::connection('main')->table('nuke_islamic_khotab')
+            ->where('channel_id', $channelId)
+            ->where('vedio', 1)
+            ->orderByDesc('hits')
+            ->limit(5)
+            ->get(['id', 'title']);
+    }
+
+    public function channelMostRecentKhotabItems(int $channelId): Collection
+    {
+        return DB::connection('main')->table('nuke_islamic_khotab')
+            ->where('channel_id', $channelId)
+            ->where('vedio', 1)
+            ->orderByDesc('time')
+            ->limit(5)
+            ->get(['id', 'title']);
+    }
+
+    // ---- Wave 4: khotab/functions.php's topitems()-based sidebar pairs ----
+
+    /**
+     * `topitems('hits', "author = 'X' AND vedio ='Y'", "hits DESC", 5)` —
+     * used correctly by `khotab/author.php:154`, `khotab/group.php:113`,
+     * and (after the IF-015 fix) `khotab/series.php:146`. A DIFFERENT query
+     * shape from `khotabMostDownloadedByVideoFlag()` below (author-scoped,
+     * not just video-flag-scoped) — kept as its own method rather than an
+     * optional-parameter variant, matching this class's existing "one
+     * method per confirmed shape" convention (see class docblock §3).
+     */
+    public function khotabMostDownloadedByAuthor(int $authorId, bool $video): Collection
+    {
+        return $this->topitems(['author' => $authorId, 'vedio' => (int) $video], 'hits', 5);
+    }
+
+    /** `topitems('hits', "author = 'X' AND vedio ='Y'", "time DESC", 5)` — same call sites as above. */
+    public function khotabMostRecentByAuthor(int $authorId, bool $video): Collection
+    {
+        return $this->topitems(['author' => $authorId, 'vedio' => (int) $video], 'time', 5);
+    }
+
+    /**
+     * `topitems('hits', "vedio ='Y'", "hits DESC", 5)` — filters by video
+     * flag only, no author. Used by `khotab/day.php:171` and (per IF-014's
+     * fix) `khotab/item.php:467`'s "Most Downloaded" box — the item-page
+     * legacy code read the undefined `$Khotab->video` instead of the real
+     * `$Khotab->vedio`, which `topitems()`'s own normalization shim
+     * silently turned into `vedio=0` (see IF-014's updated Evidence for
+     * the shim's exact code/comment). This method takes the real, intended
+     * `vedio` value instead, fixing that bug.
+     */
+    public function khotabMostDownloadedByVideoFlag(bool $video): Collection
+    {
+        return $this->topitems(['vedio' => (int) $video], 'hits', 5);
+    }
+
+    /** `topitems('time', "vedio ='Y'", "time DESC", 5)` — `khotab/day.php:181` and (IF-014 fix) `khotab/item.php:476`. */
+    public function khotabMostRecentByVideoFlag(bool $video): Collection
+    {
+        return $this->topitems(['vedio' => (int) $video], 'time', 5);
+    }
+
+    /**
+     * IF-017's fix: `khotab/news.php`'s PDF-listing branch left `$ob->video`
+     * unset, which the same `topitems()` shim silently turned into
+     * `vedio=0` — showing audio items on the PDF listing page instead of
+     * being scoped to transcribed content at all. This method reproduces
+     * `dump.php:76`'s already-correct pattern (`"(pdf > 0) AND hidden=0"`)
+     * instead, since that is what a PDF-listing page's "Most Downloaded"
+     * box should evidently be scoped to.
+     */
+    public function khotabMostDownloadedForPdf(): Collection
+    {
+        return DB::connection('main')->table('nuke_islamic_khotab')
+            ->select(['id', 'title', 'author', 'frame', 'hits', 'downcount', 'time'])
+            ->where('pdf', '>', 0)
+            ->where('hidden', '0')
+            ->orderByDesc('hits')
+            ->limit(5)
+            ->get();
+    }
+
+    /** IF-021's fix — same reasoning as `khotabMostDownloadedForPdf()` above, but scoped to one author (`khotab/author.php`'s `op=pdf` page). */
+    public function khotabMostDownloadedByAuthorForPdf(int $authorId): Collection
+    {
+        return DB::connection('main')->table('nuke_islamic_khotab')
+            ->select(['id', 'title', 'author', 'frame', 'hits', 'downcount', 'time'])
+            ->where('author', $authorId)
+            ->where('pdf', '>', 0)
+            ->where('hidden', '0')
+            ->orderByDesc('hits')
+            ->limit(5)
+            ->get();
+    }
+
+    /** IF-021's fix, "Newest" counterpart — `author.php` renders both boxes unconditionally regardless of op. */
+    public function khotabMostRecentByAuthorForPdf(int $authorId): Collection
+    {
+        return DB::connection('main')->table('nuke_islamic_khotab')
+            ->select(['id', 'title', 'author', 'frame', 'hits', 'downcount', 'time'])
+            ->where('author', $authorId)
+            ->where('pdf', '>', 0)
+            ->where('hidden', '0')
+            ->orderByDesc('time')
+            ->limit(5)
+            ->get();
+    }
+
+    /**
+     * `functions.php:1092-1141`'s `randomitems()` — picks a random khotab
+     * id and scans forward for the first row with a visual asset
+     * (`gif = 1 OR frame = 1`), falling back to scanning backward from the
+     * same random id if the forward scan finds nothing (gif/frame rows are
+     * sparse — a high random floor can land past the last match). Preserves
+     * the exact "PRIMARY KEY range scan instead of ORDER BY RAND()"
+     * optimization from prior-session performance work, not the original
+     * `ORDER BY RAND()` this function itself replaced.
+     */
+    public function khotabRandomFeatured(int $limit = 1): Collection
+    {
+        $maxId = (int) (DB::connection('main')->table('nuke_islamic_khotab')->max('id') ?? 0);
+        $randomId = random_int(1, max(1, $maxId));
+
+        $columns = ['kh.id', 'kh.channel_id', 'kh.author', 'kh.title', 'kh.comments', 'kh.time', 'kh.hits', 'ath.name', 'ath.prename'];
+
+        $forward = DB::connection('main')->table('nuke_islamic_khotab as kh')
+            ->leftJoin('nuke_islamic_authors as ath', 'kh.author', '=', 'ath.id')
+            ->where('kh.id', '>=', $randomId)
+            ->where(fn ($q) => $q->where('kh.gif', 1)->orWhere('kh.frame', 1))
+            ->orderBy('kh.id')
+            ->limit($limit)
+            ->get($columns);
+
+        if ($forward->isNotEmpty()) {
+            return $forward;
+        }
+
+        return DB::connection('main')->table('nuke_islamic_khotab as kh')
+            ->leftJoin('nuke_islamic_authors as ath', 'kh.author', '=', 'ath.id')
+            ->where('kh.id', '<', $randomId)
+            ->where(fn ($q) => $q->where('kh.gif', 1)->orWhere('kh.frame', 1))
+            ->orderByDesc('kh.id')
+            ->limit($limit)
+            ->get($columns);
+    }
+
+    /**
+     * `categories/category.php:119,129`'s sidebar — `topitems('hits',
+     * "hidden = 0 AND cat LIKE '%|{id}|%' and vedio ='1'", ...)`. Queried
+     * here via the `khotab_category_index` junction table, NOT the raw
+     * `cat LIKE` pattern — matching what `topitems()`'s own internal
+     * regex rewrite (functions.php:1006-1016, prior-session performance
+     * work) already turns this exact pattern into at runtime, and the
+     * same junction table `ContentListingService::khotabItemsByCategory()`
+     * already uses (Wave 2). Always `vedio=1` — `category.php`'s "audio"
+     * branch is fully commented-out dead code (both live branches set
+     * `$video=1`), so no audio variant exists to reproduce.
+     */
+    public function khotabMostDownloadedByCategory(int $categoryId): Collection
+    {
+        return DB::connection('main')->table('nuke_islamic_khotab as kh')
+            ->join('khotab_category_index as kci', function ($join) use ($categoryId) {
+                $join->on('kci.khotab_id', '=', 'kh.id')->where('kci.category_id', $categoryId);
+            })
+            ->where('kh.hidden', 0)
+            ->where('kh.vedio', 1)
+            ->select(['kh.id', 'kh.title', 'kh.author', 'kh.frame', 'kh.hits', 'kh.downcount', 'kh.time'])
+            ->orderByDesc('kh.hits')
+            ->limit(5)
+            ->get();
+    }
+
+    /** "Newest" counterpart to `khotabMostDownloadedByCategory()` above. */
+    public function khotabMostRecentByCategory(int $categoryId): Collection
+    {
+        return DB::connection('main')->table('nuke_islamic_khotab as kh')
+            ->join('khotab_category_index as kci', function ($join) use ($categoryId) {
+                $join->on('kci.khotab_id', '=', 'kh.id')->where('kci.category_id', $categoryId);
+            })
+            ->where('kh.hidden', 0)
+            ->where('kh.vedio', 1)
+            ->select(['kh.id', 'kh.title', 'kh.author', 'kh.frame', 'kh.hits', 'kh.downcount', 'kh.time'])
+            ->orderByDesc('kh.time')
+            ->limit(5)
+            ->get();
+    }
+
+    // ---- Wave 4 (post-Wave-4 addition): radio/index.php ----
+
+    /**
+     * `radio/index.php:140,149`'s two sidebar boxes — `topitems('hits',
+     * "vedio=Y", "time DESC", 10)`. Identical filter/order shape to
+     * `khotabMostRecentByVideoFlag()` above but LIMIT 10, not 5 — kept as
+     * its own method rather than an optional-parameter variant, matching
+     * this class's "one method per confirmed call-site shape" convention
+     * (see class docblock §3 and `khotabMostDownloadedByAuthor()`'s own
+     * note on the same point).
+     */
+    public function radioMostRecentByVideoFlag(bool $video): Collection
+    {
+        return $this->topitems(['vedio' => (int) $video], 'time', 10);
+    }
+
+    /**
+     * `radio/index.php:42-48`'s continuous-playlist query — a JOIN across
+     * `nuke_islamic_mirror`/`nuke_islamic_khotab`/`nuke_islamic_authors`
+     * filtered to `.mp3` links only, LIMIT 40. A genuinely different shape
+     * from every other method in this class (no single filter column, a
+     * 3-table JOIN, an OR'd LIKE across two columns) — not forced through
+     * the shared `query()`/`topitems()` helpers below.
+     *
+     * `ORDER BY khid DESC, linksize ASC` (not `RAND()`) — the legacy
+     * comment at this call site notes `RAND()` was intentionally left
+     * un-rewritten elsewhere in an earlier performance pass because the
+     * `.mp3`-filtered candidate set can't be narrowed by an id-range
+     * trick; reproduced here exactly as currently deployed, not as
+     * originally written.
+     *
+     * Data only, no presentation: which link (`main_link` vs
+     * `mirror_link`) is actually playable, and the resulting `pl_section`
+     * label, is a real per-row decision the legacy code makes at render
+     * time — kept in `RadioController` (Wave 4's established
+     * data/presentation split, see class docblock §5), not duplicated
+     * into this query.
+     */
+    public function radioPlaylist(int $limit = 40): Collection
+    {
+        return DB::connection('main')->table('nuke_islamic_mirror as mir')
+            ->leftJoin('nuke_islamic_khotab as kh', 'kh.id', '=', 'mir.khid')
+            ->leftJoin('nuke_islamic_authors as auth', 'auth.id', '=', 'kh.author')
+            ->where(function ($query) {
+                $query->where('kh.link', 'like', '%.mp3%')->orWhere('mir.link', 'like', '%.mp3%');
+            })
+            ->where('kh.broken', 0)
+            ->where('kh.hidden', 0)
+            ->select([
+                'kh.title', 'kh.id as khid', 'kh.vedio as media_type', 'kh.link as main_link',
+                'mir.time', 'mir.id as mirror_id', 'mir.link as mirror_link',
+                'auth.prename', 'auth.name as author_name',
+            ])
+            ->orderByDesc('khid')
+            ->orderBy('kh.linksize')
+            ->limit($limit)
+            ->get();
+    }
+
+    // ---- Wave 4 (post-Wave-4 addition): chat_room's lesson-browsing half (task 4.11) ----
+
+    /**
+     * `chat_room/functions.php`'s `most_chat_lessons("hits", $author_id)` —
+     * filters `location_id=10, hidden=0`, optional author, LIMIT 10. A
+     * seventh module for the P-016 sidebar shape, but location-scoped
+     * rather than group/category/channel-scoped like every prior one.
+     */
+    public function chatRoomMostViewedLessons(int $authorId = 0): Collection
+    {
+        return $this->chatRoomLessons('hits', $authorId);
+    }
+
+    /** `chat_room/functions.php`'s `most_chat_lessons("id", $author_id)` — "newest" here orders by `id DESC`, not a time column (same fallback shape as `liveStreamMostRecent()`). */
+    public function chatRoomMostRecentLessons(int $authorId = 0): Collection
+    {
+        return $this->chatRoomLessons('id', $authorId);
+    }
+
+    private function chatRoomLessons(string $orderColumn, int $authorId): Collection
+    {
+        $query = DB::connection('main')->table('nuke_islamic_khotab')
+            ->select(['id', 'title', 'vedio'])
+            ->where('location_id', 10)
+            ->where('hidden', 0);
+
+        if ($authorId > 0) {
+            $query->where('author', $authorId);
+        }
+
+        return $query->orderByDesc($orderColumn)->limit(10)->get();
+    }
+
+    /** Shared query shape behind the 4 `khotabMost*` methods above — `topitems()`'s fixed SELECT list/table, varying only the WHERE filters and ORDER BY column. */
+    private function topitems(array $filters, string $orderColumn, int $limit): Collection
+    {
+        $query = DB::connection('main')->table('nuke_islamic_khotab')
+            ->select(['id', 'title', 'author', 'frame', 'hits', 'downcount', 'time']);
+
+        foreach ($filters as $column => $value) {
+            $query->where($column, $value);
+        }
+
+        return $query->orderByDesc($orderColumn)->limit($limit)->get();
+    }
+
+    private function query(string $table, array $columns, ?string $filterColumn, mixed $filterValue, string $orderColumn, int $limit): Collection
+    {
+        $query = DB::connection('main')->table($table)->select($columns);
+
+        if ($filterColumn !== null && $filterValue !== null) {
+            $query->where($filterColumn, $filterValue);
+        }
+
+        return $query->orderByDesc($orderColumn)->limit($limit)->get();
+    }
+}
