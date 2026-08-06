@@ -111,4 +111,17 @@ return [
         'to' => '/social.htm',
     ],
 
+    // Roadmap task 3.4 (added post-Wave-4/-5-analysis). Every pretty URL
+    // this module was ever meant to have routes through the confirmed-
+    // absent new_modules.php (IF-026's pattern, routes/engagement.php's
+    // own comment) — only the raw file paths are genuinely reachable.
+    // `surveys/item.php` is NOT redirected here: it's a single file
+    // multiplexing 3 different behaviors (show/results/vote) purely via
+    // query string, which doesn't reduce to one clean redirect target —
+    // a real, honest limitation, not silently ignored.
+    'surveys/polls.php' => [
+        'type' => 'redirect',
+        'to' => '/polls',
+    ],
+
 ];

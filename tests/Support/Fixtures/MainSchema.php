@@ -208,6 +208,8 @@ class MainSchema
             $table->unsignedInteger('lastvisit')->nullable();
             $table->unsignedInteger('mirror')->default(0);
             $table->unsignedInteger('location_id')->nullable();
+            $table->string('uploader')->nullable();
+            $table->unsignedInteger('addeddate')->nullable();
         };
     }
 
@@ -425,6 +427,147 @@ class MainSchema
             $table->unsignedInteger('endip_num');
             $table->string('code')->nullable();
             $table->string('country')->nullable();
+        };
+    }
+
+    // ---- Wave 5 (Admin domain) ----
+
+    public static function nukeSurvey(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->increments('id');
+            $table->string('title')->nullable();
+            $table->text('openning')->nullable();
+            $table->text('finish')->nullable();
+            $table->string('start_date')->nullable();
+            $table->string('end_date')->nullable();
+            $table->unsignedTinyInteger('users_only')->default(0);
+            $table->unsignedTinyInteger('ip_restriction')->default(0);
+            $table->unsignedTinyInteger('anonymous')->default(0);
+            $table->unsignedTinyInteger('published')->default(0);
+            $table->string('editors')->nullable();
+            $table->string('groups')->nullable();
+            $table->unsignedInteger('questions')->default(0);
+            $table->unsignedInteger('submits')->default(0);
+        };
+    }
+
+    public static function nukeSurveyQuestions(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->increments('id');
+            $table->string('title')->nullable();
+            $table->string('des')->nullable();
+            $table->text('question_options')->nullable();
+            $table->unsignedTinyInteger('required')->default(0);
+            $table->unsignedTinyInteger('question_type')->default(1);
+            $table->unsignedInteger('max_sel_num')->nullable();
+            $table->unsignedInteger('survey_id')->default(0);
+            $table->unsignedInteger('weight')->default(0);
+        };
+    }
+
+    public static function nukeSurveyAnswers(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->increments('id');
+            $table->unsignedInteger('survey_id')->default(0);
+            $table->unsignedInteger('user_id')->default(0);
+            $table->string('ip')->nullable();
+            $table->unsignedInteger('mytime')->nullable();
+            $table->text('answers')->nullable();
+        };
+    }
+
+    public static function estebian(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->increments('id');
+            $table->string('username')->nullable();
+            $table->string('mobile')->nullable();
+            $table->string('email')->nullable();
+            $table->string('facebook')->nullable();
+            for ($i = 1; $i <= 11; $i++) {
+                $table->text("remarks{$i}")->nullable();
+            }
+        };
+    }
+
+    public static function nukeUploaders(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->increments('id');
+            $table->unsignedInteger('uid')->default(0);
+            $table->string('username')->nullable();
+            $table->string('email')->nullable();
+            $table->unsignedInteger('counter')->default(0);
+            $table->unsignedInteger('last_upload')->nullable();
+        };
+    }
+
+    public static function nukeIslamicLocations(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->increments('id');
+            $table->string('title')->nullable();
+            $table->text('des')->nullable();
+            $table->string('address')->nullable();
+            $table->string('country')->nullable();
+            $table->string('lng')->nullable();
+            $table->string('lat')->nullable();
+            $table->text('googlemap')->nullable();
+            $table->unsignedTinyInteger('type')->default(1);
+            $table->unsignedTinyInteger('hidden')->default(0);
+            $table->unsignedInteger('count')->default(0);
+        };
+    }
+
+    public static function nukeOptions(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->string('option_name')->primary();
+            $table->text('option_value')->nullable();
+        };
+    }
+
+    public static function nukePollDesc(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->increments('pollID');
+            $table->string('pollTitle')->nullable();
+            $table->unsignedInteger('timeStamp')->nullable();
+            $table->unsignedInteger('voters')->default(0);
+            $table->unsignedTinyInteger('artid')->default(0);
+        };
+    }
+
+    public static function nukePollData(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->unsignedInteger('pollID');
+            $table->unsignedTinyInteger('voteID');
+            $table->string('optionText')->nullable();
+            $table->unsignedInteger('optionCount')->default(0);
+        };
+    }
+
+    public static function room(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->increments('room_id');
+            $table->string('name')->nullable();
+            $table->string('des')->nullable();
+            $table->unsignedInteger('max_user')->nullable();
+            $table->unsignedTinyInteger('enable')->default(1);
+            $table->unsignedTinyInteger('enable_audio')->default(0);
+            $table->unsignedTinyInteger('enable_video')->default(0);
+            $table->unsignedTinyInteger('enable_white_board')->default(0);
+            $table->unsignedTinyInteger('member_only')->default(0);
+            $table->string('password')->nullable();
+            $table->string('welcome')->nullable();
+            $table->string('owner')->nullable();
+            $table->string('speaker')->nullable();
+            $table->unsignedInteger('sequence')->default(0);
         };
     }
 }

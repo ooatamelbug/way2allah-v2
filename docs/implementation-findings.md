@@ -348,6 +348,28 @@ Living record of undocumented legacy behavior discovered while implementing Blue
 
 ---
 
+## IF-034: `admincp/chat/edit_room.php` has no backend for its own edit form or its owner/speaker delete links — `admincp.md`'s "Editing is functional" classification for this file does not hold
+
+- **Location:** `admincp/chat/edit_room.php` (396 lines, read in full during Wave 5 task 5.5 implementation).
+- **Evidence:** the file renders a complete-looking room-edit form (name, open/closed status, welcome message, password, capacity, comment, 4 feature checkboxes) and, in its owner/speaker tables, real-looking delete links (`edit_room.php?op=delowner&roomid=...&userid=...`, `?op=delspeaker&...`). A full read of the file, and a targeted `grep -n "_POST\|op.*delowner\|op.*delspeaker"`, finds **zero** `$_POST` handling anywhere and **zero** `$_GET['op']` branching for `delowner`/`delspeaker` — only the two link `href`s exist, pointing at ops the file itself never checks for. This is a genuinely different shape from this module's other confirmed-dead flows (`authors/index.php`'s `die('hhhh')`, `locations/add.php`'s commented-out INSERT) — there is no dead code marking the intent, just an absence of any backend at all.
+- **Why this contradicts the existing audit:** `admincp.md` §2/§5/§7/§9 repeatedly classifies `chat/index.php` + `edit_room.php` together as "work and are the correct, original source" / "Editing is functional." That classification holds for `chat/index.php` (a plain SELECT + list, confirmed) but not for `edit_room.php` — this was not caught in the original audit pass.
+- **Decision:** Not reproduced. `ChatRoomAdminController::update()`/`removeOwner()`/`removeSpeaker()` (task 5.5) are real, working implementations built fresh, per ADR-0010 — there was nothing functional to port.
+- **Impact on the migration:** none on scope or sequencing — task 5.5 already budgeted "rebuild the room editor" as part of its own plan; this just confirms that framing was necessary, not optional. `admincp.md` corrected with a visible addendum, not a silent rewrite (see below).
+- **Test:** Done — `tests/Feature/Admin/ChatRoomAdminControllerTest.php`, proves both the room-update and owner-removal actions actually persist.
+
+---
+
+## IF-035: `chat_room/`'s live-room half has a real, page-level enforcement use of `nuke_authors.permissions` — the permissions blob is not sidebar-only sitewide, only within `admincp/`
+
+- **Location:** `chat_room/chat_room.php:19-38`, `chat_room/functions.php:20-27` (`list_chat_rooms()`); already documented, before Wave 5 began, in `docs/migration/modules/chat_room.md` §3 (Dependencies) — cross-referenced here for the first time.
+- **Evidence:** `chat_room/chat_room.php` (a public, non-admincp page — viewing a single live chat room) and `chat_room/functions.php`'s `list_chat_rooms()` (the public room-list page) both unserialize `$_SESSION['w2a']->admin->permissions` and check `in_array('chat', array_keys($current_user_permisions))`. A visitor whose session is *also* linked to an admin account holding **any** `chat`-module permission key can view/enter **disabled** rooms and see them in the room list; every other visitor is restricted to `enable=1` rooms only. `chat_room/functions.php:23`'s own comment states the business intent directly: *"this member is manager for chat rooms module."* This is real, confirmed, page-level authorization enforcement driven by the permissions blob — the same data structure Wave 5's verification review (`wave-5-verification-review.md` Finding 1) and decision-log #9/#10 characterized as enforcing nothing beyond `sidebar.php`'s nav-link visibility.
+- **Why this contradicts the existing audit:** it doesn't contradict `admincp.md` or decision-log #9/#10's specific claim about `admincp/` — an exhaustive re-grep of every `admincp/` feature directory (Finding 1, and a broader pattern-agnostic follow-up grep across all of `admincp/` for the literal substring `permissions`) still confirms no `admincp/` page anywhere enforces this data. What it corrects is an over-generalization introduced while implementing this round's Blueprint clarification (`00-master-migration-blueprint.md` §9): a sentence stating the permissions blob "only ever controlled admin-panel nav-link visibility, never page-level access" with no scope qualifier, which is false sitewide — this exact counter-example was already sitting in `chat_room.md`'s own Dependencies section, described there as *"the first confirmed sub-role/permission-scoped check found in the codebase, distinct from the blanket admin/superadmin gate every other module uses,"* but was never cross-referenced against decision-log #9 when it was originally written, nor against this round's Blueprint edit until this independent re-verification pass caught it.
+- **Decision:** No implementation change. This code path lives entirely in `chat_room/`'s **live voice-chat room** half (`chat_room.php`, `functions.php`'s room-list branch) — explicitly out of scope for both Wave 4 (task 4.11 covers only the recorded-lesson-browsing half, per that task's own docblock) and Wave 5 (Admin domain). It is deferred, unbuilt, gated on Business Confirmation #4, as Roadmap task 6.5. The Blueprint §9 sentence is corrected to read "...within `admincp/`, never page-level access" rather than an unqualified sitewide claim; decision-log #10's own Reason line gets the same narrowing.
+- **Impact on the migration:** none on Wave 5's scope, sequencing, or its permission-hardening decision, which concerns `admincp/` specifically and remains correct. Real impact is on task 6.5, not yet started: whoever implements it must make an explicit, documented decision about this rule — reproduce it as-is (Spatie `chat.*`-permission-holders can see disabled rooms) or supersede/harmonize it with Wave 5's new `admin.permission:{module}.{key}` model — rather than silently dropping or silently porting it. Flagged directly on task 6.5's Roadmap entry.
+- **Test:** N/A — no code was built or changed by this finding; `chat_room/`'s live-room half remains entirely unmigrated legacy PHP.
+
+---
+
 ## Index by module
 
 | Module | Findings |
@@ -365,7 +387,8 @@ Living record of undocumented legacy behavior discovered while implementing Blue
 | `vars` | IF-029 |
 | `vars_categories` / `categories` | IF-031 |
 | `radio` | IF-032 |
-| `chat_room` | IF-033 |
+| `chat_room` | IF-033, IF-035 |
+| `admincp` (Wave 5) | IF-034 |
 
 ## Open items requiring escalation beyond this log
 
