@@ -16,6 +16,23 @@ use Spatie\Permission\Traits\HasRoles;
  * aid, name, email, pwd, password, thumb, admlanguage, radminsuper,
  * permissions. `password` takes priority over the older `pwd` column when
  * both are present (same priority order as the legacy login code).
+ *
+ * `API` (Task 6.8 addition) — the 32-character key `backup.php:56-58,65`
+ * compares against a request's `APIKey` field. Confirmed column, not
+ * previously modeled since nothing before Task 6.8 read it.
+ *
+ * @property int $id
+ * @property int|null $uid
+ * @property string $aid
+ * @property string|null $name
+ * @property string|null $email
+ * @property string|null $pwd
+ * @property string|null $password
+ * @property string|null $thumb
+ * @property string|null $admlanguage
+ * @property bool $radminsuper
+ * @property string|null $permissions
+ * @property string|null $API
  */
 class AdminUser extends Model implements AuthenticatableContract
 {

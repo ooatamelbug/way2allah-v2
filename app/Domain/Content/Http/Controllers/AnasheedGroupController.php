@@ -4,16 +4,34 @@ namespace App\Domain\Content\Http\Controllers;
 
 use App\Domain\Content\Models\AnasheedGroup;
 use App\Domain\Content\Models\AnasheedItem;
+use App\Domain\Content\Services\ContentListingService;
 use App\Domain\Content\Services\ContentSidebarWidget;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\Response;
 
 /**
  * Replaces `anasheed/group.php` — Roadmap task 4.7. Public-only.
  *
- * `download_var_group_getright()` (the `.grx` GetRight-format group
- * download) is deliberately NOT ported — see `AnasheedItemController`'s
- * docblock.
+ * `download_var_group_getright()` (`var-series-{id}.grx`,
+ * `anasheed/group.php?op=down_serious`) is implemented below in
+ * `downloadGetright()` — confirmed real, live `.htaccess` rule
+ * (`.htaccess:100`) targeting this same file. Genuinely different from
+ * `CategoryDownItemsController`'s khotab `.grx` generator (IF-040/041),
+ * confirmed by direct reading of `anasheed/functions.php:266-304`, not
+ * assumed from that sibling:
+ * - The playlist `URL:` line points at this SITE'S OWN
+ *   `var-download-{id}.htm` redirect, not the raw external `link` column
+ *   directly (`functions.php:289`; the raw-`link` alternative is present
+ *   but commented out in the source, `:290` — a real, deliberate choice,
+ *   not dead code by accident).
+ * - Folder path is 2 levels (`المنوعات\{group title}\`), not 1.
+ * - **No `iconv()`/`windows-1256` re-encode at all** — `functions.php:301`
+ *   is a bare `echo $Content;`. The `Content-Type` header itself instead
+ *   reads `application/force-download; charset=utf-8, windows-1256` — a
+ *   genuinely malformed multi-value charset parameter, reproduced
+ *   verbatim, not corrected.
+ * - No `hidden` filter on the underlying query at all.
  *
  * Group 98's special case (`AnasheedItem::scopeInGroup()`, extracted from
  * `anasheed/functions.php:312`'s `list_anasheed()`) is no longer a
@@ -39,6 +57,40 @@ class AnasheedGroupController
         $groupModel->increment('hits');
 
         return view('anasheed.group', compact('groupModel', 'subGroups', 'items', 'mostDownloaded', 'mostRecent'));
+    }
+
+    public function downloadGetright(int $group, ContentListingService $listing): Response
+    {
+        $groupModel = AnasheedGroup::findOrFail($group);
+
+        $items = $listing->anasheedItemsForGroupDownload($group);
+
+        $content = '';
+        foreach ($items as $item) {
+            $extension = strtolower((string) pathinfo((string) $item->link, PATHINFO_EXTENSION));
+            $title = (string) $item->title;
+            $title = str_replace('\\', '-', $title);
+            $title = str_replace('/', '-', $title);
+            $title = str_replace('*', ' ', $title);
+            $title = str_replace('?', ' ', $title);
+            $title = str_replace('<', ' ', $title);
+            $title = str_replace('>', ' ', $title);
+            $title = str_replace('|', ' ', $title);
+            $title = str_replace('"', ' ', $title);
+            $title = str_replace(':', '_', $title);
+
+            $downloadUrl = url('/var-download-'.$item->id.'.htm');
+            $content .= "URL: {$downloadUrl}\r\nFile: C:\\Way2Allah\\المنوعات\\{$groupModel->title}\\{$title}.{$extension}.GetRight\r\n\r\n";
+        }
+
+        return response($content, 200, [
+            'Pragma' => 'public',
+            'Expires' => '0',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0, private',
+            'Content-Type' => 'application/force-download; charset=utf-8, windows-1256',
+            'Content-Disposition' => 'attachment; filename="Way2Allah-Anasheed-'.$groupModel->id.'.grx"',
+            'Content-Transfer-Encoding' => 'binary',
+        ]);
     }
 
     private function itemsForGroup(int $groupId): LengthAwarePaginator

@@ -16,11 +16,14 @@ use Illuminate\Contracts\View\View;
  * 1` — the "audio" case is fully commented-out dead code, not a real
  * second mode. Confirmed by a full read of the file, not assumed.
  *
+ * `op=var` (`ListVar()`, `var-category-{id}.htm`) is implemented below in
+ * `showAnasheed()` — confirmed live in production (Evidence Reconciliation
+ * pass), a separate method rather than a branch inside `show()` since it
+ * targets a different content type/table (`nuke_anasheed_anasheed`, not
+ * `nuke_islamic_khotab`) with its own distinct view.
+ *
  * Deliberately NOT reproduced this pass (real, but not confirmed
  * reachable from this specific page — deferred, not silently dropped):
- * - `op=var` (`ListVar()`) — a different content type (`vars` module,
- *   its own separate Blueprint-owned module), not part of this session's
- *   khotab-focused model graph.
  * - `cat_id == 487`'s hardcoded special case (`ListMediaCoverage()`) — an
  *   unexplained magic category id with no evident business reason found
  *   in code; a Business Confirmation candidate, not implemented blind.
@@ -52,5 +55,28 @@ class CategoryController
         $breadcrumbTrail = $categoryModel->breadcrumbTrail();
 
         return view('categories.show', compact('categoryModel', 'series', 'items', 'mostDownloaded', 'mostRecent', 'randomFeatured', 'breadcrumbTrail'));
+    }
+
+    /**
+     * `categories/category.php`'s `op=var` branch -> `ListVar()`.
+     * Confirmed via direct reading: the sidebar ("اخترنا لك هذه المادة"/
+     * "الأكثر تحميلا"/"جديد المواد") is rendered by the SAME unconditional
+     * `randomitems()`/`topitems()` calls `show()` above uses — both
+     * legacy functions hardcode `nuke_islamic_khotab` regardless of `$op`,
+     * so this page's sidebar shows khotab content even though its main
+     * listing is anasheed content. Reproduced exactly as found, not
+     * "fixed" to show anasheed sidebar data instead.
+     */
+    public function showAnasheed(int $category, ContentListingService $listing, ContentSidebarWidget $sidebar): View
+    {
+        $categoryModel = Category::findOrFail($category);
+
+        $items = $listing->anasheedItemsByCategory($category);
+        $mostDownloaded = $sidebar->khotabMostDownloadedByCategory($category);
+        $mostRecent = $sidebar->khotabMostRecentByCategory($category);
+        $randomFeatured = $sidebar->khotabRandomFeatured();
+        $breadcrumbTrail = $categoryModel->breadcrumbTrail();
+
+        return view('categories.show-anasheed', compact('categoryModel', 'items', 'mostDownloaded', 'mostRecent', 'randomFeatured', 'breadcrumbTrail'));
     }
 }

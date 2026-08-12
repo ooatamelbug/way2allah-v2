@@ -28,6 +28,26 @@ class MainSchema
             $table->string('pwd')->nullable();
             $table->string('password')->nullable();
             $table->boolean('radminsuper')->default(false);
+            // Task 6.8 addition — backup.php's API-key column.
+            $table->string('API')->nullable();
+            // NOT added here: `permissions` (the raw serialized blob
+            // `backupCategoryPermissions()` reads). Confirmed real legacy
+            // column, but deliberately excluded from this SHARED fixture —
+            // adding it here caused AdminUser::query()->first() to load it
+            // into every loaded instance's attributes, which shadows
+            // Spatie's own `permissions()` BelongsToMany relation for ANY
+            // AdminUser row app-wide (Eloquent's getAttribute() checks
+            // loaded attributes before relations), breaking
+            // PermissionControllerTest's real, unrelated
+            // getPermissionNames() call. This is a genuine, pre-existing
+            // production-relevant conflict between AdminUser's Spatie
+            // integration and the real `nuke_authors.permissions` column —
+            // not created by this fixture, only exposed by it. Reported,
+            // not fixed here (would require touching AdminUser.php/
+            // PermissionController.php, both out of this task's scope).
+            // BackupApiControllerTest/BackupApiKhotabUpdateBackupTest add
+            // this column locally via their own Schema::table() call
+            // instead of here, so no other test is affected.
         };
     }
 
@@ -86,6 +106,22 @@ class MainSchema
         return function (Blueprint $table) {
             $table->unsignedInteger('id')->primary();
             $table->string('adur')->nullable();
+            // Task 6.8 (KhotabUpdateBackup/put) addition — the remaining
+            // columns UpdateBackup()'s Adv metadata block writes.
+            $table->string('perf')->nullable();
+            $table->string('cright')->nullable();
+            $table->string('frate')->nullable();
+            $table->string('srate')->nullable();
+            $table->string('vres')->nullable();
+            $table->string('ares')->nullable();
+            $table->string('astr')->nullable();
+            $table->string('vstr')->nullable();
+            $table->string('abit')->nullable();
+            $table->string('vbit')->nullable();
+            $table->unsignedInteger('width')->nullable();
+            $table->unsignedInteger('height')->nullable();
+            $table->string('alist')->nullable();
+            $table->string('vlist')->nullable();
         };
     }
 
@@ -117,6 +153,19 @@ class MainSchema
             $table->unsignedInteger('count')->default(0);
             $table->unsignedTinyInteger('vedio')->default(0);
             $table->unsignedTinyInteger('hidden')->default(0);
+            // Task 6.3 addition — pages/ramadan.php's WHERE ramadan='1' filter.
+            $table->unsignedTinyInteger('ramadan')->default(0);
+        };
+    }
+
+    /** Task 6.3 addition — `00-database-schema.md`'s `nuke_islamic_setting` entry: `Id` (capitalized in the real schema), `option`, `value` (text), `edit_time`. Backs `pages/ramadan.php`'s `ramadan_counter` row. */
+    public static function nukeIslamicSetting(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->increments('Id');
+            $table->string('option')->nullable();
+            $table->text('value')->nullable();
+            $table->unsignedInteger('edit_time')->nullable();
         };
     }
 
@@ -160,6 +209,11 @@ class MainSchema
             $table->string('title')->nullable();
             $table->text('description')->nullable();
             $table->unsignedInteger('main_cat')->default(0);
+            // Added for Roadmap task 6.1 (fatawa) — showtree()'s/under_this_tasnif()'s
+            // q_count>0 filter, already a real nuke_w2a_cat column
+            // (00-database-schema.md), just not previously needed by any
+            // fixture-consuming test.
+            $table->unsignedInteger('q_count')->default(0);
         };
     }
 
@@ -210,6 +264,14 @@ class MainSchema
             $table->unsignedInteger('location_id')->nullable();
             $table->string('uploader')->nullable();
             $table->unsignedInteger('addeddate')->nullable();
+            $table->unsignedInteger('online')->default(0);
+            $table->unsignedInteger('percent')->nullable();
+            $table->unsignedInteger('checktime')->default(0);
+            // Task 6.8 (KhotabUpdateBackup) addition — backup.php's get/put columns.
+            $table->unsignedTinyInteger('down')->default(0);
+            $table->unsignedInteger('booking')->default(0);
+            $table->unsignedInteger('trial')->default(0);
+            $table->unsignedInteger('downloader')->nullable();
         };
     }
 
@@ -225,6 +287,15 @@ class MainSchema
             $table->unsignedTinyInteger('vedio')->nullable();
             $table->unsignedTinyInteger('hidden')->default(0);
             $table->unsignedInteger('time')->nullable();
+            $table->unsignedInteger('online')->default(0);
+            $table->unsignedInteger('percent')->nullable();
+            $table->unsignedInteger('checktime')->default(0);
+            // Task 6.8 (KhotabUpdateBackup) addition.
+            $table->unsignedTinyInteger('down')->default(0);
+            $table->unsignedInteger('booking')->default(0);
+            $table->unsignedInteger('trial')->default(0);
+            $table->unsignedTinyInteger('backupme')->default(0);
+            $table->unsignedInteger('downloader')->nullable();
         };
     }
 
@@ -236,6 +307,18 @@ class MainSchema
             $table->string('astr')->nullable();
             $table->unsignedInteger('width')->nullable();
             $table->unsignedInteger('height')->nullable();
+            // Task 6.8 (KhotabUpdateBackup/put) addition.
+            $table->string('perf')->nullable();
+            $table->string('cright')->nullable();
+            $table->string('frate')->nullable();
+            $table->string('srate')->nullable();
+            $table->string('vres')->nullable();
+            $table->string('ares')->nullable();
+            $table->string('abit')->nullable();
+            $table->string('vbit')->nullable();
+            $table->string('adur')->nullable();
+            $table->string('alist')->nullable();
+            $table->string('vlist')->nullable();
         };
     }
 
@@ -274,6 +357,20 @@ class MainSchema
             $table->unsignedTinyInteger('hidden')->default(0);
             $table->unsignedInteger('lastvisit')->nullable();
             $table->unsignedTinyInteger('fixed')->default(0);
+            // Added for Roadmap task 6.2 (advanced-search) — vedio/parent_id/
+            // weight/channel_id/author_id are already-documented real
+            // columns (AnasheedItem's own @property list), just not
+            // previously needed by any fixture-consuming test.
+            $table->unsignedTinyInteger('vedio')->default(1);
+            $table->unsignedInteger('parent_id')->nullable();
+            $table->integer('weight')->default(0);
+            $table->unsignedInteger('channel_id')->nullable();
+            $table->unsignedInteger('author_id')->nullable();
+            // Task 6.8 (KhotabUpdateBackup) addition.
+            $table->unsignedTinyInteger('down')->default(0);
+            $table->unsignedInteger('booking')->default(0);
+            $table->unsignedInteger('trial')->default(0);
+            $table->unsignedInteger('downloader')->nullable();
         };
     }
 
@@ -285,6 +382,11 @@ class MainSchema
             $table->unsignedInteger('hits')->default(0);
             $table->unsignedInteger('parent_id')->default(0);
             $table->text('description')->nullable();
+            // Added for Roadmap task 6.2 (advanced-search) — already-documented
+            // real columns (AnasheedGroup's own @property list).
+            $table->unsignedInteger('time')->nullable();
+            $table->unsignedInteger('channel_id')->nullable();
+            $table->unsignedInteger('author_id')->nullable();
         };
     }
 
@@ -297,6 +399,14 @@ class MainSchema
             $table->string('link')->nullable();
             $table->unsignedInteger('hits')->default(0);
             $table->unsignedInteger('linksize')->nullable();
+            // Task 6.8 (KhotabUpdateBackup) addition.
+            $table->unsignedTinyInteger('down')->default(0);
+            $table->unsignedInteger('booking')->default(0);
+            $table->unsignedInteger('trial')->default(0);
+            $table->unsignedTinyInteger('backupme')->default(0);
+            $table->unsignedInteger('downloader')->nullable();
+            $table->unsignedInteger('online')->default(0);
+            $table->unsignedInteger('checktime')->default(0);
         };
     }
 
@@ -308,6 +418,41 @@ class MainSchema
             $table->string('astr')->nullable();
             $table->unsignedInteger('width')->nullable();
             $table->unsignedInteger('height')->nullable();
+            // Task 6.8 (KhotabUpdateBackup/put) addition.
+            $table->string('perf')->nullable();
+            $table->string('cright')->nullable();
+            $table->string('frate')->nullable();
+            $table->string('srate')->nullable();
+            $table->string('vres')->nullable();
+            $table->string('ares')->nullable();
+            $table->string('abit')->nullable();
+            $table->string('vbit')->nullable();
+            $table->string('adur')->nullable();
+            $table->string('alist')->nullable();
+            $table->string('vlist')->nullable();
+        };
+    }
+
+    /** Task 6.8 (KhotabUpdateBackup/put) addition — `nuke_anasheed_advanced_m`, `put`'s cat=5 target (`backup.php:382-384`). No prior model or fixture existed for this table. */
+    public static function nukeAnasheedAdvancedM(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->unsignedInteger('id')->primary();
+            $table->string('perf')->nullable();
+            $table->string('cright')->nullable();
+            $table->string('frate')->nullable();
+            $table->string('srate')->nullable();
+            $table->string('vres')->nullable();
+            $table->string('ares')->nullable();
+            $table->string('astr')->nullable();
+            $table->string('vstr')->nullable();
+            $table->string('abit')->nullable();
+            $table->string('vbit')->nullable();
+            $table->string('adur')->nullable();
+            $table->unsignedInteger('width')->nullable();
+            $table->unsignedInteger('height')->nullable();
+            $table->string('alist')->nullable();
+            $table->string('vlist')->nullable();
         };
     }
 
@@ -370,6 +515,37 @@ class MainSchema
             $table->unsignedTinyInteger('sorah')->nullable();
             $table->string('link')->default('');
             $table->unsignedInteger('linksize')->nullable();
+            $table->unsignedInteger('online')->default(0);
+            $table->unsignedInteger('percent')->nullable();
+            $table->unsignedInteger('checktime')->default(0);
+            // Task 6.8 (KhotabUpdateBackup) addition.
+            $table->unsignedTinyInteger('down')->default(0);
+            $table->unsignedInteger('booking')->default(0);
+            $table->unsignedInteger('trial')->default(0);
+            $table->unsignedInteger('downloader')->nullable();
+        };
+    }
+
+    /** Task 6.8 (KhotabUpdateBackup/put) addition — `nuke_telawah_advanced`, `put`'s cat=3 target (`backup.php:374-375`). No prior model or fixture existed for this table. */
+    public static function nukeTelawahAdvanced(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->unsignedInteger('id')->primary();
+            $table->string('perf')->nullable();
+            $table->string('cright')->nullable();
+            $table->string('frate')->nullable();
+            $table->string('srate')->nullable();
+            $table->string('vres')->nullable();
+            $table->string('ares')->nullable();
+            $table->string('astr')->nullable();
+            $table->string('vstr')->nullable();
+            $table->string('abit')->nullable();
+            $table->string('vbit')->nullable();
+            $table->string('adur')->nullable();
+            $table->unsignedInteger('width')->nullable();
+            $table->unsignedInteger('height')->nullable();
+            $table->string('alist')->nullable();
+            $table->string('vlist')->nullable();
         };
     }
 
@@ -513,6 +689,7 @@ class MainSchema
             $table->text('des')->nullable();
             $table->string('address')->nullable();
             $table->string('country')->nullable();
+            $table->string('website')->nullable();
             $table->string('lng')->nullable();
             $table->string('lat')->nullable();
             $table->text('googlemap')->nullable();
@@ -568,6 +745,105 @@ class MainSchema
             $table->string('owner')->nullable();
             $table->string('speaker')->nullable();
             $table->unsignedInteger('sequence')->default(0);
+        };
+    }
+
+    // ---- Fatawa (Roadmap task 6.1) ------------------------------------
+
+    public static function nukeFatwaTopics(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->increments('id');
+            $table->string('topic_name')->nullable();
+            $table->text('description')->nullable();
+            $table->unsignedInteger('parent_id')->default(0);
+            $table->unsignedInteger('db_insertion_date')->nullable();
+            $table->unsignedInteger('author_id')->nullable();
+            $table->unsignedInteger('channel_id')->nullable();
+        };
+    }
+
+    public static function nukeFatwaGeneralQuestions(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->increments('id');
+            $table->text('question_text')->nullable();
+            $table->text('description')->nullable();
+            $table->string('topic_id')->nullable();
+            $table->unsignedInteger('num_view')->default(0);
+            $table->unsignedInteger('author_id')->nullable();
+            $table->unsignedInteger('channel_id')->nullable();
+        };
+    }
+
+    public static function nukeFatwaQuestions(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->increments('id');
+            $table->unsignedInteger('topic_id')->nullable();
+            $table->string('general_question_id')->nullable();
+            $table->text('question_text')->nullable();
+            $table->unsignedInteger('auther_id')->nullable();
+            $table->unsignedInteger('channel_id')->nullable();
+            $table->text('answer_text')->nullable();
+            $table->string('media_type')->nullable();
+            $table->string('media_link')->nullable();
+            $table->unsignedInteger('media_size')->nullable();
+            $table->string('place_of_fatwa')->nullable();
+            $table->string('date_of_fatwa')->nullable();
+            $table->unsignedInteger('db_insertion_date')->nullable();
+            $table->unsignedInteger('num_view')->default(0);
+            $table->unsignedInteger('num_download')->default(0);
+        };
+    }
+
+    /** Task 6.8 addition — `nuke_modules`, used here only for `backup.php`'s `WHERE title='BackUp'` admins-list lookup. */
+    public static function nukeModules(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->increments('id');
+            $table->string('title')->nullable();
+            $table->text('admins')->nullable();
+        };
+    }
+
+    /**
+     * Task 6.8 addition — `00-database-schema.md`'s `nuke_backup_sessions`
+     * entry. `active`'s real DEFAULT is confirmed UNKNOWN from PHP source
+     * alone (see `BackupSession`'s docblock) — `default(1)` here is this
+     * fixture's own inference (needed for CreateSession-then-LiveUpdate
+     * to be testable at all), not a claim about the real schema's actual
+     * DEFAULT clause.
+     */
+    public static function nukeBackupSessions(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->increments('id');
+            $table->unsignedBigInteger('uid')->nullable();
+            $table->unsignedInteger('createtime')->nullable();
+            $table->unsignedInteger('updatetime')->nullable();
+            $table->string('downloaded')->nullable();
+            $table->string('ip')->nullable();
+            $table->string('size')->nullable();
+            $table->string('count')->nullable();
+            $table->string('speed')->nullable();
+            $table->string('itemid')->nullable();
+            $table->string('catid')->nullable();
+            $table->boolean('active')->default(1);
+        };
+    }
+
+    /** Task 6.8 addition — `00-database-schema.md`'s `nuke_backup_booking` entry. Not yet written by any implemented operation (§`BackupBooking`'s docblock). */
+    public static function nukeBackupBooking(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->increments('id');
+            $table->unsignedBigInteger('uid')->nullable();
+            $table->unsignedInteger('createtime')->nullable();
+            $table->unsignedInteger('catid')->nullable();
+            $table->unsignedInteger('itemid')->nullable();
+            $table->unsignedInteger('sessionid')->nullable();
+            $table->string('ip')->nullable();
         };
     }
 }

@@ -22,5 +22,9 @@ class ContentServiceProvider extends ServiceProvider
         Event::listen(ContentViewed::class, RecordsView::class);
 
         Route::middleware('web')->group(base_path('routes/content.php'));
+        // Roadmap task 6.8 — a separate file (not appended to content.php)
+        // since backup.php is a machine-to-machine API contract, not a
+        // content-browsing page; see routes/backup.php's own docblock.
+        Route::middleware('web')->group(base_path('routes/backup.php'));
     }
 }

@@ -23,11 +23,12 @@ use Illuminate\Http\Request;
  * via `fopen()` like `KhotabItemController::download()`).
  *
  * `khotab_send_friend()`'s anasheed equivalent (`anasheed_send_friend()`)
- * and the `.grx` GetRight download-manager feature
- * (`download_var_group_getright()`) are deliberately NOT ported this
- * pass — an email side-feature and a download-accelerator format that
- * predate this deployment's likely actual usage, same deferred-scope
- * treatment as khotab's own `khotab_send_friend()`.
+ * is deliberately NOT ported this pass — an email side-feature, same
+ * deferred-scope treatment as khotab's own `khotab_send_friend()`.
+ * `download_var_group_getright()` (the `.grx` GetRight download-manager
+ * feature) is now implemented — see `AnasheedGroupController::
+ * downloadGetright()`, since it lives in `anasheed/group.php`, not this
+ * controller's own `anasheed/item.php`.
  */
 class AnasheedItemController
 {

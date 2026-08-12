@@ -283,3 +283,43 @@ it('khotabItemsByChannel: orders by time only, not weight (channels/functions.ph
     // id 2 has far lower weight but a later time — if weight were used, id 1 would lead.
     expect($results->pluck('id')->all())->toBe([2, 1]);
 });
+
+// ---- ramadanSeriesByYear (Task 6.3, pages/ramadan.php's authoritative boundaries) ----
+
+it('ramadanSeriesByYear: filters by ramadan=1 AND hidden=0, joins the author, and buckets by ramadan.php\'s own id boundaries', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Shaikh', 'prename' => 'Dr.']);
+    $db->table('nuke_islamic_series')->insert([
+        ['id' => 5000, 'title' => 'In 1434 bucket', 'author_id' => 1, 'ramadan' => 1, 'hidden' => 0, 'count' => 1, 'vedio' => 1],
+        ['id' => 12000, 'title' => 'In 1443 bucket', 'author_id' => 1, 'ramadan' => 1, 'hidden' => 0, 'count' => 1, 'vedio' => 1],
+        ['id' => 12001, 'title' => 'Not flagged ramadan, must not appear', 'author_id' => 1, 'ramadan' => 0, 'hidden' => 0, 'count' => 1, 'vedio' => 1],
+        ['id' => 12002, 'title' => 'Hidden, must not appear', 'author_id' => 1, 'ramadan' => 1, 'hidden' => 1, 'count' => 1, 'vedio' => 1],
+    ]);
+
+    $results = $this->service->ramadanSeriesByYear();
+
+    expect(array_keys($results))->toBe([1447, 1446, 1444, 1443, 1442, 1441, 1440, 1439, 1438, 1437, 1436, 1435, 1434]);
+    expect($results[1434]->pluck('title')->all())->toBe(['In 1434 bucket']);
+    expect($results[1443]->pluck('title')->all())->toBe(['In 1443 bucket']);
+    expect($results[1442])->toHaveCount(0);
+});
+
+it('ramadanSeriesByYear: has no 1445 bucket at all — ramadan.php\'s own current section list skips it (merged into 1446, unlike ramadan-archive.php\'s duplicate-bugged split)', function () {
+    $results = $this->service->ramadanSeriesByYear();
+
+    expect(array_key_exists(1445, $results))->toBeFalse();
+});
+
+it('ramadanSeriesByYear: the 1447 bucket is time-based (>= the confirmed 2026-02-09 threshold), not id-based', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Shaikh']);
+    $threshold = strtotime('2026-02-09 00:00:00');
+    $db->table('nuke_islamic_series')->insert([
+        ['id' => 1, 'title' => 'Before threshold, must not appear in 1447', 'author_id' => 1, 'ramadan' => 1, 'hidden' => 0, 'time' => $threshold - 1, 'count' => 1, 'vedio' => 1],
+        ['id' => 2, 'title' => 'At threshold, appears in 1447', 'author_id' => 1, 'ramadan' => 1, 'hidden' => 0, 'time' => $threshold, 'count' => 1, 'vedio' => 1],
+    ]);
+
+    $results = $this->service->ramadanSeriesByYear();
+
+    expect($results[1447]->pluck('title')->all())->toBe(['At threshold, appears in 1447']);
+});

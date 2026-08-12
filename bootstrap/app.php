@@ -12,7 +12,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Roadmap task 6.8 — /backup.php is a machine-to-machine content-
+        // backup API; its external client cannot supply a Laravel CSRF
+        // token (it never has, per the confirmed legacy contract), so
+        // this exact path is exempted rather than left to 419 on every
+        // real call. No other route is exempted.
+        $middleware->validateCsrfTokens(except: [
+            'backup.php',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

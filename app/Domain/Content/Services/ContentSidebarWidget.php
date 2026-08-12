@@ -388,6 +388,43 @@ class ContentSidebarWidget
             ->get();
     }
 
+    /**
+     * `categories/series.php:120`'s sidebar variant — confirmed, by direct
+     * reading, to use `topitems('hits', "cat LIKE '%|$cat_id|%' and vedio
+     * ='1'", ...)` with **no `hidden=0` filter**, unlike `category.php`'s
+     * otherwise-identical widget (`khotabMostDownloadedByCategory()`
+     * above, which does filter `hidden`). A real, confirmed difference
+     * between the two pages' sidebars — not reused/collapsed into the
+     * `category.php` version, which would silently drop hidden items this
+     * page's real query includes.
+     */
+    public function khotabMostDownloadedByCategoryForSeries(int $categoryId): Collection
+    {
+        return DB::connection('main')->table('nuke_islamic_khotab as kh')
+            ->join('khotab_category_index as kci', function ($join) use ($categoryId) {
+                $join->on('kci.khotab_id', '=', 'kh.id')->where('kci.category_id', $categoryId);
+            })
+            ->where('kh.vedio', 1)
+            ->select(['kh.id', 'kh.title', 'kh.author', 'kh.frame', 'kh.hits', 'kh.downcount', 'kh.time'])
+            ->orderByDesc('kh.hits')
+            ->limit(5)
+            ->get();
+    }
+
+    /** "Newest" counterpart to `khotabMostDownloadedByCategoryForSeries()` above — same no-`hidden`-filter difference, `categories/series.php:130`. */
+    public function khotabMostRecentByCategoryForSeries(int $categoryId): Collection
+    {
+        return DB::connection('main')->table('nuke_islamic_khotab as kh')
+            ->join('khotab_category_index as kci', function ($join) use ($categoryId) {
+                $join->on('kci.khotab_id', '=', 'kh.id')->where('kci.category_id', $categoryId);
+            })
+            ->where('kh.vedio', 1)
+            ->select(['kh.id', 'kh.title', 'kh.author', 'kh.frame', 'kh.hits', 'kh.downcount', 'kh.time'])
+            ->orderByDesc('kh.time')
+            ->limit(5)
+            ->get();
+    }
+
     // ---- Wave 4 (post-Wave-4 addition): radio/index.php ----
 
     /**
@@ -478,6 +515,102 @@ class ContentSidebarWidget
         }
 
         return $query->orderByDesc($orderColumn)->limit(10)->get();
+    }
+
+    // ---- Fatawa (Roadmap task 6.1) ------------------------------------
+
+    /**
+     * `fatawa/functions.php:679-684` `mostdownload($topic_id)`'s
+     * category-scoped branch (the only branch legacy's own call sites
+     * actually exercise — `tobics.php`/`subtobics.php` both pass a
+     * `nuke_w2a_cat` category id as this parameter, despite its
+     * `$topic_id` name; the `$auther_id`/`$channel` branches of the same
+     * legacy function are covered separately, not here). Preserves the
+     * exact nested-subquery shape: `nuke_fatwa_questions.topic_id IN
+     * (SELECT id FROM nuke_fatwa_topics WHERE parent_id = <category>)`.
+     */
+    public function fatwaMostDownloadedByCategory(int $categoryId): Collection
+    {
+        return DB::connection('main')->table('nuke_fatwa_questions')
+            ->whereIn('topic_id', function ($query) use ($categoryId) {
+                $query->select('id')->from('nuke_fatwa_topics')->where('parent_id', $categoryId);
+            })
+            ->select(['id', 'question_text', 'general_question_id', 'topic_id'])
+            ->orderByDesc('num_download')
+            ->limit(10)
+            ->get();
+    }
+
+    /** "Newest" counterpart to `fatwaMostDownloadedByCategory()` above — `recentlyadd()`'s matching branch, `ORDER BY db_insertion_date DESC`. */
+    public function fatwaMostRecentByCategory(int $categoryId): Collection
+    {
+        return DB::connection('main')->table('nuke_fatwa_questions')
+            ->whereIn('topic_id', function ($query) use ($categoryId) {
+                $query->select('id')->from('nuke_fatwa_topics')->where('parent_id', $categoryId);
+            })
+            ->select(['id', 'question_text', 'general_question_id', 'topic_id'])
+            ->orderByDesc('db_insertion_date')
+            ->limit(10)
+            ->get();
+    }
+
+    /**
+     * `mostdownload()`'s channel-scoped branch (`functions.php:683`,
+     * `channel_fatawa.php:153`'s `mostdownload(0,0,$id)` call) — unlike
+     * the author branch below, this one's `WHERE channel_id=` filter is
+     * NOT commented out in legacy; genuinely scoped, reproduced as such.
+     */
+    public function fatwaMostDownloadedByChannel(int $channelId): Collection
+    {
+        return DB::connection('main')->table('nuke_fatwa_questions')
+            ->where('channel_id', $channelId)
+            ->select(['id', 'question_text', 'general_question_id', 'topic_id'])
+            ->orderByDesc('num_download')
+            ->limit(10)
+            ->get();
+    }
+
+    /** "Newest" counterpart to `fatwaMostDownloadedByChannel()` above. */
+    public function fatwaMostRecentByChannel(int $channelId): Collection
+    {
+        return DB::connection('main')->table('nuke_fatwa_questions')
+            ->where('channel_id', $channelId)
+            ->select(['id', 'question_text', 'general_question_id', 'topic_id'])
+            ->orderByDesc('db_insertion_date')
+            ->limit(10)
+            ->get();
+    }
+
+    /**
+     * `mostdownload()`'s author-scoped branch (`functions.php:682`,
+     * `auther_profile.php:73`'s `mostdownload(0,$auther_id)` call).
+     * **Confirmed, re-verified directly: this branch's `WHERE auther_id=`
+     * filter is commented out in legacy source** (`functions.php:682`,
+     * `/*WHERE auther_id =".$auther_id." *&#47;` — a literal PHP comment
+     * around the filter, dead code). The query is therefore genuinely
+     * sitewide/unscoped — every author's page shows the identical global
+     * top-10-most-downloaded list. **Preserved exactly, not "fixed" to
+     * actually filter by author** — this is Behavior First: the confirmed
+     * legacy behavior is the same 10 questions on every author's page,
+     * not per-author filtering the code only appears to promise.
+     */
+    public function fatwaMostDownloadedSitewide(): Collection
+    {
+        return DB::connection('main')->table('nuke_fatwa_questions')
+            ->select(['id', 'question_text', 'general_question_id', 'topic_id'])
+            ->orderByDesc('num_download')
+            ->limit(10)
+            ->get();
+    }
+
+    /** "Newest" counterpart to `fatwaMostDownloadedSitewide()` above — same commented-out-filter behavior, `recentlyadd()`'s matching branch. */
+    public function fatwaMostRecentSitewide(): Collection
+    {
+        return DB::connection('main')->table('nuke_fatwa_questions')
+            ->select(['id', 'question_text', 'general_question_id', 'topic_id'])
+            ->orderByDesc('db_insertion_date')
+            ->limit(10)
+            ->get();
     }
 
     /** Shared query shape behind the 4 `khotabMost*` methods above — `topitems()`'s fixed SELECT list/table, varying only the WHERE filters and ORDER BY column. */

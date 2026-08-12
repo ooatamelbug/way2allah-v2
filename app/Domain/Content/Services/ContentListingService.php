@@ -388,6 +388,133 @@ class ContentListingService
     }
 
     /**
+     * `categories/downitems.php`'s own inline SQL (`khotab-series-{id}.grx`
+     * / `khotab-series-{id}-{cat}.grx`) — a genuinely different shape from
+     * `khotabItemsByCategory()` above: no `vedio` filter, no `group_id`
+     * filter, and the `khotab_category_index` join is conditional
+     * (`$cat_id>0`) rather than always applied. Confirmed by direct
+     * reading, not assumed from the similarly-shaped sibling method.
+     */
+    public function khotabLinksForSeriesDownload(int $seriesId, ?int $categoryId): Collection
+    {
+        $query = DB::connection('main')->table('nuke_islamic_khotab as kh');
+
+        if (! empty($categoryId)) {
+            $query->join('khotab_category_index as kci', function ($join) use ($categoryId) {
+                $join->on('kci.khotab_id', '=', 'kh.id')->where('kci.category_id', $categoryId);
+            });
+        }
+
+        return $query
+            ->where('kh.ser_id', $seriesId)
+            ->where('kh.hidden', '0')
+            ->select(['kh.id', 'kh.link', 'kh.title'])
+            ->get();
+    }
+
+    /**
+     * `anasheed/functions.php:266-304`'s `download_var_group_getright()`
+     * (`var-series-{id}.grx`) — confirmed a genuinely different query
+     * shape from `khotabLinksForSeriesDownload()` above: no `hidden`
+     * filter at all, ordered by `order_in_group DESC` (not unordered),
+     * and — critically — the caller does NOT use `link` for the playlist
+     * URL (see `AnasheedGroupController::downloadGetright()`'s own
+     * docblock for why `id` is selected instead).
+     */
+    public function anasheedItemsForGroupDownload(int $groupId): Collection
+    {
+        return DB::connection('main')->table('nuke_anasheed_anasheed as an')
+            ->where('an.group_id', $groupId)
+            ->orderByDesc('an.order_in_group')
+            ->select(['an.id', 'an.title', 'an.link'])
+            ->get();
+    }
+
+    /**
+     * categories/functions.php ListVar() — categories/category.php's
+     * `op=var` branch (`var-category-{id}.htm`). Filters `nuke_anasheed_anasheed`
+     * by the SAME pipe-delimited `cat_id LIKE '%|$id|%'` pattern ListGroup()
+     * uses on khotab's `cat` column — a distinct table/column pair from
+     * `khotabItemsByCategory()`'s junction-table approach above, reproduced
+     * as found, not normalized. No `hidden` override, no ORDER BY (legacy
+     * has none — confirmed by direct reading, not an omission).
+     */
+    public function anasheedItemsByCategory(int $categoryId): Collection
+    {
+        return DB::connection('main')->table('nuke_anasheed_anasheed as ana')
+            ->leftJoin('nuke_anasheed_advanced as ad', 'ana.id', '=', 'ad.id')
+            ->leftJoin('nuke_sat_channels as ch', 'ana.channel_id', '=', 'ch.id')
+            ->where('ana.cat_id', 'like', '%|'.$categoryId.'|%')
+            ->where('ana.hidden', '0')
+            ->select([
+                'ana.id', 'ana.channel_id', 'ch.title as channel', 'ana.title', 'ana.comments',
+                'ana.mytime as time', 'ana.hits', 'ad.adur',
+            ])
+            ->get();
+    }
+
+    /**
+     * `categories/tree.php`'s `showtree()` — `categories.htm`'s flat
+     * category-tree source data (`op`-less/default branch: `video_count`
+     * filter). The 3-level hierarchy itself (top-level -> group -> leaf,
+     * matched by `main_cat`) is built from this single flat result in the
+     * Blade view, exactly mirroring `showtree()`'s own approach (PHP loops
+     * over one flat array, not recursive SQL or eager-loaded relations).
+     * `ksort($resultcat)` in the legacy source is a no-op (the array is
+     * already sequentially-keyed from `get_results()`) — not reproduced.
+     */
+    public function categoryTree(): Collection
+    {
+        return DB::connection('main')->table('nuke_w2a_cat')
+            ->where('video_count', '>', 0)
+            ->orderBy('title')
+            ->orderByDesc('id')
+            ->select(['id', 'title', 'main_cat'])
+            ->get();
+    }
+
+    /**
+     * `categories/tree.php`'s `showtree()`, `op=var` branch (`anasheed_count`
+     * filter, `var-categories.htm`) — same shared function as
+     * `categoryTree()` above, parameterized differently by the legacy file
+     * itself; a separate method here rather than a `$field` parameter,
+     * matching this class's own one-method-per-confirmed-query-shape
+     * convention. Every node this tree produces links to
+     * `var-category-{id}.htm`, already implemented
+     * (`CategoryController::showAnasheed()`).
+     */
+    public function anasheedCategoryTree(): Collection
+    {
+        return DB::connection('main')->table('nuke_w2a_cat')
+            ->where('anasheed_count', '>', 0)
+            ->orderBy('title')
+            ->orderByDesc('id')
+            ->select(['id', 'title', 'main_cat'])
+            ->get();
+    }
+
+    /**
+     * `categories/tree.php`'s `showtree()`, `op=fatawa` branch (`q_count`
+     * filter, `fatawa-categories.htm`) — same shared function/pattern as
+     * `categoryTree()`/`anasheedCategoryTree()` above. Every node this tree
+     * produces links to `fatawa-category-{id}.htm`, whose own legacy
+     * source (`fatawa/category.php`) is confirmed unrecoverable (IF-038,
+     * Fatawa Categories Source Recovery pass) — those links are not
+     * expected to resolve, and no redirect/replacement is implemented for
+     * them here. This method covers only the tree page's own data, which
+     * is independently complete and verified.
+     */
+    public function fatawaCategoryTree(): Collection
+    {
+        return DB::connection('main')->table('nuke_w2a_cat')
+            ->where('q_count', '>', 0)
+            ->orderBy('title')
+            ->orderByDesc('id')
+            ->select(['id', 'title', 'main_cat'])
+            ->get();
+    }
+
+    /**
      * `khotab/dump.php`'s own inline SQL (a THIRD distinct PDF-listing
      * shape, alongside `ListKhotab(mode='pdf')`/`khotabItemsWithPdf()` and
      * `ListPDF()`/`khotabPdfItemsByAuthor()` above) — `SELECT f.*, th.id as
@@ -631,6 +758,545 @@ class ContentListingService
             ->orderByDesc('kh.weight')
             ->select(['kh.id', 'kh.title', 'kh.author', 'kh.link', 'kh.hits', 'kh.downcount', 'kh.time', 'kh.ser_id'])
             ->get();
+    }
+
+    /**
+     * `chat_room/alhedaya_room.php:79-81`'s author-listing query — a
+     * genuinely different shape from the 3 above (author-*of*-a-location,
+     * not author-*at*-a-location's groups/series/items): joins
+     * `nuke_islamic_authors_location` for the location-scoped `count`,
+     * ordered `BINARY name ASC`. That file hardcodes `location=10`; this
+     * method is the generalization used by `LocationController::show()`
+     * for any location (Wave C, "Public Locations & Da'wah Registration
+     * Surfaces").
+     */
+    public function authorsByLocation(int $locationId): Collection
+    {
+        return DB::connection('main')->table('nuke_islamic_authors as auth')
+            ->join('nuke_islamic_authors_location as loc', 'loc.author_id', '=', 'auth.id')
+            ->where('loc.location_id', $locationId)
+            ->where('auth.hidden', '0')
+            ->orderBy('auth.name')
+            ->select(['auth.id', 'auth.name', 'auth.prename', 'loc.count'])
+            ->get();
+    }
+
+    // ---- Fatawa (Roadmap task 6.1) ------------------------------------
+
+    /**
+     * `fatawa/functions.php:354-359` `get_all_tasnifat($id)` — fatwa topics
+     * directly under one category. `$id` is a `nuke_w2a_cat` category id
+     * (`FatwaTopic::category()`, not self-referential — see that model's
+     * docblock). Legacy has no `ORDER BY` on this query — none added here
+     * either, matching exactly rather than inventing an ordering.
+     *
+     * Legacy paginates via `.htaccess`'s confirmed `fatawa-topics-{cat_id}-{page}.htm`
+     * (the *only* rule for this page — no 1-parameter variant exists) and
+     * `w2a_config.php`'s manual `$perpage=25`/`$offset` mechanism —
+     * reproduced here as Laravel's own `paginate()`, per the approved
+     * technical plan's explicit instruction not to recreate the
+     * page/offset pattern that was the subject of decision-log #17's fix.
+     */
+    public function fatwaTopicsByCategory(int $categoryId, int $page = 1): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    {
+        return DB::connection('main')->table('nuke_fatwa_topics')
+            ->where('parent_id', $categoryId)
+            ->paginate(25, ['*'], 'page', $page);
+    }
+
+    /**
+     * `fatawa/functions.php:403-408` `get_all_questions($id, $cat_id)` —
+     * general questions under one topic. **Confirmed exact-match, not a
+     * `LIKE` multi-membership match**: legacy's own query is
+     * `WHERE topic_id='|{$id}|'`, matching only general questions whose
+     * `topic_id` string is *exactly* one pipe-wrapped id — a
+     * single-topic-only match, despite the column's pipe-delimited
+     * multi-membership *storage* format (Option A, preserved as found,
+     * not "corrected" to a `LIKE '%|id|%'` match this legacy function
+     * never actually performs). No `ORDER BY` in legacy — none added here.
+     *
+     * Paginated the same way as `fatwaTopicsByCategory()` above — see
+     * that method's docblock.
+     */
+    public function fatwaGeneralQuestionsByTopic(int $topicId, int $page = 1): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    {
+        return DB::connection('main')->table('nuke_fatwa_general_questions')
+            ->where('topic_id', "|{$topicId}|")
+            ->paginate(25, ['*'], 'page', $page);
+    }
+
+    /**
+     * `fatawa/answer.php:62-67` / `answer2.php` (identical query, both
+     * files — `fatawa.md` §5's confirmed near-duplicate finding) — every
+     * scholar answer for one general question, joined with the answering
+     * author. Same exact-match convention as above:
+     * `question.general_question_id='|".$q."|'`. This is the shared query
+     * behind both `single.php`'s one-answer view and `answer.php`/`answer2.php`'s
+     * all-answers view — the two legacy files differ only in markup, not
+     * in this query (`fatawa.md` §5), so one service method serves both.
+     */
+    public function fatwaQuestionsForGeneralQuestion(int $generalQuestionId): Collection
+    {
+        return DB::connection('main')->table('nuke_fatwa_questions as q')
+            ->join('nuke_islamic_authors as auth', 'auth.id', '=', 'q.auther_id')
+            ->where('q.general_question_id', "|{$generalQuestionId}|")
+            ->select(['q.*', 'auth.name as author_name', 'auth.prename as author_prename'])
+            ->get();
+    }
+
+    /** `more.php:8` — latest 50 individual answers, joined with the answering author, no pagination in legacy (a flat `LIMIT 50`, no `page`/`offset` — reproduced exactly, no `.htaccess` page parameter exists for `more-fatawa.htm` either). */
+    public function fatwaLatestQuestions(int $limit = 50): Collection
+    {
+        return DB::connection('main')->table('nuke_fatwa_questions as f')
+            ->join('nuke_islamic_authors as auth', 'f.auther_id', '=', 'auth.id')
+            ->orderByDesc('f.id')
+            ->limit($limit)
+            ->select(['f.*', 'auth.id as auth_id', 'auth.prename as auth_prename', 'auth.name as auth_name'])
+            ->get();
+    }
+
+    /**
+     * `fatawa/functions.php:454-461` `get_all_questions_date($date)` —
+     * individual answers (`nuke_fatwa_questions`, not the general-question
+     * table — confirmed by the query's own column selection and join)
+     * added on one exact calendar date, joined with the answering author.
+     * `$date` must already be normalized to `Y-m-d` by the caller (legacy
+     * does this via `date('Y-m-d', strtotime($date))` before calling this
+     * function, `fatwa-today.php:16` — reproduced the same way in
+     * `FatwaDayController`, not inside this method).
+     */
+    public function fatwaQuestionsByDate(string $date, int $page = 1): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    {
+        return DB::connection('main')->table('nuke_fatwa_questions as q')
+            ->join('nuke_islamic_authors as auth', 'q.auther_id', '=', 'auth.id')
+            ->where('q.db_insertion_date', $date)
+            ->select(['q.*', 'auth.id as auth_id', 'auth.prename as auth_prename', 'auth.name as auth_name'])
+            ->paginate(25, ['*'], 'page', $page);
+    }
+
+    /**
+     * `fatawa/fatwa-today.php:26-28` — the "featured questions" box: 4
+     * individual answers picked via a hardcoded random `OFFSET`
+     * (`rand(1,7400)`), joined to their topic by a **plain equality**
+     * `question.topic_id=topic.id` (confirmed: `nuke_fatwa_questions.topic_id`
+     * is a plain integer reference here, not the pipe-delimited format
+     * `general_question_id`/`nuke_fatwa_general_questions.topic_id` use —
+     * a genuinely different column shape on the same table). **The `7400`
+     * ceiling is legacy's own hardcoded assumption about table size,
+     * reproduced exactly, not replaced with a `COUNT()`-derived or
+     * `ORDER BY RAND()` alternative** — a crude mechanism, preserved as
+     * found per Behavior First.
+     */
+    public function fatwaRandomFeatured(int $limit = 4, int $offsetCeiling = 7400): Collection
+    {
+        return DB::connection('main')->table('nuke_fatwa_questions as question')
+            ->join('nuke_fatwa_topics as topic', 'question.topic_id', '=', 'topic.id')
+            ->limit($limit)
+            ->offset(random_int(1, $offsetCeiling))
+            ->select(['question.*', 'topic.parent_id'])
+            ->get();
+    }
+
+    /**
+     * `fatawa-channels.php:23-24` — channels that have at least one fatwa
+     * question, ordered by title. **`$perpage=30` here, not the sitewide
+     * default 25** (`fatawa-channels.php:5`, a local override confirmed by
+     * direct re-read — preserved, not normalized to 25).
+     */
+    public function fatwaChannelsWithQuestions(int $page = 1): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    {
+        return DB::connection('main')->table('nuke_sat_channels')
+            ->whereIn('id', function ($query) {
+                $query->select('channel_id')->distinct()->from('nuke_fatwa_questions');
+            })
+            ->orderBy('title')
+            ->paginate(30, ['*'], 'page', $page);
+    }
+
+    /**
+     * `fatawa/functions.php:524-534` `get_all_channel_questions($id)` — a
+     * genuinely multi-step legacy query, reproduced in the same shape
+     * rather than optimized into a single join (Behavior First; the N+1
+     * per-row author lookup below is legacy's own shape, not introduced
+     * here): (1) paginate individual answers by `channel_id`; (2) collect
+     * their general-question ids (pipe-stripped); (3) fetch those general
+     * questions, ordered by `question_text`; (4) for each, resolve its
+     * topic and one matching author via legacy's own correlated-subquery
+     * pattern (`functions.php:539`, `answer_text`/`channel_id`/
+     * `general_question_id` match, `limit 1` — arbitrary if more than one
+     * row matches, same as legacy).
+     *
+     * Legacy's raw `WHERE id IN ($ids)` would break (empty-parenthesis SQL
+     * error) if no answers exist for this channel — not reproduced;
+     * Laravel's `whereIn()` on an empty array safely returns no rows
+     * instead, a correctness guard for an edge case, not an observable
+     * behavior change for any channel that actually has content.
+     */
+    public function fatwaQuestionsForChannel(int $channelId, int $page = 1): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    {
+        $answers = DB::connection('main')->table('nuke_fatwa_questions')
+            ->where('channel_id', $channelId)
+            ->paginate(25, ['*'], 'page', $page);
+
+        $generalQuestionIds = $answers->getCollection()
+            ->map(fn ($row) => (int) str_replace('|', '', (string) $row->general_question_id))
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values();
+
+        $generalQuestions = DB::connection('main')->table('nuke_fatwa_general_questions')
+            ->whereIn('id', $generalQuestionIds)
+            ->orderBy('question_text')
+            ->get()
+            ->map(function ($question) use ($channelId) {
+                $topicId = (int) str_replace('|', '', (string) $question->topic_id);
+                $question->topic = $topicId > 0
+                    ? DB::connection('main')->table('nuke_fatwa_topics')->find($topicId)
+                    : null;
+
+                $question->author = DB::connection('main')->table('nuke_islamic_authors')
+                    ->whereIn('id', function ($query) use ($channelId, $question) {
+                        $query->select('auther_id')->from('nuke_fatwa_questions')
+                            ->where('channel_id', $channelId)
+                            ->where('general_question_id', "|{$question->id}|");
+                    })
+                    ->limit(1)
+                    ->first();
+
+                return $question;
+            });
+
+        $answers->setCollection($generalQuestions);
+
+        return $answers;
+    }
+
+    /**
+     * `fatawa/functions.php:622-634` `get_all_auther_questions($auther_id)`
+     * — same multi-step shape as `fatwaQuestionsForChannel()` above, minus
+     * the per-row author lookup (already known — it's this author).
+     * **Legacy's own pagination `count` is the count of individual answer
+     * rows, not the count of distinct general questions actually
+     * returned** (`functions.php:629`, `count($allquestions)` before
+     * dedup) — a pre-existing legacy inaccuracy, not reproduced here since
+     * Laravel's own `paginate()` computes a correct total from the actual
+     * result set; this is a pagination-count correctness fix, not a
+     * content/reachability change.
+     */
+    public function fatwaGeneralQuestionsByAuthor(int $autherId, int $page = 1): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    {
+        $generalQuestionIds = DB::connection('main')->table('nuke_fatwa_questions')
+            ->where('auther_id', $autherId)
+            ->pluck('general_question_id')
+            ->map(fn ($id) => (int) str_replace('|', '', (string) $id))
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values();
+
+        return DB::connection('main')->table('nuke_fatwa_general_questions')
+            ->whereIn('id', $generalQuestionIds)
+            ->orderBy('question_text')
+            ->paginate(25, ['*'], 'page', $page)
+            ->through(function ($question) {
+                $topicId = (int) str_replace('|', '', (string) $question->topic_id);
+                $question->topic = $topicId > 0
+                    ? DB::connection('main')->table('nuke_fatwa_topics')->find($topicId)
+                    : null;
+
+                return $question;
+            });
+    }
+
+    // ---- Cross-department advanced search (Roadmap task 6.2) ----------
+    //
+    // `advanced-search/index.php`'s `Search` class, re-verified directly
+    // (not from `advanced-search.md`'s summary alone) before implementing.
+    // `title`/`channel`/`author` reuse `applyAdvancedSearchFilters()`
+    // below unchanged. Date-range boundaries use a NEW helper,
+    // `applyAdvancedSearchDateRange()`, not the existing one — see its own
+    // docblock for the confirmed semantic discrepancy this resolves.
+    // `title`/`from`/`to` are safely parameterized here (Eloquent/query
+    // builder throughout, no raw SQL) — this is the Laravel-side search
+    // *implementation*, distinct from and not a reopening of the deferred
+    // legacy `advanced-search/index.php` security decision (decision-log
+    // #17), which concerns only the legacy PHP file's own raw-concatenation
+    // code and is untouched by this class.
+
+    /**
+     * Confirmed day-inclusive date-boundary semantic
+     * (`advanced-search/index.php:928-931` etc.): `DATE(FROM_UNIXTIME(col))
+     * >= DATE('$from') AND <= DATE('$to')` — truncates both the column and
+     * the boundary to a calendar day, so the entire `$to` day matches, not
+     * just up to midnight. **Not implemented via a raw `DATE(FROM_UNIXTIME())`
+     * SQL call** (MySQL-specific, and untestable against this project's
+     * SQLite-based test fixtures) — instead computed in PHP as the
+     * `$from` day's start (`00:00:00`) through the `$to` day's end
+     * (`23:59:59`), applied via portable `where()` calls. This produces
+     * the identical observable result (whole-day-inclusive boundaries) as
+     * legacy's own `DATE()`-truncated SQL, via a portable technique.
+     *
+     * **Confirmed discrepancy from this class's existing `applyAdvancedSearchFilters()`
+     * (used by `khotabAdvancedSearch()`/`khotabSeriesAdvancedSearch()`),
+     * documented not silently carried over:** that method's `whereBetween($timeColumn,
+     * [$filters['start'], $filters['end']])` compares against raw
+     * `strtotime()` instants (both effectively midnight), which excludes
+     * most of the `end` day — a different, narrower boundary than
+     * `advanced-search/index.php`'s own confirmed semantic. `KhotabSearchController`
+     * itself is unchanged by this finding; the new departments below use
+     * this new, `advanced-search`-accurate helper instead.
+     */
+    private function applyAdvancedSearchDateRange(\Illuminate\Database\Query\Builder $query, string $timeColumn, array $filters): void
+    {
+        if (! empty($filters['from'])) {
+            $query->where($timeColumn, '>=', strtotime($filters['from'].' 00:00:00'));
+        }
+
+        if (! empty($filters['to'])) {
+            $query->where($timeColumn, '<=', strtotime($filters['to'].' 23:59:59'));
+        }
+    }
+
+    /**
+     * `advanced-search/index.php`'s `fatawa_search()` config + `Listmawad()`'s
+     * mawad-side query — individual scholar answers (`nuke_fatwa_questions`).
+     * `date_of_fatwa DESC` ordering. **No `hidden` filter** — confirmed:
+     * neither `nuke_fatwa_questions` nor `nuke_fatwa_general_questions` has
+     * a `hidden` column at all (`fatawa.md` §4's confirmed column lists),
+     * matching `fatawa_search()`'s own `mawad_support_hidden = false`.
+     *
+     * @param  array{title?: string, channel_id?: int, author_id?: int, from?: string, to?: string}  $filters
+     */
+    public function fatwaQuestionsAdvancedSearch(array $filters): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    {
+        $query = DB::connection('main')->table('nuke_fatwa_questions as tb1')
+            ->join('nuke_islamic_authors as tb2', 'tb1.auther_id', '=', 'tb2.id')
+            ->select(['tb1.*', 'tb2.name', 'tb2.prename']);
+
+        $this->applyAdvancedSearchFilters($query, 'tb1.question_text', 'tb1.channel_id', 'tb1.auther_id', 'tb1.date_of_fatwa', $filters);
+        $this->applyAdvancedSearchDateRange($query, 'tb1.date_of_fatwa', $filters);
+
+        return $query->orderByDesc('tb1.date_of_fatwa')->paginate(20);
+    }
+
+    /**
+     * `fatawa_search()`'s series-side query — general questions
+     * (`nuke_fatwa_general_questions`). `num_view DESC` ordering, per
+     * `series_order_by`. Same no-`hidden`-column reasoning as above.
+     *
+     * @param  array{title?: string, channel_id?: int, author_id?: int, from?: string, to?: string}  $filters
+     */
+    public function fatwaGeneralQuestionsAdvancedSearch(array $filters): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    {
+        $query = DB::connection('main')->table('nuke_fatwa_general_questions as tb1')
+            ->select(['tb1.*']);
+
+        $this->applyAdvancedSearchFilters($query, 'tb1.question_text', 'tb1.channel_id', 'tb1.author_id', 'tb1.db_insertion_date', $filters);
+        $this->applyAdvancedSearchDateRange($query, 'tb1.db_insertion_date', $filters);
+
+        return $query->orderByDesc('tb1.num_view')->paginate(20);
+    }
+
+    /**
+     * `advanced-search/index.php:1406-1414` — the fatawa department's
+     * **third, extra** result set: `nuke_fatwa_topics` matching the
+     * search title, ordered by `topic_name` (hardcoded — not
+     * `series_order_by`; confirmed by direct re-read this pass).
+     * `series_author_field` ("author_id") is applied against
+     * `nuke_fatwa_topics.author_id` here — a real, distinct column from
+     * `nuke_fatwa_questions.auther_id` (task 6.1's `FatwaQuestion`
+     * docblock's previously-unresolved ambiguity — now resolved: see
+     * decision-log for the full record). No file among `fatawa/`'s 16
+     * renders this topics result, distinct from the `series_result`
+     * general-questions query above; only `advanced-search/index.php`
+     * itself does, for this department only.
+     *
+     * @param  array{title?: string, channel_id?: int, author_id?: int, from?: string, to?: string}  $filters
+     */
+    public function fatwaTopicsAdvancedSearch(array $filters): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    {
+        $query = DB::connection('main')->table('nuke_fatwa_topics as tb1')
+            ->select(['tb1.*']);
+
+        $this->applyAdvancedSearchFilters($query, 'tb1.topic_name', 'tb1.channel_id', 'tb1.author_id', 'tb1.db_insertion_date', $filters);
+        $this->applyAdvancedSearchDateRange($query, 'tb1.db_insertion_date', $filters);
+
+        return $query->orderBy('tb1.topic_name')->paginate(20);
+    }
+
+    /**
+     * `advanced-search/index.php`'s `varieties_search()` config +
+     * `Listmawad()`'s own second `switch($this->department)`
+     * (`index.php:884-915`) — covers 5 legacy department values sharing
+     * one query shape, discriminated only by a hardcoded `parent_id`:
+     * `anasheed`=98, `sections`=16, `cartoon`=57, `documentary`=12,
+     * `video_sections`=158 (`nuke_anasheed_anasheed.parent_id`,
+     * cross-confirmed against `var-group-{id}.htm` links in task 6.1's
+     * `sendemail.php` email template). `weight DESC` ordering.
+     * `hidden = 0` filter applied (`mawad_support_hidden = true`,
+     * confirmed real column on `AnasheedItem`).
+     *
+     * @param  array{title?: string, channel_id?: int, author_id?: int, from?: string, to?: string}  $filters
+     */
+    public function anasheedAdvancedSearch(array $filters, int $parentId): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    {
+        $query = DB::connection('main')->table('nuke_anasheed_anasheed as tb1')
+            ->where('tb1.vedio', '1')
+            ->where('tb1.parent_id', $parentId)
+            ->where('tb1.hidden', '0')
+            ->select(['tb1.*']);
+
+        $this->applyAdvancedSearchFilters($query, 'tb1.title', 'tb1.channel_id', 'tb1.author_id', 'tb1.mytime', $filters);
+        $this->applyAdvancedSearchDateRange($query, 'tb1.mytime', $filters);
+
+        return $query->orderByDesc('tb1.weight')->paginate(20);
+    }
+
+    /**
+     * `varieties_search()`'s series-side query — `nuke_anasheed_groups`,
+     * same `parent_id` discriminator as above (`ListSeries()`'s own
+     * switch, `index.php:1363-1377`). `id DESC` ordering (`series_order_by`).
+     * **No `hidden` filter** (`series_support_hidden = false`) — confirmed:
+     * no `hidden` column found on the existing `AnasheedGroup` model.
+     *
+     * @param  array{title?: string, channel_id?: int, author_id?: int, from?: string, to?: string}  $filters
+     */
+    public function anasheedGroupAdvancedSearch(array $filters, int $parentId): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    {
+        $query = DB::connection('main')->table('nuke_anasheed_groups as tb1')
+            ->where('tb1.parent_id', $parentId)
+            ->select(['tb1.*']);
+
+        $this->applyAdvancedSearchFilters($query, 'tb1.title', 'tb1.channel_id', 'tb1.author_id', 'tb1.time', $filters);
+        $this->applyAdvancedSearchDateRange($query, 'tb1.time', $filters);
+
+        return $query->orderByDesc('tb1.id')->paginate(20);
+    }
+
+    /**
+     * **New method, `khotabAdvancedSearch()`/`khotabSeriesAdvancedSearch()`
+     * NOT modified or reused for this department.** Confirmed discrepancy:
+     * `media_search()`'s config covers `video`/`audio`/`dumped_files`
+     * together, but `khotabAdvancedSearch()` (task 4.1) hardcodes
+     * `WHERE vedio='1'` unconditionally — it only ever implements the
+     * `video` case. `audio` (`vedio='0'`) has no existing method. Added
+     * here as a new, parallel method rather than modifying the existing
+     * one, per explicit instruction not to touch `KhotabSearchController`
+     * behavior. Same fields/ordering shape as `khotabAdvancedSearch()`.
+     *
+     * @param  array{title?: string, channel_id?: int, author_id?: int, from?: string, to?: string}  $filters
+     */
+    public function khotabAudioAdvancedSearch(array $filters): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    {
+        $query = DB::connection('main')->table('nuke_islamic_khotab as tb1')
+            ->join('nuke_islamic_authors as tb2', 'tb1.author', '=', 'tb2.id')
+            ->where('tb1.vedio', '0')
+            ->where('tb1.hidden', '0')
+            ->select(['tb1.id', 'tb1.title', 'tb1.author', 'tb1.hits', 'tb1.time', 'tb1.weight', 'tb1.channel_id', 'tb2.name', 'tb2.prename']);
+
+        $this->applyAdvancedSearchFilters($query, 'tb1.title', 'tb1.channel_id', 'tb1.author', 'tb1.time', $filters);
+        $this->applyAdvancedSearchDateRange($query, 'tb1.time', $filters);
+
+        return $query->orderByDesc('tb1.time')->paginate(20);
+    }
+
+    /** Series-side counterpart to `khotabAudioAdvancedSearch()` — same discrepancy/reasoning, `khotabSeriesAdvancedSearch()` untouched. */
+    public function khotabAudioSeriesAdvancedSearch(array $filters): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    {
+        $query = DB::connection('main')->table('nuke_islamic_series as tb1')
+            ->join('nuke_islamic_authors as tb2', 'tb1.author_id', '=', 'tb2.id')
+            ->where('tb1.vedio', '0')
+            ->where('tb1.hidden', '0')
+            ->where('tb1.count', '>', '0')
+            ->select(['tb1.id', 'tb1.title', 'tb1.time', 'tb1.count', 'tb1.hidden', 'tb1.channel_id', 'tb1.author_id', 'tb2.name', 'tb2.prename']);
+
+        $this->applyAdvancedSearchFilters($query, 'tb1.title', 'tb1.channel_id', 'tb1.author_id', 'tb1.time', $filters);
+        $this->applyAdvancedSearchDateRange($query, 'tb1.time', $filters);
+
+        return $query->orderByDesc('tb1.id')->paginate(20);
+    }
+
+    /**
+     * `dumped_files` department — `vedio='1' AND pdf > 0` (`Listmawad()`'s
+     * switch, `index.php:885-887`). **No series-side method exists for
+     * this department** — legacy's own `ListSeries()` switch
+     * (`index.php:1354-1356`) deliberately forces `tb1.id < 0` for
+     * `dumped_files` ("to avoid getting series in dumped files", legacy's
+     * own comment) — an always-false condition, confirming there is no
+     * series concept for this department. Not reproduced as a fake
+     * always-empty method; simply not offered.
+     *
+     * @param  array{title?: string, channel_id?: int, author_id?: int, from?: string, to?: string}  $filters
+     */
+    public function khotabDumpedFilesAdvancedSearch(array $filters): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    {
+        $query = DB::connection('main')->table('nuke_islamic_khotab as tb1')
+            ->join('nuke_islamic_authors as tb2', 'tb1.author', '=', 'tb2.id')
+            ->where('tb1.vedio', '1')
+            ->where('tb1.pdf', '>', 0)
+            ->where('tb1.hidden', '0')
+            ->select(['tb1.id', 'tb1.title', 'tb1.author', 'tb1.hits', 'tb1.time', 'tb1.weight', 'tb1.channel_id', 'tb2.name', 'tb2.prename']);
+
+        $this->applyAdvancedSearchFilters($query, 'tb1.title', 'tb1.channel_id', 'tb1.author', 'tb1.time', $filters);
+        $this->applyAdvancedSearchDateRange($query, 'tb1.time', $filters);
+
+        return $query->orderByDesc('tb1.time')->paginate(20);
+    }
+
+    /**
+     * `pages/ramadan.php`'s own 13 year-bucketed queries (Roadmap task
+     * 6.3) — one boundary per year, copied verbatim from the confirmed-
+     * authoritative file (Task 6.3 investigation §13.2: `ramadan.php`, NOT
+     * `ramadan-archive.php`'s duplicate-bugged "1446"/"1445" boundary, and
+     * NOT `ramadan1442.php`'s superseded snapshot). `ramadan.php` has no
+     * 1445 section at all — its "1446" section's upper time bound already
+     * subsumes what `ramadan-archive.php` split into two identical, buggy
+     * sections — so 1445 is intentionally absent from this map, not an
+     * omission.
+     *
+     * Returns `[year => Collection]`, ordered 1447 -> 1434 (array
+     * insertion order), matching the legacy page's top-to-bottom render
+     * order. Each row carries the same columns `ramadan.php`'s query
+     * selects: id/title/count/vedio/time/lastupdate/channel_id/author_id
+     * plus the joined author's prename/name.
+     */
+    public function ramadanSeriesByYear(): array
+    {
+        // ramadan.php:76,184 — `$start2026`/`$end2025` are, confirmed by
+        // direct read, the exact same `strtotime()` call under two
+        // different variable names. Computed once here for both.
+        $threshold = strtotime('2026-02-09 00:00:00');
+
+        $conditions = [
+            1447 => fn ($q) => $q->where('ser.time', '>=', $threshold),
+            1446 => fn ($q) => $q->where('ser.id', '>', 14642)->where('ser.time', '<', $threshold),
+            1444 => fn ($q) => $q->where('ser.id', '>', 13228)->where('ser.id', '<', 14643),
+            1443 => fn ($q) => $q->where('ser.id', '>', 11223)->where('ser.id', '<', 13228),
+            1442 => fn ($q) => $q->where('ser.id', '>', 10943)->where('ser.id', '<', 11223),
+            1441 => fn ($q) => $q->where('ser.id', '>', 9621)->where('ser.id', '<=', 10943),
+            1440 => fn ($q) => $q->where('ser.id', '>', 9408)->where('ser.id', '<=', 9621),
+            1439 => fn ($q) => $q->where('ser.id', '>', 8982)->where('ser.id', '<', 9409),
+            1438 => fn ($q) => $q->where('ser.id', '>', 8033)->where('ser.id', '<', 8982),
+            1437 => fn ($q) => $q->where('ser.id', '>', 7840)->where('ser.id', '<', 8033),
+            1436 => fn ($q) => $q->where('ser.id', '>', 7204)->where('ser.id', '<', 7841),
+            1435 => fn ($q) => $q->where('ser.id', '>', 5331)->where('ser.id', '<', 7205),
+            1434 => fn ($q) => $q->where('ser.id', '<', 5332),
+        ];
+
+        $results = [];
+
+        foreach ($conditions as $year => $condition) {
+            $query = DB::connection('main')->table('nuke_islamic_series as ser')
+                ->join('nuke_islamic_authors as auth', 'auth.id', '=', 'ser.author_id')
+                ->where('ser.ramadan', '1')
+                ->where('ser.hidden', '0')
+                ->select(['ser.id', 'ser.title', 'ser.count', 'ser.vedio', 'ser.time', 'ser.lastupdate', 'ser.channel_id', 'ser.author_id', 'auth.prename', 'auth.name']);
+
+            $condition($query);
+
+            $results[$year] = $query->orderByDesc('ser.id')->get();
+        }
+
+        return $results;
     }
 
     /** Shared filter-application shape behind the two advanced-search methods above — only the column names differ (series uses `author_id`, khotab items use `author`, per each table's real schema). */

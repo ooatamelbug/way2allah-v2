@@ -3,6 +3,7 @@
 use App\Domain\Admin\Http\Controllers\BroadcastingController;
 use App\Domain\Admin\Http\Controllers\AdminStaffController;
 use App\Domain\Admin\Http\Controllers\ChatRoomAdminController;
+use App\Domain\Admin\Http\Controllers\LinkQualityStatsController;
 use App\Domain\Admin\Http\Controllers\UploaderController;
 use App\Domain\Admin\Http\Controllers\LocationsController;
 use App\Domain\Admin\Http\Controllers\PermissionController;
@@ -132,6 +133,30 @@ Route::middleware(['admin.role'])->prefix('admincp')->name('admin.')->group(func
         Route::get('/', [UploaderController::class, 'index'])->name('index');
         Route::post('/recompute', [UploaderController::class, 'recompute'])->name('recompute');
         Route::post('/vblink', [UploaderController::class, 'backfillVbulletinIdentity'])->name('vblink');
+    });
+
+    // Roadmap task 6.7 — khotab/telawah/mirror link-quality stats & repair
+    // (not confirmation-gated, distinct from task 6.4's still-gated CRUD).
+    Route::prefix('link-quality')->name('link-quality.')->group(function () {
+        Route::middleware(['admin.permission:khotab.repair'])->prefix('mirror')->name('mirror.')->group(function () {
+            Route::get('/', [LinkQualityStatsController::class, 'mirror'])->name('index');
+            Route::post('/recompute', [LinkQualityStatsController::class, 'recomputeMirror'])->name('recompute');
+            Route::post('/{mirror}/recheck', [LinkQualityStatsController::class, 'recheckMirror'])->name('recheck');
+            Route::post('/{mirror}/fix-size', [LinkQualityStatsController::class, 'fixSizeMirror'])->name('fix-size');
+        });
+        Route::middleware(['admin.permission:khotab.repair'])->prefix('khotab')->name('khotab.')->group(function () {
+            Route::get('/', [LinkQualityStatsController::class, 'khotab'])->name('index');
+            Route::post('/recompute', [LinkQualityStatsController::class, 'recomputeKhotab'])->name('recompute');
+            Route::post('/{khotabItem}/recheck', [LinkQualityStatsController::class, 'recheckKhotab'])->name('recheck');
+            Route::post('/{khotabItem}/fix-size', [LinkQualityStatsController::class, 'fixSizeKhotab'])->name('fix-size');
+            Route::get('/large-files', [LinkQualityStatsController::class, 'khotabLargeFiles'])->name('large-files');
+        });
+        Route::middleware(['admin.permission:telawah.repair'])->prefix('telawah')->name('telawah.')->group(function () {
+            Route::get('/', [LinkQualityStatsController::class, 'telawah'])->name('index');
+            Route::post('/recompute', [LinkQualityStatsController::class, 'recomputeTelawah'])->name('recompute');
+            Route::post('/{telawahItem}/recheck', [LinkQualityStatsController::class, 'recheckTelawah'])->name('recheck');
+            Route::post('/{telawahItem}/fix-size', [LinkQualityStatsController::class, 'fixSizeTelawah'])->name('fix-size');
+        });
     });
 
     // Roadmap tasks 5.6/5.7 — rebuilt authors/backup, no fixed default password.

@@ -124,4 +124,35 @@ return [
         'to' => '/polls',
     ],
 
+    // Roadmap task 6.3. Same defensive shape as pages/social.php above:
+    // `/ramadan.htm` is kept at its exact path directly in routes/pages.php
+    // (a real .htaccess rule already targets it), this entry only protects
+    // the raw `.php` file path itself. `ramadan1442.php`/`ramadan-archive.php`
+    // never had an .htaccess rule or a found internal link at all
+    // (pages.md §2/§11) — redirected here anyway, to the same consolidated
+    // view, for the same "a bookmark/search engine could still reference
+    // it" reasoning applied to every other raw-path-only file in this map;
+    // their own distinct content (the "1446"/"1445" duplicate-bug section,
+    // the object-syntax counter path) is not preserved by this redirect,
+    // only their reachability is.
+    'pages/ramadan.php' => [
+        'type' => 'redirect',
+        'to' => '/ramadan.htm',
+    ],
+
+    'pages/ramadan1442.php' => [
+        'type' => 'redirect',
+        'to' => '/ramadan.htm',
+    ],
+
+    'pages/ramadan-archive.php' => [
+        'type' => 'redirect',
+        'to' => '/ramadan.htm',
+    ],
+
+    'help/share.php' => [
+        'type' => 'redirect',
+        'to' => '/share.htm',
+    ],
+
 ];

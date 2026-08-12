@@ -68,6 +68,29 @@ class PollController
         ]);
     }
 
+    /**
+     * `survey-results-{id}-{mode}-{order}-{thold}.htm` (`.htaccess:405`) —
+     * the sort/threshold variant of the results page. `pollResults($pollID)`
+     * (`surveys/functions.php:143`) takes only `$pollID` and never reads
+     * `$mode`/`$order`/`$thold` anywhere in its body (confirmed by full
+     * re-read) — these 3 segments are PHP-Nuke's standard comment-display-
+     * preference names (`functions.php:94-96,273-275` build the SAME 3
+     * names from `$cookie[4..6]` onto outgoing links to the unbuilt
+     * comments sub-feature), carried onto this URL for context but never
+     * consumed by the results rendering itself. Same "extra URL segment,
+     * functionally ignored" shape as the `location` parameter (IF-047/
+     * 048/049), and — for the same reason as that round — declared
+     * explicitly by name here rather than pointing a 4-segment route
+     * straight at `results(Poll $poll)`: Laravel binds a route's "extra"
+     * segments to an under-declared method's parameters positionally, not
+     * by name (IF-051). Delegates to the real, unmodified `results()` —
+     * no new query logic.
+     */
+    public function resultsWithVariant(Poll $poll, string $mode, string $order, string $thold): View
+    {
+        return $this->results($poll);
+    }
+
     /** `functions.php:57-90`'s `pollCollector()`. */
     public function vote(Request $request, Poll $poll): RedirectResponse
     {

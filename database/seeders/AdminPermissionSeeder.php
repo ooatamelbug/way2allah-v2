@@ -14,7 +14,7 @@ use Illuminate\Database\Seeder;
  * excluded — that content-CRUD doesn't exist in this codebase (Business
  * Confirmation #6); `forumConfig` excluded (Blueprint §18 "Never").
  *
- * `khotab.uploaders` (task 5.9) is the one deliberate exception/addition:
+ * `khotab.uploaders` (task 5.9) is one deliberate exception/addition:
  * a real, in-scope capability (`khotab/uploader(s).php`, Upload-Team
  * Tracking) that has no genuine match among `khotab/menu.php`'s 30
  * content-CRUD keys — none of them was ever actually wired to gate this
@@ -22,6 +22,19 @@ use Illuminate\Database\Seeder;
  * already confirmed for `khotab/`'s other permission keys, Pattern B).
  * Added as its own permission rather than force-fitting an unrelated
  * existing key or leaving this real capability permanently ungated.
+ *
+ * `khotab.repair`/`telawah.repair` (task 6.7) are a second exception,
+ * for the mirror/link-quality stats-and-repair tool (`stats.php`,
+ * `stats_khotab.php`, `stats_khotab_200mb.php`, `telawah/stats.php`) —
+ * unlike the CRUD keys, this real capability doesn't need Business
+ * Confirmation #6 (it's a straightforward port of already-working
+ * legacy logic, not a "design fresh vs. reference" question).
+ * `khotab.repair` is a genuine match, un-excluded from the otherwise-
+ * excluded 30-key `khotab/menu.php` array specifically because it's
+ * real and in-scope. `telawah/menu.php`'s own small array (4 keys, all
+ * author-account-shaped) has no fitting match at all, so `telawah.repair`
+ * is minted fresh, by direct analogy to `khotab.repair` — same shape as
+ * the `khotab.uploaders` precedent above.
  */
 class AdminPermissionSeeder extends Seeder
 {
@@ -36,7 +49,8 @@ class AdminPermissionSeeder extends Seeder
         'youtube' => ['update_youtube'],
         'questionnaire' => ['listquest', 'deletequest', 'listallquest'],
         'broadcasting' => ['addstream', 'editstream'],
-        'khotab' => ['uploaders'],
+        'khotab' => ['uploaders', 'repair'],
+        'telawah' => ['repair'],
     ];
 
     public function run(): void
