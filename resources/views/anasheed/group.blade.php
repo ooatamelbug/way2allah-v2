@@ -8,15 +8,26 @@
             <section aria-label="قائمة الأقسام الفرعية">
                 <ul>
                     @foreach ($subGroups as $subGroup)
-                        <li><a href="/var-group-{{ $subGroup->id }}.htm">{{ $subGroup->title }}</a></li>
+                        <li>
+                            <a href="/var-group-{{ $subGroup->id }}.htm">
+                                <img src="{{ $subGroup->thumbUrl() }}" alt="{{ $subGroup->title }}">
+                                <span>{{ $subGroup->title }}</span>
+                            </a>
+                        </li>
                     @endforeach
                 </ul>
             </section>
         @endif
 
         <section aria-label="قائمة المواد">
+            {{-- G-13-09 (media/visual parity phase): anasheed/functions.php:326-340's
+                 list_anasheed() — a raw (non-thumbnails.php) frame image per item,
+                 no file_exists() gate (confirmed dead fallback check in source). --}}
             @forelse ($items as $item)
                 <div>
+                    <a href="/var-item-{{ $item->id }}.htm">
+                        <img src="{{ $item->frameThumbUrl() }}" alt="{{ $item->title }}" height="67">
+                    </a>
                     <a href="/var-item-{{ $item->id }}.htm">{{ $item->title }}</a>
                 </div>
             @empty
@@ -25,21 +36,12 @@
             {{ $items->links() }}
         </section>
 
-        <aside aria-label="الشريط الجانبي">
-            <h3>الأكثر تحميلا</h3>
-            <ul>
-                @foreach ($mostDownloaded as $item)
-                    <li><a href="/var-item-{{ $item->id }}.htm">{{ $item->title }}</a></li>
-                @endforeach
-            </ul>
-
-            <h3>احدث المواد</h3>
-            <ul>
-                @foreach ($mostRecent as $item)
-                    <li><a href="/var-item-{{ $item->id }}.htm">{{ $item->title }}</a></li>
-                @endforeach
-            </ul>
-        </aside>
+        {{--
+            G-13 closure (Anasheed Group Sidebar parity fix): group.php
+            (full file read) never calls most_downloaded_recent_sidebar()
+            — unlike anasheed/item.blade.php, this page has no "most
+            downloaded"/"most recent" sidebar in legacy. Removed.
+        --}}
 
         @if(!empty($groupModel->description))
             <section aria-label="وصف القسم">{{ $groupModel->description }}</section>

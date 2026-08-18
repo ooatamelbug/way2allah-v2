@@ -4,10 +4,12 @@
     hardcoded, DB-free href, kept exactly as written there (relative, no
     leading slash — legacy's pretty URLs are all root-level, same as
     Laravel's routes here, so relative hrefs resolve identically). Links
-    to not-yet-migrated pages (e.g. categories.htm, fatawa-categories.htm,
-    video-advanced-search.htm) are kept as-is and will 404 until those
+    to not-yet-migrated pages are kept as-is and will 404 until those
     routes exist — out of scope for this global-chrome-only step, not a
-    bug introduced here.
+    bug introduced here. `categories.htm`/`fatawa-categories.htm` (closed
+    in later waves) and `video-advanced-search.htm` (G-09-01, Phase 1
+    audit — routed to the existing `KhotabSearchController`) are no longer
+    in that category; this comment is not otherwise updated per link.
 
     Not reproduced: the commented-out "Mega Menu" block (header.php:353-408
     — legacy's own dead code, still commented out in the source).

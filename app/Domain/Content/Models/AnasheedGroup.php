@@ -2,6 +2,7 @@
 
 namespace App\Domain\Content\Models;
 
+use App\Domain\Content\Support\MediaPathResolver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -67,5 +68,22 @@ class AnasheedGroup extends Model
     public function items(): HasMany
     {
         return $this->hasMany(AnasheedItem::class, 'group_id');
+    }
+
+    /**
+     * G-13-04 (media/visual parity phase) — `anasheed/functions.php:208-212`'s
+     * sub-group listing icon: `icon==1` selects the bucketed
+     * `media/anasheed/icons/{bucket}/{id}.jpg` (no `file_exists()` gate,
+     * unconditional on the flag alone), else a shared static fallback,
+     * `images/pix001.gif` — distinct from `tvnoise.gif`/`way2_withoutimg.png`,
+     * confirmed by direct reading, not assumed to be the same placeholder.
+     */
+    public function thumbUrl(): string
+    {
+        if ($this->icon === 1) {
+            return '/'.MediaPathResolver::path('anasheed/icons', $this->id, 'jpg');
+        }
+
+        return '/images/pix001.gif';
     }
 }

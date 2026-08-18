@@ -57,6 +57,17 @@ it('show: 404s for a nonexistent channel', function () {
     $this->get('/fatawa-channel-999.htm')->assertNotFound();
 });
 
+it('show: G-13-10 — renders the channel logo (flat images/channels/{id}.png) and the HARDCODED beam image (images/beams/1.png, not per-channel dynamic)', function () {
+    DB::connection('main')->table('nuke_sat_channels')->insert(['id' => 7, 'title' => 'Chan', 'beam' => 3]);
+
+    $content = $this->get('/fatawa-channel-7.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('/images/channels/7.png')
+        ->and($content)->toContain('/images/beams/1.png')
+        // confirms this is NOT reproducing live-stream's per-channel `beam` column behavior
+        ->and($content)->not->toContain('/images/beams/3.png');
+});
+
 it('show: most-downloaded sidebar is genuinely channel-scoped (WHERE channel_id is NOT commented out, unlike the author page)', function () {
     $db = DB::connection('main');
     $db->table('nuke_sat_channels')->insert(['id' => 1, 'title' => 'Chan']);

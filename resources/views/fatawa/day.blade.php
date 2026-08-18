@@ -12,10 +12,18 @@
 @section('content')
     <div class="row service-box">
         <div class="col-xs-12 col-sm-5">
+            {{-- G-13-10 (media/visual parity phase): fatwa-today.php:84-89 — a
+                 hardcoded images/tvnoise.gif per featured question, no
+                 per-item image field or logic. --}}
             <section aria-label="فتاوى مختارة">
                 <ul>
                     @foreach ($featured as $item)
-                        <li><a href="/fatawa-all-{{ str_replace('|', '', $item->general_question_id) }}.htm">{{ $item->question_text }}</a></li>
+                        <li>
+                            <a href="/fatawa-all-{{ str_replace('|', '', $item->general_question_id) }}.htm">
+                                <img src="/images/tvnoise.gif" alt="{{ $item->question_text }}" width="160" height="110">
+                                {{ $item->question_text }}
+                            </a>
+                        </li>
                     @endforeach
                 </ul>
             </section>

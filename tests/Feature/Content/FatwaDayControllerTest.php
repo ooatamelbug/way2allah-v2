@@ -47,6 +47,26 @@ it('the fatwa-today-{page}.htm route also works', function () {
     $this->get('/fatwa-today-1.htm')->assertOk();
 });
 
+it('featured section: G-13-10 — each item shows the hardcoded images/tvnoise.gif, matching fatwa-today.php:87 (no per-item image field)', function () {
+    // fatwaRandomFeatured()'s hardcoded random OFFSET (up to 7400) makes it
+    // unreliable to exercise through the full controller with test-sized
+    // data (documented in the sibling test above) — rendering the view
+    // directly with a controlled collection tests the same Blade output
+    // deterministically, without relying on the random offset landing in range.
+    $featured = collect([
+        (object) ['id' => 1, 'general_question_id' => '|500|', 'question_text' => 'A featured question'],
+    ]);
+
+    $html = view('fatawa.day', [
+        'featured' => $featured,
+        'questions' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 25),
+        'displayDate' => 'اليوم',
+    ])->render();
+
+    expect($html)->toContain('/images/tvnoise.gif')
+        ->and($html)->toContain('A featured question');
+});
+
 it('fatwa-date-{d}-{m}-{y}-{page}.htm is NOT registered — no confirmed implementing code was found', function () {
     $this->get('/fatwa-date-1-1-2026-1.htm')->assertNotFound();
 });

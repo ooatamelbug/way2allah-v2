@@ -29,6 +29,12 @@ it('index: lists only eligible channels (active=0, non-empty streamcode)', funct
     $response->assertOk()->assertSee('Eligible')->assertDontSee('Not eligible');
 });
 
+it('index: G-13-08 — each row shows the flat images/channels/{id}.png logo, matching list_live_channels() (functions.php:24)', function () {
+    DB::connection('main')->table('nuke_sat_channels')->insert(['id' => 8, 'title' => 'A Channel', 'active' => 0, 'streamcode' => 'x', 'ch_visits' => 0]);
+
+    $this->get('/live-stream.htm')->assertOk()->assertSee('/images/channels/8.png', false);
+});
+
 it('show: renders streamcode as raw unescaped HTML, not entity-encoded', function () {
     DB::connection('main')->table('nuke_sat_channels')->insert([
         'id' => 5, 'title' => 'X', 'active' => 0, 'streamcode' => '<iframe src="https://player.example/5"></iframe>', 'ch_visits' => 0,
@@ -37,6 +43,12 @@ it('show: renders streamcode as raw unescaped HTML, not entity-encoded', functio
     $response = $this->get('/live-channel-5.htm');
 
     $response->assertOk()->assertSee('<iframe src="https://player.example/5"></iframe>', false);
+});
+
+it('show: G-13-08 — renders the flat images/channels/{id}.png logo, matching live_channel_details() (functions.php:89)', function () {
+    DB::connection('main')->table('nuke_sat_channels')->insert(['id' => 5, 'title' => 'X', 'active' => 0, 'streamcode' => 'x', 'ch_visits' => 0]);
+
+    $this->get('/live-channel-5.htm')->assertOk()->assertSee('/images/channels/5.png', false);
 });
 
 it('show: increments ch_visits by exactly 1 per view', function () {

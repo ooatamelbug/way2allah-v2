@@ -25,6 +25,8 @@ function useInMemoryMainConnectionForPublicLocations(): void
         'nuke_islamic_groups_location' => MainSchema::nukeIslamicGroupsLocation(),
         'nuke_islamic_series' => MainSchema::nukeIslamicSeries(),
         'nuke_islamic_series_location' => MainSchema::nukeIslamicSeriesLocation(),
+        'nuke_w2a_cat' => MainSchema::nukeW2aCat(),
+        'khotab_category_index' => MainSchema::khotabCategoryIndex(),
     ]);
 }
 

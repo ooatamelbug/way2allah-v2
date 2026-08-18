@@ -16,6 +16,8 @@ function useInMemoryMainConnectionForKhotabItemController(): void
         'nuke_islamic_advanced_m' => MainSchema::nukeIslamicAdvancedM(),
         'nuke_islamic_comments' => MainSchema::nukeIslamicComments(),
         'ips' => MainSchema::ips(),
+        'nuke_w2a_cat' => MainSchema::nukeW2aCat(),
+        'khotab_category_index' => MainSchema::khotabCategoryIndex(),
     ]);
 }
 
@@ -112,6 +114,37 @@ it('show: on an AUDIO item, the sidebar shows audio items, not video', function 
     $response->assertOk()->assertSee('Other Audio')->assertDontSee('Some Video Item');
 });
 
+it('show: G-13-03 — the profile-photo box ignores author_image, matching item.php\'s unconditional get_author_img() (unlike author.php/authors.php)', function () {
+    // Author id deliberately far outside any real bucket in the now-populated
+    // media library (authors/ only has bucket 0/), so this can't collide with
+    // a genuine media/authors/sq/{id}.png and silently take the "real file" branch.
+    DB::connection('main')->table('nuke_islamic_authors')->insert([
+        'id' => 999999, 'name' => 'Author Name', 'prename' => 'Sheikh', 'author_image' => 'https://example.com/custom.png',
+    ]);
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 999999, 'title' => 'Item', 'vedio' => 1, 'hidden' => 0,
+    ]);
+
+    $content = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('الملف الشخصي')
+        ->and($content)->not->toContain('https://example.com/custom.png')
+        ->and($content)->toContain('/media/authors/no_author_image.png');
+});
+
+it('show: G-13-01 — sidebar rows render a real <img> thumbnail, not plain text-only links', function () {
+    insertKhotabAuthor();
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        ['id' => 1, 'author' => 1, 'title' => 'The Video Item', 'vedio' => 1, 'frame' => 0, 'hidden' => 0, 'hits' => 1],
+        ['id' => 2, 'author' => 1, 'title' => 'Other Video', 'vedio' => 1, 'frame' => 0, 'hidden' => 0, 'hits' => 99],
+    ]);
+
+    $content = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('media-object')
+        ->and($content)->toContain('/images/way2_withoutimg.png');
+});
+
 it('show: renders mirrors', function () {
     insertKhotabAuthor();
     DB::connection('main')->table('nuke_islamic_khotab')->insert([
@@ -122,6 +155,438 @@ it('show: renders mirrors', function () {
     ]);
 
     $this->get('/khotab-item-1.htm')->assertOk()->assertSee('HD quality');
+});
+
+it('show: G-13-13 — each mirror row renders its quality-extension icon, matching item.php:274-308\'s exact mapping', function () {
+    insertKhotabAuthor();
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 1, 'title' => 'Item', 'vedio' => 1, 'hidden' => 0,
+    ]);
+    DB::connection('main')->table('nuke_islamic_mirror')->insert([
+        'id' => 1, 'khid' => 1, 'comment' => 'MP4 quality', 'link' => 'https://cdn.example.com/a.mp4', 'linksize' => 100, 'hits' => 0,
+    ]);
+
+    $this->get('/khotab-item-1.htm')->assertOk()->assertSee('/images/ext/mp4.gif', false);
+});
+
+it('Mirror::extensionIconFilename(): G-13-13 — reproduces item.php\'s exact 3-way branch, including the literal (not substring) soundcloud/youtube segment match', function () {
+    $filename = fn (string $link) => (new \App\Domain\Content\Models\Mirror(['link' => $link]))->extensionIconFilename();
+
+    expect($filename('https://cdn.example.com/a.mp3'))->toBe('mp3.gif')
+        ->and($filename('https://soundcloud.com/a-track'))->toBe('soundcloud.png') // exact "https://soundcloud" dot-segment
+        ->and($filename('https://www.soundcloud.com/a-track'))->toBe('.gif') // "https://www" != "https://soundcloud" — falls through to the generic branch with an empty extension
+        ->and($filename('https://cdn.example.com/a.mp4'))->toBe('mp4.gif')
+        // Confirmed legacy quirk, reproduced not "fixed": the bare 'youtube'
+        // segment check only matches a literal ".youtube." split point, which
+        // an ordinary https://youtube.com/... URL never produces (its first
+        // dot-segment is "https://youtube", not "youtube") — only youtu.be
+        // short-links match, via the separate "https://youtu" prefix check.
+        ->and($filename('https://youtube.com/watch?v=x'))->toBe('.gif')
+        ->and($filename('https://youtu.be/x'))->toBe('youtube_icon.png')
+        ->and($filename('https://cdn.example.com/a.wma'))->toBe('wma.gif')
+        ->and($filename('https://cdn.example.com/a.AVI'))->toBe('avi.gif'); // lowercased
+});
+
+// ---- Visual parity audit (khotab-item-298784.htm, 2026-08-18): Batch 2 / Finding #8 — "تعليق على الدرس" row deliberately NOT implemented ----
+
+it('show: never renders a "تعليق على الدرس" notes row — item.php:181-186\'s `notes != 0` + cool_number($Khotab->notes) is dead code against the real varchar(255) free-text column (confirmed live: khotab-item-101.htm has real notes text and still shows no such row)', function () {
+    insertKhotabAuthor();
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 1, 'title' => 'Item', 'vedio' => 1, 'hidden' => 0,
+        'notes' => 'تفسير سورة التوبة',
+    ]);
+
+    $content = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
+
+    expect($content)->not->toContain('تعليق على الدرس');
+});
+
+// ---- Visual parity audit (khotab-item-298784.htm, 2026-08-18): Batch 2 — action buttons + mirror row structure restored, previously missing ----
+
+it('show: action buttons use item.php:189-238\'s exact .badge.blue > .circle > <i> + <h5> structure and icons (fa-floppy-o, fa-commenting), not the flat placeholder markup', function () {
+    insertKhotabAuthor();
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 1, 'title' => 'Item', 'vedio' => 1, 'hidden' => 0,
+    ]);
+
+    $content = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('<a href="/khotab-download-1.htm" target="_blank">')
+        ->and($content)->toContain('<i class="fa fa-floppy-o fa-4 text-blue"></i>')
+        ->and($content)->not->toContain('fa-download"></i><br>')
+        ->and($content)->toContain('<a data-toggle="modal" data-target="#commentsModal" href="javascript:;" class="send-comment-btn">')
+        ->and($content)->toContain('<i class="fa fa-commenting fa-4 text-blue"></i>')
+        // 4 as of Batch 3 (play/download/comment/send-friend) — pdf is
+        // conditional and absent here, so not counted in this fixture.
+        ->and(substr_count($content, 'class="badge blue"'))->toBe(4)
+        ->and(substr_count($content, 'class="circle"'))->toBe(4);
+});
+
+it('show: the play/watch button markup renders correctly (icon/label vary by vedio) and, as of Batch 4, is backed by a real player — #the_main_player/#w2a_main_player exist and w2a_play() is defined', function () {
+    insertKhotabAuthor();
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        ['id' => 1, 'author' => 1, 'title' => 'Video Item', 'vedio' => 1, 'hidden' => 0],
+        ['id' => 2, 'author' => 1, 'title' => 'Audio Item', 'vedio' => 0, 'hidden' => 0],
+    ]);
+
+    $video = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
+    expect($video)->toContain('onclick="w2a_play(1,\'khotab\')"')
+        ->and($video)->toContain('<i class="fa fa-youtube-play fa-4 text-blue"></i>')
+        ->and($video)->toContain('<h5>مشاهدة المادة</h5>')
+        ->and(substr_count($video, 'id="the_main_player"'))->toBe(1)
+        ->and(substr_count($video, 'id="w2a_main_player"'))->toBe(1)
+        ->and($video)->toContain('function w2a_play(id, type)');
+
+    $audio = $this->get('/khotab-item-2.htm')->assertOk()->getContent();
+    expect($audio)->toContain('onclick="w2a_play(2,\'khotab\')"')
+        ->and($audio)->toContain('<i class="fa fa-headphones fa-4 text-blue"></i>')
+        ->and($audio)->toContain('<h5>إستماع المادة</h5>')
+        // scripts/w2a_play.js/get-mada-player.htm themselves are still not
+        // loaded/routed — this app's own /media-player replaces them.
+        ->and($audio)->not->toContain('w2a_play.js')
+        ->and($audio)->not->toContain('get-mada-player.htm');
+});
+
+it('show: as of Batch 3, the send-friend button/trigger is restored, targeting #sendFriendModal', function () {
+    insertKhotabAuthor();
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 1, 'title' => 'Item', 'vedio' => 1, 'hidden' => 0,
+    ]);
+
+    $content = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('<a data-toggle="modal" data-target="#sendFriendModal" href="javascript:;" class="send-friend-btn">')
+        ->and($content)->toContain('<i class="fa fa-envelope fa-4 text-blue"></i>')
+        ->and($content)->toContain('<h5>أرسل لصديق</h5>');
+});
+
+it('show: mirror rows render item.php:309-351\'s numbered <h5>/quality_title/download-attribute link and the 4-column .page-header row, matching real olddb mirror data (item 298784, mirror 429195)', function () {
+    insertKhotabAuthor();
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 1, 'title' => 'Item', 'vedio' => 1, 'hidden' => 0,
+    ]);
+    DB::connection('main')->table('nuke_islamic_mirror')->insert([
+        ['id' => 429195, 'khid' => 1, 'vedio' => 1, 'comment' => 'جودة عالية - mp4', 'link' => 'a.mp4', 'linksize' => 319920537, 'hits' => 42],
+        ['id' => 429196, 'khid' => 1, 'vedio' => 0, 'comment' => 'جودة صوت - mp3', 'link' => 'a.mp3', 'linksize' => 26948403, 'hits' => 43],
+    ]);
+
+    $content = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('table class="table table-striped table-hover" id="tabelgrp"')
+        ->and($content)->toContain('1 - <a class="quality_title" href="/khotab-mirror-1-429195.htm" download>جودة عالية - mp4</a>')
+        ->and($content)->toContain('2 - <a class="quality_title" href="/khotab-mirror-1-429196.htm" download>جودة صوت - mp3</a>')
+        // vedio=1 mirror: "مشاهدة"/"مشاهدة الوصلة"/fa-youtube-play; vedio=0: "إستماع"/"سماع الوصلة"/fa-headphones (item.php:280-293).
+        ->and($content)->toContain('title="مشاهدة الوصلة" onclick="w2a_play(429195,\'khotab_mirror\')">')
+        ->and($content)->toContain('title="سماع الوصلة" onclick="w2a_play(429196,\'khotab_mirror\')">')
+        ->and(substr_count($content, 'fa-youtube-play fa-2'))->toBe(1)
+        ->and(substr_count($content, 'fa-headphones fa-2'))->toBe(1)
+        ->and($content)->toContain('42')
+        ->and($content)->toContain('43')
+        ->and(substr_count($content, 'fa-file-archive-o'))->toBe(2)
+        ->and(substr_count($content, 'fa-download'))->toBeGreaterThanOrEqual(2);
+});
+
+it('show: mirror numbering restarts and increments correctly across 3+ mirrors, not a fixed/static counter', function () {
+    insertKhotabAuthor();
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 1, 'title' => 'Item', 'vedio' => 1, 'hidden' => 0,
+    ]);
+    DB::connection('main')->table('nuke_islamic_mirror')->insert([
+        ['id' => 1, 'khid' => 1, 'vedio' => 1, 'comment' => 'First', 'link' => 'a.mp4', 'linksize' => 1, 'hits' => 0],
+        ['id' => 2, 'khid' => 1, 'vedio' => 1, 'comment' => 'Second', 'link' => 'b.mp4', 'linksize' => 1, 'hits' => 0],
+        ['id' => 3, 'khid' => 1, 'vedio' => 1, 'comment' => 'Third', 'link' => 'c.mp4', 'linksize' => 1, 'hits' => 0],
+    ]);
+
+    $content = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('1 - <a class="quality_title" href="/khotab-mirror-1-1.htm" download>First</a>')
+        ->and($content)->toContain('2 - <a class="quality_title" href="/khotab-mirror-1-2.htm" download>Second</a>')
+        ->and($content)->toContain('3 - <a class="quality_title" href="/khotab-mirror-1-3.htm" download>Third</a>');
+});
+
+it('show: the legacy literal get-mada-player.htm path remains unrouted — Batch 4\'s player endpoint lives at the Laravel-native /media-player instead, same URL-adaptation approach as the comment/send-friend routes', function () {
+    $response = $this->post('/get-mada-player.htm', ['id' => 1, 'type' => 'khotab']);
+
+    $response->assertNotFound();
+});
+
+// ---- Visual parity audit (khotab-item-298784.htm, 2026-08-18): Batch 3 — comment modal (#12) + send-to-friend button/modal/backend (#11) restored, previously missing ----
+
+it('show: #commentsModal exists exactly once, with the correct title/form/hidden-input/error-containers, matching post_comment_modal() (khotab/functions.php:1060-1092)', function () {
+    insertKhotabAuthor();
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 1, 'title' => 'A Lesson Title', 'vedio' => 1, 'hidden' => 0,
+    ]);
+
+    $content = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
+
+    expect(substr_count($content, 'id="commentsModal"'))->toBe(1)
+        ->and($content)->toContain('<h4 class="modal-title" id="commentsModalLabel">اضافة تعليق على : A Lesson Title</h4>')
+        ->and($content)->toContain('<form name="comments_form" id="comments_form" action="" method="post">')
+        ->and($content)->toContain('<input type="hidden" name="khotab_id" id="khotab_id" value="1" />')
+        ->and($content)->toContain('id="user_nickname_error"')
+        ->and($content)->toContain('id="user_comment_error"')
+        ->and($content)->toContain('id="send_comment"')
+        // The comment trigger button (already present since Batch 2) now has a real target.
+        ->and($content)->toContain('data-target="#commentsModal"');
+});
+
+it('show: #sendFriendModal exists exactly once, with the correct title/form/fields/error-containers, matching send_friend_modal() (khotab/functions.php:1155-1199)', function () {
+    insertKhotabAuthor();
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 1, 'title' => 'A Lesson Title', 'vedio' => 1, 'hidden' => 0,
+    ]);
+
+    $content = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
+
+    expect(substr_count($content, 'id="sendFriendModal"'))->toBe(1)
+        ->and($content)->toContain('<h4 class="modal-title" id="sendFriendModalLabel">ارسل مادة : A Lesson Title</h4>')
+        ->and($content)->toContain('<form name="sendFriend_form" id="sendFriend_form" action="" method="post">')
+        ->and($content)->toContain('name="your_name"')
+        ->and($content)->toContain('name="your_email"')
+        ->and($content)->toContain('name="friend_name"')
+        ->and($content)->toContain('name="friend_email"')
+        ->and($content)->toContain('id="your_name_error"')
+        ->and($content)->toContain('id="your_email_error"')
+        ->and($content)->toContain('id="friend_name_error"')
+        ->and($content)->toContain('id="friend_email_error"')
+        ->and($content)->toContain('id="send_friend"');
+});
+
+it('show: no duplicate element ids across the page — legacy\'s own send_friend_modal() reuses id="khotab_id" (a genuine legacy bug), deliberately not reproduced', function () {
+    insertKhotabAuthor();
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 1, 'title' => 'Item', 'vedio' => 1, 'hidden' => 0,
+    ]);
+
+    $content = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
+
+    preg_match_all('/\sid="([^"]+)"/', $content, $matches);
+    $ids = $matches[1];
+
+    expect($ids)->toBe(array_unique($ids));
+});
+
+it('storeComment: the existing comment backend remains connected to the restored #commentsModal form (unchanged route/response contract)', function () {
+    insertKhotabAuthor();
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 1, 'title' => 'Item', 'vedio' => 1, 'hidden' => 0,
+    ]);
+
+    $ok = $this->post('/khotab-item-1/comments', ['user_nickname' => 'A Nickname', 'user_comment' => 'A Comment']);
+    $ok->assertOk()->assertSeeText('1');
+
+    $missingNickname = $this->post('/khotab-item-1/comments', ['user_nickname' => '', 'user_comment' => 'A Comment']);
+    $missingNickname->assertOk()->assertSeeText('2');
+});
+
+it('sendToFriend: validates all 4 fields + both emails, matching khotab_send_friend()\'s single combined check (khotab/functions.php:1208)', function () {
+    insertKhotabAuthor();
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 1, 'title' => 'Item', 'vedio' => 1, 'hidden' => 0,
+    ]);
+
+    $missing = $this->post('/khotab-item-1/send-friend', [
+        'your_name' => '', 'your_email' => 'a@example.com', 'friend_name' => 'Friend', 'friend_email' => 'b@example.com',
+    ]);
+    $missing->assertOk()->assertSeeText('2');
+
+    $badEmail = $this->post('/khotab-item-1/send-friend', [
+        'your_name' => 'Me', 'your_email' => 'not-an-email', 'friend_name' => 'Friend', 'friend_email' => 'b@example.com',
+    ]);
+    $badEmail->assertOk()->assertSeeText('2');
+});
+
+it('sendToFriend: on valid input, sends a KhotabFriendMail to the friend\'s email, From the submitter\'s own name/email — matching shams_mail_no_spam()\'s behavior (functions.php:942-949), reused from AnasheedFriendMail\'s established pattern', function () {
+    \Illuminate\Support\Facades\Mail::fake();
+    insertKhotabAuthor();
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 1, 'title' => 'A Lesson', 'vedio' => 1, 'hidden' => 0,
+    ]);
+
+    $response = $this->post('/khotab-item-1/send-friend', [
+        'your_name' => 'Sender Name', 'your_email' => 'sender@example.com',
+        'friend_name' => 'Friend Name', 'friend_email' => 'friend@example.com',
+    ]);
+
+    $response->assertOk()->assertSeeText('1');
+
+    \Illuminate\Support\Facades\Mail::assertSent(\App\Domain\Content\Mail\KhotabFriendMail::class, function ($mail) {
+        return $mail->hasTo('friend@example.com')
+            && $mail->khotabItem->id === 1
+            && $mail->yourName === 'Sender Name'
+            && $mail->yourEmail === 'sender@example.com'
+            && $mail->friendName === 'Friend Name';
+    });
+});
+
+it('KhotabFriendMail: subject/body match khotab_send_friend() exactly, except the item link uses khotab-item- (not legacy\'s own copy-pasted var-item- anasheed URL)', function () {
+    insertKhotabAuthor();
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 42, 'author' => 1, 'title' => 'The Lesson Title', 'vedio' => 1, 'hidden' => 0,
+    ]);
+    $khotabItem = \App\Domain\Content\Models\KhotabItem::find(42);
+
+    $mail = new \App\Domain\Content\Mail\KhotabFriendMail($khotabItem, 'Friend Name', 'Your Name', 'you@example.com');
+    $rendered = $mail->render();
+
+    expect($mail->hasSubject('The Lesson Title - موقع الطريق الى الله'))->toBeTrue()
+        ->and($mail->hasFrom('you@example.com', 'Your Name'))->toBeTrue()
+        ->and($rendered)->toContain('/khotab-item-42.htm')
+        ->and($rendered)->not->toContain('/var-item-42.htm')
+        ->and($rendered)->toContain('Friend Name')
+        ->and($rendered)->toContain('Your Name');
+});
+
+// ---- Visual parity audit (khotab-item-298784.htm, 2026-08-18): Batch 1 — page-title/breadcrumb/portlet-icon/table restored, previously missing ----
+
+it('show: renders the page-title <h3>, matching item.php:122\'s title($title) call ("{item title} - {author}")', function () {
+    insertKhotabAuthor();
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 1, 'title' => 'Item One', 'vedio' => 1, 'hidden' => 0,
+    ]);
+
+    $content = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('<h3 class="page-title">Item One - Sheikh Author Name</h3>')
+        // functions.php:541-543's malformed `\f`-escape icon is a legacy
+        // authoring bug, deliberately not reproduced.
+        ->not->toContain('class=a fa-gift');
+});
+
+it('show: breadcrumb\'s first segment ("المرئيات"/"الصوتيات") is a real link to /khotab-{op}.htm, matching item.php:92,96 (not plain text)', function () {
+    insertKhotabAuthor();
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        ['id' => 1, 'author' => 1, 'title' => 'Video Item', 'vedio' => 1, 'hidden' => 0],
+        ['id' => 2, 'author' => 1, 'title' => 'Audio Item', 'vedio' => 0, 'hidden' => 0],
+    ]);
+
+    $video = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
+    expect($video)->toContain('<li><a href="/khotab-video.htm">المرئيات</a><i class="fa fa-angle-right"></i></li>');
+
+    $audio = $this->get('/khotab-item-2.htm')->assertOk()->getContent();
+    expect($audio)->toContain('<li><a href="/khotab-audio.htm">الصوتيات</a><i class="fa fa-angle-right"></i></li>');
+});
+
+it('show: breadcrumb adds "مجموعة {title}"/"سلسلة {title}" segments only when the item has a group/series, matching item.php:101-106', function () {
+    insertKhotabAuthor();
+    DB::connection('main')->table('nuke_islamic_groups')->insert(['id' => 20, 'author_id' => 1, 'title' => 'My Group', 'vedio' => 1, 'hidden' => 0]);
+    DB::connection('main')->table('nuke_islamic_series')->insert(['id' => 10, 'author_id' => 1, 'title' => 'My Series', 'vedio' => 1, 'hidden' => 0]);
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        ['id' => 1, 'author' => 1, 'group_id' => 0, 'ser_id' => 0, 'title' => 'Plain Item', 'vedio' => 1, 'hidden' => 0],
+        ['id' => 2, 'author' => 1, 'group_id' => 20, 'ser_id' => 0, 'title' => 'Grouped Item', 'vedio' => 1, 'hidden' => 0],
+        ['id' => 3, 'author' => 1, 'group_id' => 0, 'ser_id' => 10, 'title' => 'Series Item', 'vedio' => 1, 'hidden' => 0],
+    ]);
+
+    $plain = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
+    expect($plain)->not->toContain('مجموعة My Group')->not->toContain('سلسلة My Series');
+
+    $grouped = $this->get('/khotab-item-2.htm')->assertOk()->getContent();
+    expect($grouped)->toContain('<li><a href="/khotab-group-20.htm">مجموعة My Group</a><i class="fa fa-angle-right"></i></li>');
+
+    $series = $this->get('/khotab-item-3.htm')->assertOk()->getContent();
+    expect($series)->toContain('<li><a href="/khotab-series-10.htm">سلسلة My Series</a><i class="fa fa-angle-right"></i></li>');
+});
+
+it('show: breadcrumb\'s final segment wraps the title in <a href=""> with a leading space and an empty icon, matching item.php:107 + breadcrumb_items()', function () {
+    insertKhotabAuthor();
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 1, 'title' => 'Final Segment Title', 'vedio' => 1, 'hidden' => 0,
+    ]);
+
+    $content = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('<li><a href=""> Final Segment Title</a><i class=""></i></li>');
+});
+
+it('show: renders the category-tree breadcrumb extension via the real categories() relationship, ancestors-first, matching item.php:123\'s breadcrumb($b,1,true,$Khotab->cat) + functions.php:475-506', function () {
+    insertKhotabAuthor();
+    DB::connection('main')->table('nuke_w2a_cat')->insert([
+        ['id' => 240, 'title' => 'Parent Category', 'main_cat' => 0],
+        ['id' => 513, 'title' => 'Leaf Category', 'main_cat' => 240],
+    ]);
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 1, 'title' => 'Categorized Item', 'vedio' => 1, 'hidden' => 0,
+    ]);
+    DB::connection('main')->table('khotab_category_index')->insert(['khotab_id' => 1, 'category_id' => 513]);
+
+    $content = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
+
+    $parentPos = strpos($content, 'category-240.htm');
+    $leafPos = strpos($content, 'category-513.htm');
+
+    expect($content)->toContain('<img src="/images/arrowbullet.png" alt="" />')
+        ->and($content)->toContain('<a href="/category-240.htm">Parent Category</a>')
+        ->and($content)->toContain('<a href="/category-513.htm">Leaf Category</a>')
+        ->and($parentPos)->not->toBeFalse()
+        ->and($leafPos)->not->toBeFalse()
+        ->and($parentPos)->toBeLessThan($leafPos);
+});
+
+it('show: renders no category-tree extension when the item has no categories', function () {
+    insertKhotabAuthor();
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 1, 'title' => 'Uncategorized Item', 'vedio' => 1, 'hidden' => 0,
+    ]);
+
+    $content = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
+
+    expect($content)->not->toContain('arrowbullet');
+});
+
+it('show: the details table has table-striped/w20 classes, matching item.php:148-150 (not a bare <table>)', function () {
+    insertKhotabAuthor();
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 1, 'title' => 'Item', 'vedio' => 1, 'hidden' => 0,
+    ]);
+
+    $content = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('<table class="table table-striped">')
+        ->and(substr_count($content, '<th class="w20"'))->toBeGreaterThanOrEqual(5);
+});
+
+it('show: every portlet caption on the page renders its w2a_open_div() icon (fa-video-camera/fa-clone/fa-comments/fa-child), matching functions.php:112', function () {
+    insertKhotabAuthor();
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 1, 'title' => 'Item', 'vedio' => 1, 'hidden' => 0,
+    ]);
+    DB::connection('main')->table('nuke_islamic_mirror')->insert([
+        'id' => 1, 'khid' => 1, 'vedio' => 1, 'comment' => 'A mirror', 'link' => 'file.mp4',
+    ]);
+    DB::connection('main')->table('nuke_islamic_comments')->insert([
+        'id' => 1, 'khid' => 1, 'uname' => 'A commenter', 'comment' => 'A comment', 'view' => 1, 'mytime' => 100,
+    ]);
+    DB::connection('main')->table('nuke_islamic_khotab')->update(['comments' => 1]);
+
+    $content = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('<div class="caption"><i class="fa fa-video-camera"></i> تفاصيل المادة</div>')
+        ->and($content)->toContain('<div class="caption"><i class="fa fa-clone"></i> قائمة الجودات المختلفة للمادة</div>')
+        ->and($content)->toContain('<div class="caption"><i class="fa fa-comments"></i> تعليقات الزوار على المادة</div>')
+        // 4 sidebar portlets share this icon in legacy (item.php:439,453,461,470's
+        // 'الملف الشخصي'/'اخترنا لك هذه المادة'/'الأكثر تحميلا'/'جديد المواد',
+        // all icon=>'fa-child') — a real legacy copy-paste choice, not a typo.
+        ->and(substr_count($content, '<div class="caption"><i class="fa fa-child"></i>'))->toBe(4);
+});
+
+it('show: renders the page-title/breadcrumb/portlet-icon fix set for the same live item-298784-shaped fixture used in the audit (multi-finding smoke test)', function () {
+    DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 22, 'name' => 'محمد إسماعيل المقدم', 'prename' => 'الشيخ']);
+    DB::connection('main')->table('nuke_w2a_cat')->insert([
+        ['id' => 240, 'title' => 'فضائل الأعمال والترغيب فيها', 'main_cat' => 0],
+        ['id' => 513, 'title' => 'الصلاة على النبي صلى الله عليه وسلم', 'main_cat' => 240],
+    ]);
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 298784, 'author' => 22, 'title' => 'صلوا عليه وسلموا تسليماً  ', 'vedio' => 1, 'hidden' => 0,
+    ]);
+    DB::connection('main')->table('khotab_category_index')->insert(['khotab_id' => 298784, 'category_id' => 513]);
+
+    $content = $this->get('/khotab-item-298784.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('<h3 class="page-title">صلوا عليه وسلموا تسليماً   - الشيخ محمد إسماعيل المقدم</h3>')
+        ->and($content)->toContain('<li><a href="/khotab-video.htm">المرئيات</a><i class="fa fa-angle-right"></i></li>')
+        ->and($content)->toContain('<a href="/category-240.htm">فضائل الأعمال والترغيب فيها</a>')
+        ->and($content)->toContain('<a href="/category-513.htm">الصلاة على النبي صلى الله عليه وسلم</a>');
 });
 
 it('show: only renders comments with view=1, gated by the stored comments counter', function () {
@@ -203,6 +668,99 @@ it('downloadMirror: increments the mirror\'s own hits, not the item\'s downcount
     expect(DB::connection('main')->table('nuke_islamic_khotab')->find(1)->downcount)->toBe(0);
 
     unlink($file);
+});
+
+/**
+ * G-01 regression coverage (Migration Gap Register) — streamFile()'s
+ * is_file() pre-check previously rejected every http(s):// link before
+ * fopen() was ever attempted, confirmed to affect 99.9% of real khotab
+ * downloads/mirrors. Fixed to skip is_file() only for http(s) links.
+ *
+ * A real local HTTP server (PHP's built-in server, spawned for this test
+ * only, torn down after) is used instead of an external URL — genuine
+ * end-to-end proof that fopen() over http(s) actually streams real bytes
+ * back to the client post-fix, without any dependency on an external
+ * network resource or invented production URL. Pre-fix, is_file() would
+ * have rejected this exact link with a 404 before fopen() ever ran.
+ */
+function startLocalHttpFixtureServer(string $body): array
+{
+    $dir = sys_get_temp_dir().'/khotab-g01-'.uniqid();
+    mkdir($dir);
+    file_put_contents($dir.'/file.bin', $body);
+
+    $port = random_int(20000, 60000);
+    $process = proc_open(
+        ['php', '-S', "127.0.0.1:{$port}", '-t', $dir],
+        [1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
+        $pipes,
+    );
+    usleep(300000); // give the built-in server a moment to bind
+
+    return [$process, $port, $dir];
+}
+
+function stopLocalHttpFixtureServer($process, string $dir): void
+{
+    proc_terminate($process);
+    proc_close($process);
+    @unlink($dir.'/file.bin');
+    @rmdir($dir);
+}
+
+it('download: an http link is no longer rejected by is_file() — genuinely fetches and streams the remote bytes', function () {
+    [$process, $port, $dir] = startLocalHttpFixtureServer('remote-http-bytes');
+
+    try {
+        DB::connection('main')->table('nuke_islamic_khotab')->insert([
+            'id' => 1, 'title' => 'Item', 'link' => "http://127.0.0.1:{$port}/file.bin", 'linksize' => 18,
+        ]);
+
+        $response = $this->get('/khotab-download-1.htm');
+
+        $response->assertOk();
+        expect($response->streamedContent())->toBe('remote-http-bytes');
+    } finally {
+        stopLocalHttpFixtureServer($process, $dir);
+    }
+});
+
+it('downloadMirror: an http link (https is the identical code path — see docblock) is no longer rejected by is_file()', function () {
+    [$process, $port, $dir] = startLocalHttpFixtureServer('remote-mirror-bytes');
+
+    try {
+        DB::connection('main')->table('nuke_islamic_khotab')->insert(['id' => 1, 'title' => 'Item']);
+        DB::connection('main')->table('nuke_islamic_mirror')->insert([
+            'id' => 1, 'khid' => 1, 'link' => "http://127.0.0.1:{$port}/file.bin",
+        ]);
+
+        $response = $this->get('/khotab-mirror-1-1.htm');
+
+        $response->assertOk();
+        expect($response->streamedContent())->toBe('remote-mirror-bytes');
+    } finally {
+        stopLocalHttpFixtureServer($process, $dir);
+    }
+});
+
+it('download: an empty link still 404s (legacy\'s own empty($_link) check, unaffected by this fix)', function () {
+    DB::connection('main')->table('nuke_islamic_khotab')->insert(['id' => 1, 'title' => 'Item', 'link' => '']);
+
+    $this->get('/khotab-download-1.htm')->assertNotFound();
+});
+
+it('download: a garbled/non-URL link still 404s via is_file() — unaffected by this fix', function () {
+    DB::connection('main')->table('nuke_islamic_khotab')->insert(['id' => 1, 'title' => 'Item', 'link' => '..........']);
+
+    $this->get('/khotab-download-1.htm')->assertNotFound();
+});
+
+it('download: a nonexistent local path still 404s via is_file() — unaffected by this fix', function () {
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'title' => 'Item', 'link' => '/tmp/khotab-g01-test-nonexistent-file-'.uniqid().'.mp3',
+    ]);
+
+    $this->get('/khotab-download-1.htm')->assertNotFound();
 });
 
 it('storeComment: creates an unmoderated (view=0) comment and returns "1"', function () {

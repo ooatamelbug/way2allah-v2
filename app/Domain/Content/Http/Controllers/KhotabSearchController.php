@@ -68,13 +68,49 @@ class KhotabSearchController
             $items = $listing->khotabAdvancedSearch($filters);
         }
 
-        $authors = Cache::remember('khotab-search-authors-menu', 3600, fn () => Author::orderBy('name')->get(['id', 'name']));
-        $channels = Cache::remember('khotab-search-channels-menu', 3600, fn () => Channel::orderBy('title')->get(['id', 'title']));
+        $authors = $this->rememberSafely('khotab-search-authors-menu', 3600, fn () => Author::orderBy('name')->get(['id', 'name']));
+        $channels = $this->rememberSafely('khotab-search-channels-menu', 3600, fn () => Channel::orderBy('title')->get(['id', 'title']));
 
         return view('khotab.search', compact(
             'title', 'channelId', 'authorId', 'from', 'to',
             'hasCriteria', 'titleTooShort', 'series', 'items', 'authors', 'channels',
         ));
+    }
+
+    /**
+     * G-09-02 fix (Phase 1 audit) — root cause corrected during Phase 2.
+     *
+     * Phase 1 observed HTTP 500s ("Attempt to read property... on
+     * string/array/false") under concurrent requests against a cold cache
+     * and attributed it to a multi-process write race on the `file`
+     * driver. **Re-investigated before applying that fix, per instruction
+     * to reproduce first**: the same corruption reproduces with ZERO
+     * concurrency — a single cold request followed by a plain sequential
+     * warm request, 300ms apart, on the confirmed single-worker dev
+     * server (`PHP_CLI_SERVER_WORKERS` unset, one PID for every request —
+     * verified directly). The cache *file* itself was confirmed byte-valid
+     * (a fresh CLI process unserializes it cleanly to a correct 736-row
+     * `Collection`) — the corruption only appears when the *same
+     * already-bootstrapped process* re-`unserialize()`s a large
+     * `Illuminate\Database\Eloquent\Collection` of full `Author`/`Channel`
+     * models it did not just build itself. A `Cache::lock()`-based
+     * first-population guard was tried and did **not** fix this (the
+     * original diagnosis was wrong, not just the fix) — confirmed by
+     * re-running the exact same reproduction with the lock in place.
+     *
+     * **Actual fix:** cache a plain array of scalar attributes (`id`/
+     * `name`/`title` — exactly the 2 columns each query already selects),
+     * not full Eloquent models, and rehydrate to plain `stdClass` objects
+     * after every read (the view only ever does `$author->id`/
+     * `$author->name`, unaffected by the cached value no longer being an
+     * `Author` model). Cache keys, TTL, and the effective data
+     * (id/name/title pairs) are unchanged.
+     */
+    private function rememberSafely(string $key, int $seconds, \Closure $callback): mixed
+    {
+        $rows = Cache::remember($key, $seconds, fn () => $callback()->map(fn ($model) => $model->getAttributes())->all());
+
+        return collect($rows)->map(fn (array $row) => (object) $row);
     }
 
     /** `search.php:251-281`'s date-range resolution, reproduced exactly (the 3 explicit cases, plus "no dates at all" which legacy also leaves unfiltered). */

@@ -3,6 +3,7 @@
 namespace App\Domain\Content\Services;
 
 use App\Domain\Content\Models\Channel;
+use App\Domain\Content\Support\MediaPathResolver;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -145,12 +146,33 @@ class ContentSidebarWidget
 
     public function anasheedMostDownloaded(?int $groupId = null): Collection
     {
-        return $this->query('nuke_anasheed_anasheed', ['id', 'title', 'frame', 'downcount'], 'group_id', $groupId, 'hits', 7);
+        return $this->withAnasheedThumb($this->query('nuke_anasheed_anasheed', ['id', 'title', 'frame', 'downcount'], 'group_id', $groupId, 'hits', 7));
     }
 
     public function anasheedMostRecent(?int $groupId = null): Collection
     {
-        return $this->query('nuke_anasheed_anasheed', ['id', 'title', 'frame', 'mytime'], 'group_id', $groupId, 'mytime', 7);
+        return $this->withAnasheedThumb($this->query('nuke_anasheed_anasheed', ['id', 'title', 'frame', 'mytime'], 'group_id', $groupId, 'mytime', 7));
+    }
+
+    /**
+     * G-13-09 (media/visual parity phase) — `anasheed/functions.php:882-910`'s
+     * `most_recent_html()`, the shared builder behind both boxes above
+     * (`item.php:93`'s `most_downloaded_recent_sidebar($Group)` call).
+     * Confirmed real `thumbnail($args, ...)` call, `w=72,h=50` — routes
+     * through `thumbnails.php`, matching `HomeController::anasheedThumb()`'s
+     * already-established convention exactly (same w/h, same "frame flag
+     * only, no file_exists()" behavior) — reused here via the same
+     * `MediaPathResolver` path, not a new convention.
+     */
+    private function withAnasheedThumb(Collection $items): Collection
+    {
+        return $items->map(function ($item) {
+            $item->thumb = ((int) $item->frame) === 1
+                ? '/thumbnails.php?h=50&w=72&src='.MediaPathResolver::path('anasheed/frame', (int) $item->id, 'jpg')
+                : '/images/tvnoise.gif';
+
+            return $item;
+        });
     }
 
     // ---- w2acd (no group filter — confirmed dead parameter in legacy) ----
@@ -613,6 +635,41 @@ class ContentSidebarWidget
             ->get();
     }
 
+    /**
+     * `fatawa.php:147-153` `tasnifat_latestadd()` — `fatawa.htm`'s own
+     * "احدث التصنيفات المضافة" sidebar box. **G-07-02 fix:** legacy queries
+     * the entire `nuke_w2a_cat` table, no `main_cat` filter at all — every
+     * nesting level is eligible. Confirmed via Phase 1 audit against real
+     * `olddb` data: the prior view-level approximation (sorting the
+     * controller's own `main_cat=0`-filtered `$categories` collection) was
+     * 0/10 correct against legacy's real top-10. Query reproduced verbatim:
+     * `WHERE q_count != 0 ORDER BY id DESC LIMIT 10`.
+     */
+    public function fatwaLatestAddedCategories(): Collection
+    {
+        return DB::connection('main')->table('nuke_w2a_cat')
+            ->where('q_count', '!=', 0)
+            ->orderByDesc('id')
+            ->limit(10)
+            ->get();
+    }
+
+    /**
+     * `fatawa.php:155-161` `tasnifat_active()` — `fatawa.htm`'s own
+     * "التصنيفات الأكثر نشاطاً" sidebar box. Same G-07-02 fix and same
+     * unfiltered-`main_cat` reasoning as `fatwaLatestAddedCategories()`
+     * above. Query reproduced verbatim: `WHERE q_count != 0 ORDER BY
+     * q_count DESC LIMIT 10`.
+     */
+    public function fatwaMostActiveCategories(): Collection
+    {
+        return DB::connection('main')->table('nuke_w2a_cat')
+            ->where('q_count', '!=', 0)
+            ->orderByDesc('q_count')
+            ->limit(10)
+            ->get();
+    }
+
     /** Shared query shape behind the 4 `khotabMost*` methods above — `topitems()`'s fixed SELECT list/table, varying only the WHERE filters and ORDER BY column. */
     private function topitems(array $filters, string $orderColumn, int $limit): Collection
     {
@@ -623,7 +680,50 @@ class ContentSidebarWidget
             $query->where($column, $value);
         }
 
-        return $query->orderByDesc($orderColumn)->limit($limit)->get();
+        return $query->orderByDesc($orderColumn)->limit($limit)->get()
+            ->map(function ($item) {
+                $item->thumb = $this->topitemsThumb((int) $item->frame, (int) $item->id);
+
+                return $item;
+            });
+    }
+
+    /**
+     * G-13-01 (media/visual parity phase) — `functions.php:1046-1061`'s
+     * `topitems()` renders an `<img>` thumbnail per row (`<li class="media">`),
+     * which the Laravel views consuming this data were missing entirely
+     * (plain text `<li>`, no image). `frame==1` branch reproduced exactly:
+     * bucketed `khotab_frames` path, real `file_exists()` gate, matching
+     * `HomeController::bucketedThumb()`'s already-established pattern for
+     * the same convention.
+     *
+     * **The `else` (non-frame/author-photo) branch is deliberately NOT a
+     * real lookup.** Legacy's own line 1056 is a malformed double-quoted
+     * string — `"..."."media/authors/' . $folder_id . '/' . $item->author
+     * . '.jpg"` — where the single-quote-concatenation syntax is written
+     * *inside* an already-open double-quoted string, so PHP treats `' . `
+     * and `.` as literal characters, not operators, while still
+     * interpolating `$folder_id`/`$item->author`. The resulting path can
+     * never match a real file, so `file_exists()` always returns false and
+     * this branch always falls through to the placeholder — a confirmed,
+     * deterministic legacy bug, not a real photo lookup. Reproduced here
+     * as its actual observable output (always the placeholder) rather than
+     * either blindly copying the broken string or silently "fixing" it
+     * into a working lookup — the latter would be a real behavior change
+     * (some author photos would newly start rendering) and needs the same
+     * explicit confirmation G-10-01 required for a comparable case, not a
+     * default made here.
+     */
+    private function topitemsThumb(int $frame, int $id): string
+    {
+        if ($frame === 1) {
+            $rel = MediaPathResolver::path('khotab_frames', $id, 'jpg');
+            if (file_exists(public_path($rel))) {
+                return '/'.$rel;
+            }
+        }
+
+        return '/images/way2_withoutimg.png';
     }
 
     private function query(string $table, array $columns, ?string $filterColumn, mixed $filterValue, string $orderColumn, int $limit): Collection

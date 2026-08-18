@@ -3,6 +3,8 @@
 namespace App\Domain\Content\Http\Controllers;
 
 use App\Domain\Content\Events\CommentPosted;
+use App\Domain\Content\Mail\KhotabFriendMail;
+use App\Domain\Content\Models\Category;
 use App\Domain\Content\Models\Comment;
 use App\Domain\Content\Models\KhotabGroup;
 use App\Domain\Content\Models\KhotabItem;
@@ -13,6 +15,7 @@ use App\Domain\Content\Services\GeoIpLookup;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -46,7 +49,7 @@ class KhotabItemController
     public function show(int $khotab, ContentSidebarWidget $sidebar): View
     {
         $khotabItem = KhotabItem::where('hidden', 0)
-            ->with(['authorModel', 'mirrors.advanced'])
+            ->with(['authorModel', 'mirrors.advanced', 'categories'])
             ->findOrFail($khotab);
 
         $series = null;
@@ -72,12 +75,42 @@ class KhotabItemController
         $mostDownloaded = $sidebar->khotabMostDownloadedByVideoFlag($video);
         $mostRecent = $sidebar->khotabMostRecentByVideoFlag($video);
 
+        $categoryChains = $this->categoryBreadcrumbChains($khotabItem);
+
         // item.php:422 — unconditional `hits=hits+1, lastvisit=time()`,
         // fired regardless of admin/hidden status (there is no early
         // return before this line for a successfully-loaded item).
         $khotabItem->recordView();
 
-        return view('khotab.item', compact('khotabItem', 'series', 'group', 'comments', 'randomFeatured', 'mostDownloaded', 'mostRecent'));
+        return view('khotab.item', compact('khotabItem', 'series', 'group', 'comments', 'randomFeatured', 'mostDownloaded', 'mostRecent', 'categoryChains'));
+    }
+
+    /**
+     * Visual parity audit (khotab-item-298784.htm, 2026-08-18):
+     * `item.php:123`'s `breadcrumb($breadcrumb, 1, true, $Khotab->cat)` —
+     * the `$categories` argument triggers `functions.php:475-506`'s
+     * category-tree extension rendered inside `.page-bar`. That legacy
+     * code parses the raw `cat` pipe-string (a confirmed data-quality
+     * anti-pattern per `KhotabItem`'s own docblock); this uses the
+     * already-established `categories()` junction-table relationship and
+     * `Category::breadcrumbTrail()` (already ancestors-first, matching
+     * `breadcrumb()`'s own `while ($Cat->main_cat > 0)` walk exactly —
+     * confirmed live for this item's single category: 513, parent 240)
+     * instead of duplicating that walk here. Rendering one chain per
+     * category — not just the last, unlike legacy's own `$FullCats = `
+     * (not `.=`) overwrite bug — is untested against a real
+     * multi-category item (this one only has one) but is the more
+     * correct behavior for the properly normalized relationship; the bug
+     * was an artifact of the old buggy single-string representation, not
+     * a rule worth preserving.
+     *
+     * @return array<int, \Illuminate\Support\Collection<int, Category>>
+     */
+    private function categoryBreadcrumbChains(KhotabItem $khotabItem): array
+    {
+        return $khotabItem->categories
+            ->map(fn (Category $leaf) => $leaf->breadcrumbTrail())
+            ->all();
     }
 
     /**
@@ -168,9 +201,73 @@ class KhotabItemController
         return '1';
     }
 
+    /**
+     * Visual parity audit (khotab-item-298784.htm, 2026-08-18) Batch 3 /
+     * Finding #11: `khotab_send_friend()` (`khotab/functions.php:1202-1230`).
+     * Reproduces legacy's own bare-numeric-code response shape exactly
+     * (`echo 2; die();` on validation failure, `echo 1; die();` on
+     * success), matching this same controller's own `storeComment()`
+     * convention and `AnasheedItemController::sendToFriend()`'s
+     * established precedent for the same underlying
+     * `shams_mail_no_spam()` helper. Validation: all 4 fields required +
+     * both emails must pass `FILTER_VALIDATE_EMAIL` — one combined check,
+     * matching legacy's own single `echo 2` branch for every failure
+     * reason (confirmed identical to `AnasheedItemController::
+     * sendToFriend()`'s own validation, not copied without checking).
+     * `hidden = 0` filter applied for consistency with this controller's
+     * own standing "every public-facing query applies hidden = 0" policy
+     * (class docblock) — legacy's own `get_khotab()` has no such filter,
+     * but that's this controller's already-established convention, not a
+     * new decision made here. See `KhotabFriendMail`'s own docblock for
+     * the one deliberate deviation from legacy (the item link).
+     */
+    public function sendToFriend(int $khotab, Request $request): string
+    {
+        $yourName = trim((string) $request->input('your_name'));
+        $yourEmail = trim((string) $request->input('your_email'));
+        $friendName = trim((string) $request->input('friend_name'));
+        $friendEmail = trim((string) $request->input('friend_email'));
+
+        if ($yourName === '' || $friendName === ''
+            || ! filter_var($yourEmail, FILTER_VALIDATE_EMAIL)
+            || ! filter_var($friendEmail, FILTER_VALIDATE_EMAIL)
+        ) {
+            return '2';
+        }
+
+        $khotabItem = KhotabItem::where('hidden', 0)->findOrFail($khotab);
+
+        Mail::to($friendEmail)->send(
+            new KhotabFriendMail($khotabItem, $friendName, $yourName, $yourEmail)
+        );
+
+        return '1';
+    }
+
+    /**
+     * G-01 fix (Migration Gap Register): legacy `download_khotab()`
+     * (`khotab/functions.php:993-1032`) never checks the link exists
+     * before opening it — it calls `@fopen($_link, 'rb')` unconditionally
+     * for any non-empty link, local or remote (PHP's `fopen()` supports
+     * the `http(s)://` stream wrapper natively). This method's own prior
+     * `is_file()` pre-check has no legacy counterpart and rejects every
+     * `http(s)://` link before `fopen()` is ever attempted — confirmed
+     * against real data to affect 99.9% of khotab items and mirrors.
+     *
+     * Fixed narrowly: `is_file()` is skipped only for `http://`/`https://`
+     * links, matching legacy's own effective behavior for the case that
+     * was actually broken. It is still applied for every other non-empty
+     * link (local paths, garbled/placeholder strings) — that class of
+     * link already 404s today via `is_file()` returning false, and this
+     * fix does not change that outcome; only the http(s) case changes.
+     */
     private function streamFile(?string $link): StreamedResponse
     {
-        abort_if($link === null || $link === '' || ! is_file($link), 404, 'File not found');
+        abort_if($link === null || $link === '', 404, 'File not found');
+
+        $isRemote = str_starts_with($link, 'http://') || str_starts_with($link, 'https://');
+
+        abort_if(! $isRemote && ! is_file($link), 404, 'File not found');
 
         return response()->streamDownload(function () use ($link) {
             $handle = fopen($link, 'rb');

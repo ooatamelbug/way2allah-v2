@@ -21,6 +21,16 @@ function useInMemoryMainConnectionForListing(): void
         'series_category_index' => MainSchema::seriesCategoryIndex(),
         'khotab_category_index' => MainSchema::khotabCategoryIndex(),
         'nuke_islamic_khotab' => MainSchema::nukeIslamicKhotab(),
+        // G-02 (Homepage Migration) additions.
+        'nuke_w2a_cat' => MainSchema::nukeW2aCat(),
+        'nuke_fatwa_questions' => MainSchema::nukeFatwaQuestions(),
+        'nuke_anasheed_anasheed' => MainSchema::nukeAnasheedAnasheed(),
+        'nuke_anasheed_groups' => MainSchema::nukeAnasheedGroups(),
+        'nuke_anasheed_advanced' => MainSchema::nukeAnasheedAdvanced(),
+        'nuke_telawah_telawah' => MainSchema::nukeTelawahTelawah(),
+        'nuke_telawah_groups' => MainSchema::nukeTelawahGroups(),
+        'nuke_options' => MainSchema::nukeOptions(),
+        'nuke_albums_images' => MainSchema::nukeAlbumsImages(),
     ]);
 }
 
@@ -322,4 +332,233 @@ it('ramadanSeriesByYear: the 1447 bucket is time-based (>= the confirmed 2026-02
     $results = $this->service->ramadanSeriesByYear();
 
     expect($results[1447]->pluck('title')->all())->toBe(['At threshold, appears in 1447']);
+});
+
+// ---- G-02 (Homepage Migration Blueprint) ----
+
+it('homeLatestVideos: only vedio=1 AND newslist=1 rows, newest lastmirror first, limit 3, cached for 300s (stale reads survive a data change within the window)', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'A', 'prename' => 'Dr.']);
+    $db->table('nuke_islamic_khotab')->insert([
+        ['id' => 1, 'author' => 1, 'vedio' => 1, 'newslist' => 1, 'lastmirror' => 300, 'title' => 'V-newest'],
+        ['id' => 2, 'author' => 1, 'vedio' => 1, 'newslist' => 1, 'lastmirror' => 200, 'title' => 'V-mid'],
+        ['id' => 3, 'author' => 1, 'vedio' => 1, 'newslist' => 1, 'lastmirror' => 100, 'title' => 'V-oldest'],
+        ['id' => 4, 'author' => 1, 'vedio' => 1, 'newslist' => 1, 'lastmirror' => 50, 'title' => 'V-excluded-by-limit'],
+        ['id' => 5, 'author' => 1, 'vedio' => 1, 'newslist' => 0, 'lastmirror' => 400, 'title' => 'Excluded: newslist=0 despite newest'],
+        ['id' => 6, 'author' => 1, 'vedio' => 0, 'newslist' => 1, 'lastmirror' => 500, 'title' => 'Excluded: vedio=0 despite newest'],
+    ]);
+
+    $first = $this->service->homeLatestVideos();
+
+    expect($first->pluck('title')->all())->toBe(['V-newest', 'V-mid', 'V-oldest']);
+
+    // Cache proof: change the underlying data, call again inside the 300s window, expect the SAME (stale) result.
+    $db->table('nuke_islamic_khotab')->where('id', 1)->update(['title' => 'Changed after first call']);
+    $second = $this->service->homeLatestVideos();
+
+    expect($second->pluck('title')->all())->toBe(['V-newest', 'V-mid', 'V-oldest']);
+});
+
+/**
+ * Homepage HTTP 500 investigation — the default test cache store
+ * (`array`) never serializes at all, so it can't catch this class of bug:
+ * this app's `config('cache.serializable_classes')` is `false` (Laravel's
+ * own secure-by-default setting), so the real `file` store's
+ * `unserialize(..., ['allowed_classes' => false])` converts every cached
+ * *object* — including plain `stdClass`, not just Eloquent models — into
+ * `__PHP_Incomplete_Class` on every cache read after the first. Genuinely
+ * different root cause from the G-06/G-09-02 Eloquent-model corruption
+ * this project already fixed elsewhere (`KhotabSearchController::
+ * rememberSafely()`) — that fix's *pattern* (cache plain arrays, rehydrate
+ * via `(object)` after reading) is exactly what closes this one too, but
+ * the failure mechanism is a config-driven unserialize restriction, not
+ * model hydration. Switches to the real `file` store deliberately, to
+ * exercise the actual dev-server code path these tests would otherwise
+ * never touch — and cleans up the cache file it writes.
+ */
+it('homeLatestVideos/homeLatestAudios/homeLatestDumpFiles: survive a real file-cache-store serialize/unserialize round-trip (config("cache.serializable_classes")=false does not corrupt the cached stdClass rows on a second read)', function () {
+    config(['cache.default' => 'file']);
+
+    // Defensive: the `file` store writes to the real, persistent
+    // storage/framework/cache/data directory (shared with manual dev-server
+    // testing done outside Pest), so a leftover entry from a prior run could
+    // be read as a false cache HIT before this test ever writes its own.
+    // Clearing up front (not just in `finally`) guarantees the first calls
+    // below are genuine cache MISSes against this test's own fixture data.
+    Illuminate\Support\Facades\Cache::store('file')->forget('home-latest-videos');
+    Illuminate\Support\Facades\Cache::store('file')->forget('home-latest-audios');
+    Illuminate\Support\Facades\Cache::store('file')->forget('home-latest-dump-files-3');
+
+    $db = DB::connection('main');
+    $db->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'A', 'prename' => 'Dr.']);
+    $db->table('nuke_islamic_khotab')->insert([
+        ['id' => 1, 'author' => 1, 'vedio' => 1, 'newslist' => 1, 'pdf' => 1, 'lastmirror' => 100, 'pdf_time' => 100, 'title' => 'File-cache item'],
+        ['id' => 2, 'author' => 1, 'vedio' => 0, 'newslist' => 1, 'pdf' => 0, 'lastmirror' => 100, 'pdf_time' => 0, 'title' => 'File-cache audio item'],
+    ]);
+
+    try {
+        // First call: cache MISS, writes the file. This alone never reproduced
+        // the bug (the closure's return value is used directly, no unserialize
+        // involved) — the second call is the one that exercises the real
+        // vulnerability, reading back through FileStore::unserialize().
+        $this->service->homeLatestVideos();
+        $this->service->homeLatestAudios();
+        $this->service->homeLatestDumpFiles();
+
+        $videos = $this->service->homeLatestVideos();
+        $audios = $this->service->homeLatestAudios();
+        $dumps = $this->service->homeLatestDumpFiles();
+
+        expect(get_class($videos->first()))->toBe('stdClass')
+            ->and($videos->first()->title)->toBe('File-cache item')
+            ->and(get_class($audios->first()))->toBe('stdClass')
+            ->and(get_class($dumps->first()))->toBe('stdClass')
+            ->and($dumps->first()->title)->toBe('File-cache item');
+    } finally {
+        Illuminate\Support\Facades\Cache::store('file')->forget('home-latest-videos');
+        Illuminate\Support\Facades\Cache::store('file')->forget('home-latest-audios');
+        Illuminate\Support\Facades\Cache::store('file')->forget('home-latest-dump-files-3');
+    }
+});
+
+it('homeLatestAudios: only vedio=0 AND newslist=1 rows, newest lastmirror first, limit 7', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'A', 'prename' => 'Dr.']);
+    $db->table('nuke_islamic_khotab')->insert([
+        ['id' => 1, 'author' => 1, 'vedio' => 0, 'newslist' => 1, 'lastmirror' => 200, 'title' => 'Audio-newest'],
+        ['id' => 2, 'author' => 1, 'vedio' => 0, 'newslist' => 1, 'lastmirror' => 100, 'title' => 'Audio-oldest'],
+        ['id' => 3, 'author' => 1, 'vedio' => 1, 'newslist' => 1, 'lastmirror' => 300, 'title' => 'Excluded: vedio=1'],
+    ]);
+
+    $results = $this->service->homeLatestAudios();
+
+    expect($results->pluck('title')->all())->toBe(['Audio-newest', 'Audio-oldest']);
+});
+
+it('homeLatestDumpFiles: pdf>0 rows only, newest pdf_time first, respects $limit, cache key includes the limit (matching legacy\'s own SimpleCache key)', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'A', 'prename' => 'Dr.']);
+    $db->table('nuke_islamic_khotab')->insert([
+        ['id' => 1, 'author' => 1, 'pdf' => 1, 'pdf_time' => 300, 'title' => 'PDF-newest'],
+        ['id' => 2, 'author' => 1, 'pdf' => 1, 'pdf_time' => 200, 'title' => 'PDF-mid'],
+        ['id' => 3, 'author' => 1, 'pdf' => 0, 'pdf_time' => 999, 'title' => 'Excluded: pdf=0'],
+    ]);
+
+    expect($this->service->homeLatestDumpFiles(1)->pluck('title')->all())->toBe(['PDF-newest'])
+        ->and($this->service->homeLatestDumpFiles(3)->pluck('title')->all())->toBe(['PDF-newest', 'PDF-mid']);
+});
+
+it('homeLatestDumpFiles: is NOT khotabPdfDump() — no hidden filter, confirmed by a hidden=1 row still appearing (the two are deliberately separate methods, see the service\'s own docblock)', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'A', 'prename' => 'Dr.']);
+    $db->table('nuke_islamic_khotab')->insert(['id' => 1, 'author' => 1, 'pdf' => 1, 'pdf_time' => 100, 'hidden' => 1, 'title' => 'Hidden but pdf>0']);
+
+    expect($this->service->homeLatestDumpFiles()->pluck('title')->all())->toBe(['Hidden but pdf>0']);
+});
+
+it('homeLatestFatawas: newest id first, respects $limit', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'A', 'prename' => 'Dr.']);
+    $db->table('nuke_fatwa_questions')->insert([
+        ['id' => 1, 'auther_id' => 1, 'question_text' => 'Older', 'general_question_id' => '5'],
+        ['id' => 2, 'auther_id' => 1, 'question_text' => 'Newer', 'general_question_id' => '6'],
+    ]);
+
+    expect($this->service->homeLatestFatawas(1)->pluck('question_text')->all())->toBe(['Newer']);
+});
+
+it('homeCategory487: only main_cat=487 rows, newest id first, respects $limit', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_w2a_cat')->insert([
+        ['id' => 1, 'title' => 'Other cat', 'main_cat' => 1],
+        ['id' => 613, 'title' => 'C-newer', 'main_cat' => 487],
+        ['id' => 600, 'title' => 'C-older', 'main_cat' => 487],
+    ]);
+
+    expect($this->service->homeCategory487()->pluck('title')->all())->toBe(['C-newer', 'C-older']);
+});
+
+it('homeLatestTelawahs: LEFT JOIN preserves telawah rows even when the group is missing, newest id first', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_telawah_groups')->insert(['id' => 1, 'title' => 'Group A']);
+    $db->table('nuke_telawah_telawah')->insert([
+        ['id' => 1, 'title' => 'T-older', 'group_id' => 1],
+        ['id' => 2, 'title' => 'T-newer, orphaned group', 'group_id' => 999],
+    ]);
+
+    $results = $this->service->homeLatestTelawahs();
+
+    expect($results->pluck('title')->all())->toBe(['T-newer, orphaned group', 'T-older'])
+        ->and($results->firstWhere('title', 'T-older')->group_title)->toBe('Group A')
+        ->and($results->firstWhere('title', 'T-newer, orphaned group')->group_title)->toBeNull();
+});
+
+it('homeSelectedAlbumImages: resolves the album via the nuke_options home_selected_album key, ordered by `order`, limit respected', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_options')->insert(['option_name' => 'home_selected_album', 'option_value' => '5']);
+    $db->table('nuke_albums_images')->insert([
+        ['album_id' => 5, 'url' => 'second.jpg', 'order' => 2],
+        ['album_id' => 5, 'url' => 'first.jpg', 'order' => 1],
+        ['album_id' => 9, 'url' => 'wrong-album.jpg', 'order' => 0],
+    ]);
+
+    $result = $this->service->homeSelectedAlbumImages(1);
+
+    expect($result['album_id'])->toBe(5)
+        ->and($result['images']->pluck('url')->all())->toBe(['first.jpg']);
+});
+
+it('homeAnasheedByParent: filters by parent_id (NOT group_id — a same-named but different column on this table)', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_anasheed_anasheed')->insert([
+        ['id' => 1, 'title' => 'Right parent', 'parent_id' => 158, 'group_id' => 1],
+        ['id' => 2, 'title' => 'Wrong parent, matching group_id only', 'parent_id' => 1, 'group_id' => 158],
+    ]);
+
+    $results = $this->service->homeAnasheedByParent(158);
+
+    expect($results->pluck('title')->all())->toBe(['Right parent']);
+});
+
+it('homeAnasheedByParent: parent=98 special case includes group 16 too, matching listvars()\'s own `98 -> [16,98]` substitution', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_anasheed_anasheed')->insert([
+        ['id' => 1, 'title' => 'Parent 98', 'parent_id' => 98],
+        ['id' => 2, 'title' => 'Parent 16 (included via the 98 special case)', 'parent_id' => 16],
+        ['id' => 3, 'title' => 'Parent 17 (must NOT be included)', 'parent_id' => 17],
+    ]);
+
+    $results = $this->service->homeAnasheedByParent(98);
+
+    expect($results->pluck('title')->sort()->values()->all())->toBe([
+        'Parent 16 (included via the 98 special case)',
+        'Parent 98',
+    ]);
+});
+
+it('homeAnasheedByParent: ordering is newest id first, respects $limit', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_anasheed_anasheed')->insert([
+        ['id' => 10, 'title' => 'Older', 'parent_id' => 12],
+        ['id' => 20, 'title' => 'Newer', 'parent_id' => 12],
+    ]);
+
+    expect($this->service->homeAnasheedByParent(12, 1)->pluck('title')->all())->toBe(['Newer']);
+});
+
+it('homeTrendingAnasheed: INNER JOINs nuke_anasheed_advanced (rows without an advanced record are excluded, matching legacy\'s own implicit join), newest lastvisit first', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_anasheed_anasheed')->insert([
+        ['id' => 1, 'title' => 'Has advanced row, newer', 'lastvisit' => 200],
+        ['id' => 2, 'title' => 'Has advanced row, older', 'lastvisit' => 100],
+        ['id' => 3, 'title' => 'No advanced row - excluded', 'lastvisit' => 999],
+    ]);
+    $db->table('nuke_anasheed_advanced')->insert([
+        ['id' => 1, 'adur' => '1:00'],
+        ['id' => 2, 'adur' => '2:00'],
+    ]);
+
+    $results = $this->service->homeTrendingAnasheed();
+
+    expect($results->pluck('title')->all())->toBe(['Has advanced row, newer', 'Has advanced row, older']);
 });

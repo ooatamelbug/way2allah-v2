@@ -4,6 +4,7 @@ namespace App\Domain\Content\Models;
 
 use App\Domain\Content\Models\Concerns\TracksViews;
 use App\Domain\Content\Models\Contracts\Viewable;
+use App\Domain\Content\Support\MediaPathResolver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -109,6 +110,29 @@ class AnasheedItem extends Model implements Viewable
         return $this->hasMany(AnasheedComment::class, 'khid');
     }
 
+    /**
+     * G-13-09 (media/visual parity phase) — `anasheed/functions.php:326-340`'s
+     * `list_anasheed()` (the group page's own "قائمة المواد" item listing,
+     * distinct from `HomeController::anasheedThumb()`'s homepage-widget
+     * convention). Confirmed by direct reading: unlike the homepage
+     * widgets, this one does **not** route through `thumbnails.php` at
+     * all — a raw `media/anasheed/frame/{bucket}/{id}.jpg` link, resized
+     * only via the `height="67"` HTML attribute. Also confirmed: line
+     * 336's `if(!$thumb_url)` fallback is dead code (a non-empty string
+     * is never falsy in PHP) — there is genuinely no `file_exists()` gate
+     * here, unlike `HomeController::bucketedThumb()`'s khotab convention.
+     * Reproduced exactly, not "corrected" to add a check legacy doesn't
+     * have.
+     */
+    public function frameThumbUrl(): string
+    {
+        if ($this->frame === 1) {
+            return '/'.MediaPathResolver::path('anasheed/frame', $this->id, 'jpg');
+        }
+
+        return '/images/tvnoise.gif';
+    }
+
     /** `anasheed/functions.php:462` — `update nuke_anasheed_anasheed set downcount=downcount+1`, same distinct-from-view-tracking reasoning as `KhotabItem::incrementDownloadCount()`. */
     public function incrementDownloadCount(): void
     {
@@ -131,6 +155,40 @@ class AnasheedItem extends Model implements Viewable
             $query->whereIn('group_id', [98, 16]);
         } else {
             $query->where('group_id', $groupId);
+        }
+    }
+
+    /**
+     * G-02 (Homepage Migration Blueprint §7): `functions.php:195-224`'s
+     * `listvars()` — its `$arr['parent']` branch, filtering `parent_id`
+     * (a genuinely DIFFERENT column from `group_id` above, confirmed via
+     * direct re-read of `listvars()`). Homepage sections 6/13/14 call
+     * `listvars(['parent'=>158|12|57, ...])`.
+     *
+     * Carries the SAME `98 -> [16,98]` special case as `scopeInGroup()`
+     * (`listvars()` line 216: `if ($arr['parent']=='98'){$arr['parent']='16,98';}`)
+     * — a coincidental duplication of the same business rule across two
+     * different columns, not a shared implementation. Deliberately NOT
+     * merged with `scopeInGroup()`: doing so would silently change which
+     * column a caller filters on.
+     *
+     * Column is qualified `an.parent_id` (not bare `parent_id`) matching
+     * `listvars()`'s own SQL (`an.parent_id in (...)`) exactly —
+     * `nuke_anasheed_groups` (this query's own LEFT JOIN target, aliased
+     * `gr`) has its OWN, unrelated `parent_id` column, which makes the
+     * bare column name genuinely ambiguous once joined (confirmed via a
+     * real `SQLSTATE[23000]... 'parent_id' in where clause is ambiguous`
+     * error during this task's own smoke test) — this scope's only real
+     * caller (`ContentListingService::homeAnasheedByParent()`) always
+     * queries via the `an` alias, so qualifying it here is safe, not
+     * presumptive.
+     */
+    public function scopeInParent(\Illuminate\Database\Eloquent\Builder $query, int $parentId): void
+    {
+        if ($parentId === 98) {
+            $query->whereIn('an.parent_id', [98, 16]);
+        } else {
+            $query->where('an.parent_id', $parentId);
         }
     }
 }

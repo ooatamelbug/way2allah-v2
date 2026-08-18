@@ -10,6 +10,7 @@ use App\Domain\Content\Http\Controllers\CategoryTreeController;
 use App\Domain\Content\Http\Controllers\ChannelController;
 use App\Domain\Content\Http\Controllers\ChatRoomLessonController;
 use App\Domain\Content\Http\Controllers\FatwaAuthorController;
+use App\Domain\Content\Http\Controllers\FatwaByAuthorsController;
 use App\Domain\Content\Http\Controllers\FatwaChannelController;
 use App\Domain\Content\Http\Controllers\FatwaDayController;
 use App\Domain\Content\Http\Controllers\FatwaLatestController;
@@ -26,6 +27,7 @@ use App\Domain\Content\Http\Controllers\KhotabNewsController;
 use App\Domain\Content\Http\Controllers\KhotabSearchController;
 use App\Domain\Content\Http\Controllers\KhotabSeriesController;
 use App\Domain\Content\Http\Controllers\LiveStreamController;
+use App\Domain\Content\Http\Controllers\MediaPlayerController;
 use App\Domain\Content\Http\Controllers\RadioController;
 use App\Domain\Content\Http\Controllers\SearchController;
 use App\Domain\Content\Http\Controllers\TelawahAuthorController;
@@ -90,15 +92,34 @@ Route::get('/khotab-item-pdf-{khotab}.htm', [KhotabItemController::class, 'downl
 Route::post('/khotab-item-{khotab}/comments', [KhotabItemController::class, 'storeComment'])
     ->whereNumber('khotab')
     ->name('khotab.item.store-comment');
+/*
+| Visual parity audit (khotab-item-298784.htm) Batch 3 / Finding #11 —
+| khotab_send_friend()'s own AJAX endpoint (`send-friend-anasheed-{id}.htm`
+| in legacy's actual, cross-module-buggy `anasheed_scripts.js`, per
+| KhotabFriendMail's docblock) is not reproduced at that URL; this is a
+| Laravel-native route, same URL-adaptation approach already established
+| for /khotab-item-{khotab}/comments above.
+*/
+Route::post('/khotab-item-{khotab}/send-friend', [KhotabItemController::class, 'sendToFriend'])
+    ->whereNumber('khotab')
+    ->name('khotab.item.send-friend');
+
+/*
+| Batch 4 (media player, khotab-item-298784.htm investigation) —
+| replaces `get-mada-player.htm` (ajax_3K2r.php?op=get-mada-player). Not
+| under /khotab-* — confirmed shared, cross-module infrastructure (also
+| called by anasheed/telawah/fatawa/chat_room, per the investigation's
+| caller matrix), one endpoint per MediaPlayerController's own docblock,
+| not duplicated per module/type. Only wired into khotab's frontend this
+| batch — the route itself is already reusable as-is.
+*/
+Route::post('/media-player', [MediaPlayerController::class, 'show'])->name('media-player.show');
 
 /*
 | khotab-{video|audio|pdf}.htm / khotab-{video|audio|pdf}-{author}.htm /
 | khotab-group-{id}.htm / khotab-series-{id}.htm / khotab-{video|audio}-today.htm /
 | khotab-{video|audio}date-{d}-{m}-{y}.htm / khotab-{video|audio|pdf}_news.htm
 | are all real, live .htaccess rules — kept at their exact legacy path.
-| khotab/dump.php has NO .htaccess rule at all (confirmed) — same
-| raw-path-only profile as live-stream/live.php (Wave 3): new path here,
-| legacy-path redirect in config/legacy-url-map.php.
 */
 Route::get('/khotab-{op}.htm', [KhotabAuthorController::class, 'index'])
     ->where('op', 'video|audio|pdf')
@@ -130,9 +151,26 @@ Route::get('/khotab-{op}_news.htm', [KhotabNewsController::class, 'show'])
 
 Route::get('/khotab/dump', [KhotabDumpController::class, 'index'])->name('khotab.dump.index');
 
+// G-12-04 (G-12 investigation): dumped-lectures.htm IS a real, live .htaccess
+// rule (`.htaccess:221`, `new_modules.php?name=Dump_files&op=Dump_files`) with
+// a real, live homepage link (home_functions.php:398) — the "no .htaccess
+// rule at all" comment previously here was factually wrong. Same controller
+// as /khotab/dump above, registered at its own additional pretty path.
+Route::get('/dumped-lectures.htm', [KhotabDumpController::class, 'index'])->name('khotab.dump.pretty');
+
 // khotab/search.php has no .htaccess rule at all (confirmed, IF-018's
 // evidence) — same raw-path-only profile as khotab/dump.php above.
 Route::get('/khotab/search', [KhotabSearchController::class, 'index'])->name('khotab.search');
+
+// G-09-01 (Phase 1 audit): video-advanced-search.htm is the real pretty
+// URL — header.php:259's sitewide "المرئيات" nav dropdown links here
+// unconditionally, alongside categories.htm/khotab-video.htm/channels.htm/
+// khotab-video-today.htm (all already-migrated). No .htaccess rule ever
+// existed for it either, but real standing site chrome linking to a
+// pretty path is this project's own established "pattern 3" (decision-log
+// #8) — registered at that exact path, same controller action as
+// /khotab/search above (not a duplicate implementation).
+Route::get('/video-advanced-search.htm', [KhotabSearchController::class, 'index'])->name('khotab.search.pretty');
 
 // categories.htm is a real, live .htaccess rule (categories/tree.php,
 // default/op-less branch) — confirmed via the Evidence Reconciliation
@@ -223,6 +261,17 @@ Route::redirect('/vars-category-series-{series}-{category}.htm', '/category-seri
 Route::get('/w2acd/cds.php', [W2acdController::class, 'index'])->name('w2acd.index');
 Route::get('/w2acd/item.php', [W2acdController::class, 'show'])->name('w2acd.show');
 
+// G-11-01 (Phase 1 audit): cds-main.htm is a real, permanent sitewide
+// nav link (header.php's own "إسطوانات دعوية" dropdown item, reproduced
+// verbatim in navigation.blade.php) — unlike the other cds-*.htm URLs
+// above, this one has real standing site chrome linking to it, matching
+// this project's own established "pattern 3" (decision-log #8), same
+// precedent as G-09's video-advanced-search.htm. .htaccess's own rule
+// (^cds-main.htm -> new_modules.php?name=w2acd) carries no query string
+// at all, so it maps to the exact same default (group id 0) behavior
+// W2acdController::index() already serves — no new controller logic.
+Route::get('/cds-main.htm', [W2acdController::class, 'index'])->name('w2acd.index.pretty');
+
 // gallery — Roadmap task 4.6. gallery.htm / gallery-{id}.htm /
 // albumimg-download-{id}.htm are real, live .htaccess rules (unlike
 // w2acd's cds-*.htm set) — kept at their exact legacy path.
@@ -240,6 +289,13 @@ Route::get('/albumimg-download-{image}.htm', [GalleryController::class, 'downloa
 Route::get('/var-item-{anasheed}.htm', [AnasheedItemController::class, 'show'])
     ->whereNumber('anasheed')
     ->name('anasheed.item.show');
+// G-12-01 (G-12 investigation): var-item-{id}-page-{page}.htm is a real,
+// live .htaccess rule (.htaccess:104) — see AnasheedItemController::show()'s
+// own docblock for the confirmed legacy double-decrement bug this
+// deliberately does NOT reproduce.
+Route::get('/var-item-{anasheed}-page-{page}.htm', [AnasheedItemController::class, 'show'])
+    ->whereNumber(['anasheed', 'page'])
+    ->name('anasheed.item.show.paged');
 Route::get('/var-download-{anasheed}.htm', [AnasheedItemController::class, 'download'])
     ->whereNumber('anasheed')
     ->name('anasheed.item.download');
@@ -249,9 +305,26 @@ Route::get('/var-mirror-{anasheed}-{mirror}.htm', [AnasheedItemController::class
 Route::post('/var-item-{anasheed}/comments', [AnasheedItemController::class, 'storeComment'])
     ->whereNumber('anasheed')
     ->name('anasheed.item.store-comment');
+
+// G-11-02 (Phase 1 audit): send-friend-anasheed-{id}.htm is a real, live
+// .htaccess rule (anasheed/item.php?op=send_friend) with real, complete
+// surviving source (anasheed/functions.php:647-677) — kept at its exact
+// legacy path, same as the routes above. The legacy form
+// (send_friend_modal()) posts to itself, so this is POST-only, matching
+// storeComment()'s own convention.
+Route::post('/send-friend-anasheed-{anasheed}.htm', [AnasheedItemController::class, 'sendToFriend'])
+    ->whereNumber('anasheed')
+    ->name('anasheed.item.send-to-friend');
+
 Route::get('/var-group-{group}.htm', [AnasheedGroupController::class, 'show'])
     ->whereNumber('group')
     ->name('anasheed.group.show');
+// G-12-01 (G-12 investigation): var-group-{id}-page-{page}.htm is a real,
+// live .htaccess rule (.htaccess:98) — see AnasheedGroupController's own
+// docblock for the confirmed real pagination-link generation this restores.
+Route::get('/var-group-{group}-page-{page}.htm', [AnasheedGroupController::class, 'show'])
+    ->whereNumber(['group', 'page'])
+    ->name('anasheed.group.show.paged');
 
 // var-series-{id}.grx is a real, live .htaccess rule
 // (anasheed/group.php?op=down_serious, .htaccess:100) — a GetRight
@@ -444,6 +517,15 @@ Route::get('/auther-questions-{author}-{page}.htm', [FatwaAuthorController::clas
     ->name('fatawa.author.show.paged');
 
 Route::get('/more-fatawa.htm', [FatwaLatestController::class, 'index'])->name('fatawa.latest');
+
+// fatawa-by-authers.htm — G-07-03 (Phase 1 audit, decision-log/IF entries
+// pending). .htaccess:279 routes through the missing modules.php
+// dispatcher with op=fatawa_by_authers — that op value never matches
+// fatawa-by-authers.php's own internal video/audio/pdf checks, so only its
+// default (fatwa) branch is reachable via this route. See
+// FatwaByAuthorsController's own docblock.
+Route::get('/fatawa-by-authers.htm', [FatwaByAuthorsController::class, 'index'])
+    ->name('fatawa.by-authors.index');
 
 // fatawa, increment 3 — day-based browse and send-to-friend.
 // fatwa-date-{d}-{m}-{y}-{page}.htm (.htaccess:285) is deliberately NOT

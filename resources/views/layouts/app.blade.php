@@ -2,6 +2,13 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="utf-8">
+    {{-- Batch 4 (media player, khotab-item-298784.htm): not in legacy —
+         legacy has no CSRF concept at all. Laravel's CSRF protection is
+         active for the new /media-player POST endpoint (no route
+         exemption), so any page's AJAX JS needs a way to read the token;
+         a sitewide <meta> tag is the standard Laravel convention for this,
+         reused from here rather than duplicated per page. --}}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title') - {{ config('app.name') }}</title>
 
     {{--
@@ -9,10 +16,8 @@
         order (lines 86-139) via Laravel-relative paths (/assets/..., /css/...)
         served through the public/assets and public/css symlinks, in place
         of header.php's hardcoded https://way2allah.com/ $siteurl prefix.
-        Intentionally NOT reproduced: the 3 slider/carousel plugin styles
-        (fancybox/owl-carousel/revolution-slider, header.php:106-108), gated
-        behind $header['css']['slider']==true which no migrated page sets;
-        shams_custom.css, only loaded when ?shams=ok (header.php:121-129) —
+        Intentionally NOT reproduced: shams_custom.css, only loaded when
+        ?shams=ok (header.php:121-129) —
         custom.css is the default-case stylesheet, used here instead; and
         fetch_css()'s page-specific dynamic CSS (e.g. fatawa/tobics.php's
         own extra stylesheet), a per-page hook this shared layout has no
@@ -37,6 +42,27 @@
     <link href="/assets/layouts/layout/css/layout-rtl.css" rel="stylesheet" type="text/css"/>
     <link href="/assets/global/css/plugins.css" rel="stylesheet" type="text/css"/>
     <link href="/assets/frontend/layout/scripts/w2a/styles.css" rel="stylesheet" />
+
+    {{--
+        AddThis widget investigation (visual/CSS parity phase) —
+        header.php:147-148's AddThis script: unconditional, sitewide,
+        no `if` gate of any kind — confirmed by direct reading. Confirmed
+        missing from Laravel entirely prior to this change.
+    --}}
+    <script type="text/javascript" src="//s7.addthis.com/js/300/addthis_widget.js#pubid=ra-6320ffadd9bb2e6e"></script>
+
+    {{--
+        G-13-06 (media/visual parity phase): header.php:103-109's
+        `$header['css']['slider']==true` plugin styles — previously
+        undocumented as *conditional*, not unconditionally skipped. Only
+        `index.php:24` ever sets this flag (confirmed — every other file
+        that references it has the assignment commented out), and
+        `home.blade.php` is now that page's real Laravel equivalent, so
+        this is no longer the "no migrated page sets it" case the layout's
+        earlier comment above described. @stack so every other page's
+        <head> is unaffected, matching legacy's own per-page conditional.
+    --}}
+    @stack('styles')
 </head>
 <body class="corporate">
 {{--
@@ -92,8 +118,35 @@
 </div>
 <!-- Header END -->
 
+{{--
+    G-13-06 (media/visual parity phase): header.php:532-535's
+    `$display_slider` include — the same index.php-only condition as the
+    styles/scripts stacks above. @yield so non-home pages render nothing
+    here, matching legacy exactly (they never set the flag at all).
+--}}
+@yield('slider')
+
 <div class="main">
     <div class="container">
+        {{--
+            AddThis widget investigation (visual/CSS parity phase) —
+            functions.php:749-757's `share()`, exact markup (including its
+            `style=" float: left;"` spacing, byte-matched against live
+            production). Confirmed via 7 live page types (homepage,
+            khotab listing/detail, fatawa-categories, gallery, anasheed
+            group, channels) to render at this exact position — immediately
+            inside .main .container, before any page-specific content —
+            on every page, not just the homepage. No local caller for
+            `share()` was ever found (exhaustive search); rendered here
+            unconditionally in the shared layout instead, matching the
+            confirmed real position rather than guessing a per-page call.
+        --}}
+        <div class="row">
+            <div class="col-sm-12">
+                <div style=" float: left;" class="addthis_inline_share_toolbox addthis_sharing_toolbox"></div>
+            </div>
+        </div>
+
         @yield('content')
     </div>
 </div>
@@ -166,5 +219,7 @@
     });
 </script>
 <!-- END CORE PLUGINS -->
+{{-- G-13-06: footer.php:84-91's `$footer['js']['slider']==true` RevolutionSlider scripts — same index.php-only condition as the styles/slider-markup stacks above. --}}
+@stack('scripts')
 </body>
 </html>

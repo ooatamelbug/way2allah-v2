@@ -56,7 +56,7 @@ it('survey-results-{id}-{mode}-{order}-{thold}.htm binds {poll} correctly, not p
     $response = $this->get("/survey-results-{$pollA->pollID}-flat-{$pollB->pollID}-10.htm");
 
     $response->assertOk()
-        ->assertSee('<title>Poll A - Laravel</title>', false)
+        ->assertSee('<title>Poll A - ' . config('app.name') . '</title>', false)
         ->assertSee('Option A1')
         ->assertDontSee('Option B1');
 });

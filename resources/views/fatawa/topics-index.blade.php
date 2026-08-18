@@ -21,12 +21,15 @@
         "don't invent new routes" rule as the navbar links.
 
         Portlet-wrapped sidebar ("احدث التصنيفات المضافة" / "التصنيفات
-        الأكثر نشاطاً", tree.php:82-128) reuses the SAME $categories
-        collection the controller already passes (no new controller/service
-        query) — sorted/limited in the view only, approximating
-        tasnifat_latestadd()/tasnifat_active()'s own `ORDER BY id DESC
-        LIMIT 10` / `ORDER BY q_count DESC LIMIT 10` queries (fatawa.php:
-        147-161) over the same underlying category pool.
+        الأكثر نشاطاً", tree.php:82-128) — **G-07-02 fix:** now sourced from
+        `ContentSidebarWidget::fatwaLatestAddedCategories()`/
+        `fatwaMostActiveCategories()`, dedicated queries over the FULL
+        `nuke_w2a_cat` table (`WHERE q_count != 0`, no `main_cat` filter),
+        matching `tasnifat_latestadd()`/`tasnifat_active()` (fatawa.php:
+        147-161) exactly. Previously approximated by re-sorting the
+        controller's own `main_cat=0`-only `$categories` collection — Phase
+        1 audit found that was 0/10 correct against legacy's real "latest
+        added" top-10 (every real row has a non-zero `main_cat`).
 
         NOT reproduced (out of scope for this step — a wrapper/breadcrumb
         pass, not a rebuild): showtree()'s nested checkbox-accordion tree
@@ -82,7 +85,7 @@
                     </div>
                     <div class="portlet-body">
                         <ul class="news">
-                            @foreach ($categories->sortByDesc('id')->take(10) as $category)
+                            @foreach ($latestAddedCategories as $category)
                                 <li><a class="add" href="/fatawa-topics-{{ $category->id }}-1.htm">{{ $category->title }}</a></li>
                             @endforeach
                         </ul>
@@ -97,7 +100,7 @@
                     </div>
                     <div class="portlet-body">
                         <ul class="news">
-                            @foreach ($categories->sortByDesc('q_count')->take(10) as $category)
+                            @foreach ($mostActiveCategories as $category)
                                 <li><a class="add" href="/fatawa-topics-{{ $category->id }}-1.htm">{{ $category->title }}</a></li>
                             @endforeach
                         </ul>

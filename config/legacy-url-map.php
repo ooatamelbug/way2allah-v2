@@ -84,9 +84,11 @@ return [
         'to' => '/live-stream/featured',
     ],
 
-    // Roadmap task 4.1 — khotab/dump.php has no .htaccess rule at all
-    // (confirmed by exhaustive search), same raw-path-only profile as
-    // live-stream/live.php above.
+    // Roadmap task 4.1 — this redirects the raw legacy .php path only.
+    // The pretty URL (dumped-lectures.htm) IS a real, live .htaccess rule
+    // (`.htaccess:221`) with a real homepage link (home_functions.php:398)
+    // — corrected in G-12 (G-12-04); it is registered directly in
+    // routes/content.php at its own exact path, not redirected here.
     'khotab/dump.php' => [
         'type' => 'redirect',
         'to' => '/khotab/dump',

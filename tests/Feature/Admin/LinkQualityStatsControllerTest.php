@@ -185,3 +185,24 @@ it('RecheckTelawahLinkSizeJob does not downgrade https to http, matching the con
 
     (new RecheckTelawahLinkSizeJob($telawahItem->id))->handle(new LinkSizeChecker());
 });
+
+/**
+ * G-10-02 regression test (Phase 1 audit) — `telawah/stats.php`'s
+ * `getsizeid` branch (:70-83) only ever updates `checktime`/`online`; it
+ * has no `percent` reference at all, unlike `stats.php`'s/`stats_khotab.php`'s
+ * equivalent branches, which both conditionally set `percent=100` on an
+ * exact online/linksize match. Confirmed by direct re-read before fixing.
+ */
+it('G-10-02: RecheckTelawahLinkSizeJob updates checktime/online but never touches percent, even on an exact online/linksize match — unlike the mirror/khotab jobs', function () {
+    \Illuminate\Support\Facades\Http::fake(['*' => \Illuminate\Support\Facades\Http::response('', 200, ['Content-Length' => '500'])]);
+    $telawahItem = TelawahItem::create([
+        'title' => 'X', 'link' => 'https://example.com/a.mp3', 'linksize' => 500, 'online' => 0, 'percent' => 0, 'checktime' => 0,
+    ]);
+
+    (new RecheckTelawahLinkSizeJob($telawahItem->id))->handle(new LinkSizeChecker());
+
+    $fresh = $telawahItem->fresh();
+    expect($fresh->online)->toBe(500)
+        ->and($fresh->checktime)->toBeGreaterThan(0)
+        ->and((int) $fresh->percent)->toBe(0);
+});

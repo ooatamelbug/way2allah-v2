@@ -23,14 +23,20 @@
             <h3>جديد المواد المرئية</h3>
             <ul>
                 @foreach ($newestVideo as $item)
-                    <li><a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a></li>
+                    <li class="media">
+                        <a class="pull-left" href="/khotab-item-{{ $item->id }}.htm"><img class="media-object" src="{{ $item->thumb }}" alt="{{ $item->title }}" style="width: 60px; height: 40px;"></a>
+                        <div class="media-body"><a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a></div>
+                    </li>
                 @endforeach
             </ul>
 
             <h3>جديد المواد الصوتية</h3>
             <ul>
                 @foreach ($newestAudio as $item)
-                    <li><a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a></li>
+                    <li class="media">
+                        <a class="pull-left" href="/khotab-item-{{ $item->id }}.htm"><img class="media-object" src="{{ $item->thumb }}" alt="{{ $item->title }}" style="width: 60px; height: 40px;"></a>
+                        <div class="media-body"><a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a></div>
+                    </li>
                 @endforeach
             </ul>
         </aside>

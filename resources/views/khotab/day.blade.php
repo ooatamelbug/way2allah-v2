@@ -20,14 +20,20 @@
             <h3>الأكثر تحميلا</h3>
             <ul>
                 @foreach ($mostDownloaded as $item)
-                    <li><a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a></li>
+                    <li class="media">
+                        <a class="pull-left" href="/khotab-item-{{ $item->id }}.htm"><img class="media-object" src="{{ $item->thumb }}" alt="{{ $item->title }}" style="width: 60px; height: 40px;"></a>
+                        <div class="media-body"><a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a></div>
+                    </li>
                 @endforeach
             </ul>
 
             <h3>جديد المواد</h3>
             <ul>
                 @foreach ($mostRecent as $item)
-                    <li><a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a></li>
+                    <li class="media">
+                        <a class="pull-left" href="/khotab-item-{{ $item->id }}.htm"><img class="media-object" src="{{ $item->thumb }}" alt="{{ $item->title }}" style="width: 60px; height: 40px;"></a>
+                        <div class="media-body"><a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a></div>
+                    </li>
                 @endforeach
             </ul>
         </aside>

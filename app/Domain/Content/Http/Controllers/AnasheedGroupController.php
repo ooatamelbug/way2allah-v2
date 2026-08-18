@@ -5,7 +5,6 @@ namespace App\Domain\Content\Http\Controllers;
 use App\Domain\Content\Models\AnasheedGroup;
 use App\Domain\Content\Models\AnasheedItem;
 use App\Domain\Content\Services\ContentListingService;
-use App\Domain\Content\Services\ContentSidebarWidget;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Response;
@@ -39,24 +38,45 @@ use Illuminate\Http\Response;
  * aggregation target (`vars/more.php?id=98`, one of 4 real routes to an
  * otherwise-dead module — see `AnasheedNewsController`), and
  * `OR group_id='16'` is that theme's own business rule.
+ *
+ * G-12-01 (G-12 investigation): `var-group-{id}-page-{page}.htm` is a real,
+ * live `.htaccess` rule (`.htaccess:98`) with real pagination-link
+ * generation (`anasheed/functions.php:359-363`'s `PS_Pagination::
+ * renderFullNav()`) — confirmed reachable, not dead. `group.php:8-9`
+ * decrements `$page` exactly once before use (0-indexed offset math), the
+ * same standard convention Laravel's own paginator uses 1-indexed — so the
+ * captured `{page}` route segment is passed straight into `paginate()`'s
+ * page argument with no adjustment. `$page` is nullable so the un-paginated
+ * `/var-group-{id}.htm` route (no `{page}` segment) keeps its existing,
+ * unchanged behavior of auto-resolving from a `?page=` query string.
  */
 class AnasheedGroupController
 {
-    public function show(int $group, ContentSidebarWidget $sidebar): View
+    /**
+     * G-13 closure (Anasheed Group Sidebar parity fix) — `group.php` (95
+     * lines, read in full) calls exactly `list_sub_groups()`,
+     * `download_var_group_getright_block()`, and `list_anasheed()`; none
+     * of them, nor the shared `w2a_header()`/`w2a_footer()` wrappers,
+     * ever call `most_downloaded_recent_sidebar($Group)` — confirmed by
+     * exhaustively reading every function this page reaches. Unlike
+     * `AnasheedItemController::show()` (`item.php:93` DOES call it), this
+     * page never had a "most downloaded"/"most recent" sidebar. A prior
+     * G-13 pass found `mostDownloaded`/`mostRecent` being computed and
+     * rendered here anyway, with no citing comment — an unexplained
+     * over-implementation, not a real legacy behavior. Removed.
+     */
+    public function show(int $group, ?int $page = null): View
     {
         $groupModel = AnasheedGroup::findOrFail($group);
 
         $subGroups = AnasheedGroup::where('parent_id', $group)->orderByDesc('id')->get();
 
-        $items = $this->itemsForGroup($group);
-
-        $mostDownloaded = $sidebar->anasheedMostDownloaded($group);
-        $mostRecent = $sidebar->anasheedMostRecent($group);
+        $items = $this->itemsForGroup($group, $page);
 
         // anasheed/group.php:79 — group hit-count, unconditional on load.
         $groupModel->increment('hits');
 
-        return view('anasheed.group', compact('groupModel', 'subGroups', 'items', 'mostDownloaded', 'mostRecent'));
+        return view('anasheed.group', compact('groupModel', 'subGroups', 'items'));
     }
 
     public function downloadGetright(int $group, ContentListingService $listing): Response
@@ -93,10 +113,10 @@ class AnasheedGroupController
         ]);
     }
 
-    private function itemsForGroup(int $groupId): LengthAwarePaginator
+    private function itemsForGroup(int $groupId, ?int $page = null): LengthAwarePaginator
     {
         return AnasheedItem::inGroup($groupId)
             ->orderByDesc('mytime')->orderByDesc('order_in_group')
-            ->paginate(30);
+            ->paginate(30, ['*'], 'page', $page);
     }
 }

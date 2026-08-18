@@ -14,6 +14,9 @@
 
     <section aria-label="بيانات القناة">
         <h2>بيانات قناة {{ $channel->title }}</h2>
+        {{-- G-13-08 (media/visual parity phase): live-stream/functions.php:89
+             — the same flat images/channels/{id}.png as channels/index. --}}
+        <img src="/images/channels/{{ $channel->id }}.png" alt="{{ $channel->title }}">
         <table>
             <tr><th>اسم القناة</th><td>{{ $channel->title }}</td></tr>
             <tr><th>القمر الصناعي</th><td>{{ $channel->satellite->title ?? '' }}</td></tr>

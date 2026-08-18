@@ -41,6 +41,18 @@ it('anasheedMostDownloaded: orders by hits desc, limits to 7, filters by group o
         ->and($this->widget->anasheedMostDownloaded(groupId: 1))->toHaveCount(3);
 });
 
+it('anasheedMostDownloaded: G-13-09 — frame=1 rows get a thumbnails.php-wrapped thumb (w=72,h=50), frame=0 rows always fall back to tvnoise.gif, no file_exists() gate', function () {
+    DB::connection('main')->table('nuke_anasheed_anasheed')->insert([
+        ['id' => 100, 'hits' => 2, 'frame' => 1],
+        ['id' => 200, 'hits' => 1, 'frame' => 0],
+    ]);
+
+    $results = $this->widget->anasheedMostDownloaded()->keyBy('id');
+
+    expect($results[100]->thumb)->toBe('/thumbnails.php?h=50&w=72&src=media/anasheed/frame/0/100.jpg')
+        ->and($results[200]->thumb)->toBe('/images/tvnoise.gif');
+});
+
 it('anasheedMostRecent: orders by mytime desc, not hits', function () {
     $db = DB::connection('main');
     $db->table('nuke_anasheed_anasheed')->insert([
@@ -151,4 +163,51 @@ it('channelMostRecentKhotabItems: orders by time DESC, not id DESC — a differe
 
     // id 2 is higher but has an older time — time-ordering must put id 1 first.
     expect($this->widget->channelMostRecentKhotabItems(5)->first()->id)->toBe(1);
+});
+
+// ---- G-13-01 (media/visual parity phase): topitems()'s per-row thumbnail, functions.php:1046-1061 ----
+
+it('khotabMostDownloadedByVideoFlag: frame item with no file on disk falls back to way2_withoutimg.png', function () {
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 999999, 'vedio' => 1, 'frame' => 1, 'hits' => 5, 'title' => 'No frame file on disk',
+    ]);
+
+    expect($this->widget->khotabMostDownloadedByVideoFlag(true)->first()->thumb)->toBe('/images/way2_withoutimg.png');
+});
+
+it('khotabMostDownloadedByVideoFlag: frame item WITH a real file on disk resolves to the bucketed path (file_exists() gate proven both ways)', function () {
+    $id = 42;
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => $id, 'vedio' => 1, 'frame' => 1, 'hits' => 5, 'title' => 'Has a real frame file',
+    ]);
+
+    $dir = public_path('media/khotab_frames/0');
+    @mkdir($dir, 0777, true);
+    file_put_contents($dir.'/'.$id.'.jpg', 'fake-jpg-bytes');
+
+    try {
+        expect($this->widget->khotabMostDownloadedByVideoFlag(true)->first()->thumb)->toBe('/media/khotab_frames/0/'.$id.'.jpg');
+    } finally {
+        @unlink($dir.'/'.$id.'.jpg');
+    }
+});
+
+it('khotabMostDownloadedByVideoFlag: a non-frame (audio/author-photo) row always falls back to way2_withoutimg.png — reproduces topitems()\'s confirmed broken file_exists() string, not a real author-photo lookup', function () {
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 7, 'vedio' => 0, 'frame' => 0, 'hits' => 5, 'title' => 'Audio item',
+    ]);
+
+    // Even if a real author-photo file exists on disk at the bucketed path
+    // topitems()'s own (correct) bucketing math would compute, legacy's
+    // confirmed string bug means it never actually checks — this must
+    // still fall back, unlike the frame branch above.
+    $dir = public_path('media/authors/0');
+    @mkdir($dir, 0777, true);
+    file_put_contents($dir.'/7.jpg', 'fake-jpg-bytes');
+
+    try {
+        expect($this->widget->khotabMostDownloadedByVideoFlag(false)->first()->thumb)->toBe('/images/way2_withoutimg.png');
+    } finally {
+        @unlink($dir.'/7.jpg');
+    }
 });

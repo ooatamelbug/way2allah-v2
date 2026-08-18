@@ -54,16 +54,28 @@ function createBackupAdmin(array $overrides = []): AdminUser
     ], $overrides));
 }
 
+/**
+ * G-08-03 (Phase 1 audit) — the confirmed real Desktop App sends `op` in
+ * the POST body, never the query string (`BackupApiController`'s own
+ * docblock). The primary regression path for every test below now proves
+ * body-only dispatch, matching the convention already established in
+ * `BackupApiKhotabUpdateBackupTest.php`.
+ */
+function postBackupApiBody(array $body)
+{
+    return test()->post('/backup.php', $body);
+}
+
 // ---- Auth gate ----
 
 it('rejects an API key that is not exactly 32 characters', function () {
-    $response = $this->post('/backup.php?op=CreateSession', ['ID' => 1, 'APIKey' => 'short']);
+    $response = postBackupApiBody(['op' => 'CreateSession', 'ID' => 1, 'APIKey' => 'short']);
 
     $response->assertOk()->assertSee('API Error 1:5', false);
 });
 
 it('rejects a well-formed key with no matching nuke_authors row', function () {
-    $response = $this->post('/backup.php?op=CreateSession', ['ID' => 999, 'APIKey' => str_repeat('a', 32)]);
+    $response = postBackupApiBody(['op' => 'CreateSession', 'ID' => 999, 'APIKey' => str_repeat('a', 32)]);
 
     $response->assertOk()->assertSee('API Error 2', false);
 });
@@ -71,7 +83,7 @@ it('rejects a well-formed key with no matching nuke_authors row', function () {
 it('rejects a well-formed key that does not match the stored API column', function () {
     createBackupAdmin(['API' => str_repeat('a', 32)]);
 
-    $response = $this->post('/backup.php?op=CreateSession', ['ID' => 1, 'APIKey' => str_repeat('b', 32)]);
+    $response = postBackupApiBody(['op' => 'CreateSession', 'ID' => 1, 'APIKey' => str_repeat('b', 32)]);
 
     $response->assertOk()->assertSee('API Error 2', false);
 });
@@ -80,7 +92,7 @@ it('rejects a valid key/uid when the admin is neither radminsuper nor listed in 
     createBackupAdmin(['name' => 'Nobody', 'radminsuper' => false]);
     DB::connection('main')->table('nuke_modules')->insert(['title' => 'BackUp', 'admins' => 'SomeoneElse,AnotherOne']);
 
-    $response = $this->post('/backup.php?op=CreateSession', ['ID' => 1, 'APIKey' => str_repeat('a', 32)]);
+    $response = postBackupApiBody(['op' => 'CreateSession', 'ID' => 1, 'APIKey' => str_repeat('a', 32)]);
 
     $response->assertOk()->assertSee('Error!', false);
 });
@@ -89,7 +101,7 @@ it('accepts a valid key/uid listed by exact name in nuke_modules BackUp admins',
     createBackupAdmin(['name' => 'Admin One', 'radminsuper' => false]);
     DB::connection('main')->table('nuke_modules')->insert(['title' => 'BackUp', 'admins' => 'SomeoneElse,Admin One']);
 
-    $response = $this->post('/backup.php?op=CreateSession', ['ID' => 1, 'APIKey' => str_repeat('a', 32)]);
+    $response = postBackupApiBody(['op' => 'CreateSession', 'ID' => 1, 'APIKey' => str_repeat('a', 32)]);
 
     $response->assertOk()->assertSee('<w2abackupspacer>', false);
 });
@@ -97,6 +109,14 @@ it('accepts a valid key/uid listed by exact name in nuke_modules BackUp admins',
 it('radminsuper bypasses the nuke_modules admins-list check entirely, even with an empty admins list', function () {
     createBackupAdmin(['name' => 'Anyone', 'radminsuper' => true]);
     DB::connection('main')->table('nuke_modules')->insert(['title' => 'BackUp', 'admins' => '']);
+
+    $response = postBackupApiBody(['op' => 'CreateSession', 'ID' => 1, 'APIKey' => str_repeat('a', 32)]);
+
+    $response->assertOk()->assertSee('<w2abackupspacer>', false);
+});
+
+it('op is also still accepted via the query string, not just the POST body — Request::input() reads both sources', function () {
+    createBackupAdmin(['name' => 'Anyone', 'radminsuper' => true]);
 
     $response = $this->post('/backup.php?op=CreateSession', ['ID' => 1, 'APIKey' => str_repeat('a', 32)]);
 
@@ -152,7 +172,7 @@ it('backupCategoryPermissions: a missing/unserializable permissions column retur
 it('CreateSession creates a session row and responds "{id}<w2abackupspacer>{aid}"', function () {
     $admin = createBackupAdmin(['aid' => 'staff-42', 'radminsuper' => true]);
 
-    $response = $this->post('/backup.php?op=CreateSession', ['ID' => 1, 'APIKey' => str_repeat('a', 32)]);
+    $response = postBackupApiBody(['op' => 'CreateSession', 'ID' => 1, 'APIKey' => str_repeat('a', 32)]);
 
     $response->assertOk();
     $session = DB::connection('main')->table('nuke_backup_sessions')->first();
@@ -167,7 +187,7 @@ it('CreateSession: confirmed legacy bug reproduced — blocks a new session once
         'id' => 10, 'uid' => 1, 'active' => 1, 'updatetime' => time(),
     ]);
 
-    $response = $this->post('/backup.php?op=CreateSession', ['ID' => 1, 'APIKey' => str_repeat('a', 32)]);
+    $response = postBackupApiBody(['op' => 'CreateSession', 'ID' => 1, 'APIKey' => str_repeat('a', 32)]);
 
     $response->assertOk();
     expect($response->getContent())->toBe('0');
@@ -179,7 +199,7 @@ it('CreateSession: does NOT block when the existing active session\'s own id is 
         'id' => 9, 'uid' => 1, 'active' => 1, 'updatetime' => time(),
     ]);
 
-    $response = $this->post('/backup.php?op=CreateSession', ['ID' => 1, 'APIKey' => str_repeat('a', 32)]);
+    $response = postBackupApiBody(['op' => 'CreateSession', 'ID' => 1, 'APIKey' => str_repeat('a', 32)]);
 
     $response->assertOk()->assertSee('<w2abackupspacer>', false);
 });
@@ -190,7 +210,7 @@ it('CreateSession: RemoveOldSessions deactivates a stale (600s+) session before 
         'id' => 10, 'uid' => 1, 'active' => 1, 'updatetime' => time() - 700,
     ]);
 
-    $response = $this->post('/backup.php?op=CreateSession', ['ID' => 1, 'APIKey' => str_repeat('a', 32)]);
+    $response = postBackupApiBody(['op' => 'CreateSession', 'ID' => 1, 'APIKey' => str_repeat('a', 32)]);
 
     $response->assertOk()->assertSee('<w2abackupspacer>', false);
     expect(DB::connection('main')->table('nuke_backup_sessions')->where('id', 10)->value('active'))->toBe(0);
@@ -204,8 +224,8 @@ it('LiveUpdate updates an active session belonging to the admin and responds "OK
         'id' => 5, 'uid' => 1, 'active' => 1, 'updatetime' => time() - 10,
     ]);
 
-    $response = $this->post('/backup.php?op=LiveUpdate', [
-        'ID' => 1, 'APIKey' => str_repeat('a', 32), 'Session' => 5,
+    $response = postBackupApiBody([
+        'op' => 'LiveUpdate', 'ID' => 1, 'APIKey' => str_repeat('a', 32), 'Session' => 5,
         // Deliberately included to prove they are NOT read — legacy's own
         // LiveUpdate() parameters are never populated from the request.
         'size' => '99999', 'downloaded' => '50', 'count' => '3', 'speed' => '128', 'itemid' => '77', 'catid' => '1',
@@ -215,30 +235,41 @@ it('LiveUpdate updates an active session belonging to the admin and responds "OK
     expect($response->getContent())->toBe('OK');
 });
 
-it('LiveUpdate: intentionally writes empty-string telemetry columns, never reading size/downloaded/count/speed/itemid/catid from the request', function () {
+/**
+ * G-08-01 regression test (Phase 1 audit) — exercises the actual
+ * liveUpdate() path against the now-corrected fixture (real int(11)/
+ * tinyint(4) NOT NULL columns, matching `SHOW CREATE TABLE
+ * nuke_backup_sessions` on real olddb), proving the write succeeds and
+ * persists valid integers rather than the invalid empty strings a
+ * strict-mode MySQL connection would reject.
+ */
+it('LiveUpdate: writes integer 0 (not an empty string) to count/speed/itemid/catid, and empty string to the real text columns size/downloaded — never reading any of the 6 from the request', function () {
     createBackupAdmin(['radminsuper' => true]);
     DB::connection('main')->table('nuke_backup_sessions')->insert([
         'id' => 5, 'uid' => 1, 'active' => 1, 'updatetime' => time() - 10,
     ]);
 
-    $this->post('/backup.php?op=LiveUpdate', [
-        'ID' => 1, 'APIKey' => str_repeat('a', 32), 'Session' => 5,
+    $response = postBackupApiBody([
+        'op' => 'LiveUpdate', 'ID' => 1, 'APIKey' => str_repeat('a', 32), 'Session' => 5,
         'size' => '99999', 'downloaded' => '50', 'count' => '3', 'speed' => '128', 'itemid' => '77', 'catid' => '1',
     ]);
+
+    $response->assertOk();
+    expect($response->getContent())->toBe('OK');
 
     $row = DB::connection('main')->table('nuke_backup_sessions')->where('id', 5)->first();
     expect($row->size)->toBe('')
         ->and($row->downloaded)->toBe('')
-        ->and($row->count)->toBe('')
-        ->and($row->speed)->toBe('')
-        ->and($row->itemid)->toBe('')
-        ->and($row->catid)->toBe('');
+        ->and($row->count)->toBe(0)
+        ->and($row->speed)->toBe(0)
+        ->and($row->itemid)->toBe(0)
+        ->and($row->catid)->toBe(0);
 });
 
 it('LiveUpdate responds "Restart" when the session id does not match an active session for this admin', function () {
     createBackupAdmin(['radminsuper' => true]);
 
-    $response = $this->post('/backup.php?op=LiveUpdate', ['ID' => 1, 'APIKey' => str_repeat('a', 32), 'Session' => 999]);
+    $response = postBackupApiBody(['op' => 'LiveUpdate', 'ID' => 1, 'APIKey' => str_repeat('a', 32), 'Session' => 999]);
 
     $response->assertOk();
     expect($response->getContent())->toBe('Restart');
@@ -250,7 +281,7 @@ it('LiveUpdate responds "Restart" for a session belonging to a different uid', f
         'id' => 5, 'uid' => 999, 'active' => 1, 'updatetime' => time() - 10,
     ]);
 
-    $response = $this->post('/backup.php?op=LiveUpdate', ['ID' => 1, 'APIKey' => str_repeat('a', 32), 'Session' => 5]);
+    $response = postBackupApiBody(['op' => 'LiveUpdate', 'ID' => 1, 'APIKey' => str_repeat('a', 32), 'Session' => 5]);
 
     expect($response->getContent())->toBe('Restart');
 });
@@ -261,7 +292,7 @@ it('LiveUpdate responds "Restart" for a session that RemoveOldSessions has just 
         'id' => 5, 'uid' => 1, 'active' => 1, 'updatetime' => time() - 700,
     ]);
 
-    $response = $this->post('/backup.php?op=LiveUpdate', ['ID' => 1, 'APIKey' => str_repeat('a', 32), 'Session' => 5]);
+    $response = postBackupApiBody(['op' => 'LiveUpdate', 'ID' => 1, 'APIKey' => str_repeat('a', 32), 'Session' => 5]);
 
     expect($response->getContent())->toBe('Restart');
 });
@@ -271,7 +302,7 @@ it('LiveUpdate responds "Restart" for a session that RemoveOldSessions has just 
 it('any op other than CreateSession/LiveUpdate returns an empty 200 response after successful auth, not an error', function () {
     createBackupAdmin(['radminsuper' => true]);
 
-    $response = $this->post('/backup.php?op=KhotabUpdateBackup', ['ID' => 1, 'APIKey' => str_repeat('a', 32)]);
+    $response = postBackupApiBody(['op' => 'KhotabUpdateBackup', 'ID' => 1, 'APIKey' => str_repeat('a', 32)]);
 
     $response->assertOk();
     expect($response->getContent())->toBe('');

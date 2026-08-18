@@ -32,6 +32,12 @@ it('index: lists ALL channels, no eligibility filter at all (unlike live-stream)
     $response->assertOk()->assertSee('Active')->assertSee('Inactive too');
 });
 
+it('index: G-13-08 — each row shows the flat images/channels/{id}.png logo, matching channels.php:43', function () {
+    DB::connection('main')->table('nuke_sat_channels')->insert(['id' => 7, 'title' => 'A Channel', 'active' => 0, 'khotab' => 1]);
+
+    $this->get('/channels.htm')->assertOk()->assertSee('/images/channels/7.png', false);
+});
+
 it('index: orders by khotab desc', function () {
     $db = DB::connection('main');
     $db->table('nuke_sat_channels')->insert([

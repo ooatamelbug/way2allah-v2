@@ -46,6 +46,23 @@ it('group show: 404s for a nonexistent group', function () {
     $this->get('/recite-group-999.htm')->assertNotFound();
 });
 
+// ---- G-13-07 (media/visual parity phase): telawah/functions.php:164's hardcoded images/telawah.gif ----
+
+it('authors index: G-13-07 — each reader card shows the hardcoded telawah.gif, matching list_telawat_groups() exactly (no per-reader image field)', function () {
+    DB::connection('main')->table('nuke_telawah_groups')->insert(['id' => 1, 'title' => 'Top Level Reader', 'parent_id' => 0]);
+
+    $this->get('/recite.htm')->assertOk()->assertSee('/images/telawah.gif', false);
+});
+
+it('group show: G-13-07 — sub-group rows show the hardcoded telawah.gif too', function () {
+    DB::connection('main')->table('nuke_telawah_groups')->insert([
+        ['id' => 1, 'title' => 'Reader One', 'parent_id' => 0],
+        ['id' => 2, 'title' => 'Sub Group', 'parent_id' => 1],
+    ]);
+
+    $this->get('/recite-group-1.htm')->assertOk()->assertSee('/images/telawah.gif', false);
+});
+
 it('item show: renders details WITHOUT incrementing hits — legacy never does either', function () {
     DB::connection('main')->table('nuke_telawah_telawah')->insert(['id' => 1, 'title' => 'A Recitation', 'hits' => 7]);
 

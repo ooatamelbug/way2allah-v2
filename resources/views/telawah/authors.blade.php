@@ -9,10 +9,15 @@
         description field) rather than a plain link list — brought closer
         to that here using only fields the controller already selects
         (id, title, hits, child, telawah, des; TelawahAuthorController::index()
-        untouched). No per-author image accessor exists on TelawahGroup and
-        none of the site's placeholder images are reachable through the
-        current public/ symlinks, so the image slot from live is not
-        reproduced here — text/stats only, not a redesign of what data exists.
+        untouched).
+
+        G-13-07 (media/visual parity phase): `telawah/functions.php:164`'s
+        `list_telawat_groups()` (called from both `authors.php` and
+        `group.php`) — a single hardcoded `images/telawah.gif`, identical
+        for every reader/group, not a DB field or per-item lookup. The
+        previous deferral note here ("none of the site's placeholder
+        images are reachable through the current public/ symlinks") no
+        longer applies — `public/images` is now a real symlink (G-13-02).
     --}}
     <div class="page-bar">
         <ul class="page-breadcrumb">
@@ -39,6 +44,7 @@
                                         </div>
                                     </div>
                                     <div class="portlet-body">
+                                        <a href="/recite-group-{{ $group->id }}.htm"><img src="/images/telawah.gif" alt="{{ $group->title }}"></a>
                                         <p>
                                             <i class="fa fa-folder-o"></i> الأقسام الفرعية: {{ $group->child }}
                                             &nbsp;|&nbsp;

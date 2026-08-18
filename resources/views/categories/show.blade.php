@@ -11,10 +11,19 @@
 
     <div class="row service-box margin-bottom-40">
         <div class="col-lg-9 col-md-8 col-sm-7 nopadding">
+            {{-- G-13-12 (media/visual parity phase): categories/functions.php's
+                 own ListSeries()/ListKhotab() (lines ~154, ~397 — distinct
+                 functions from khotab module's same-named ones) — the same
+                 conditional 24x24 images/channels/{id}.png convention. --}}
             <section aria-label="قائمة السلاسل">
                 <ul>
                     @foreach ($series as $item)
-                        <li><a href="/khotab-series-{{ $item->id }}.htm">{{ $item->title }}</a></li>
+                        <li>
+                            <a href="/khotab-series-{{ $item->id }}.htm">{{ $item->title }}</a>
+                            @if(!empty($item->channel_id))
+                                <a href="/channel-{{ $item->channel_id }}.htm"><img width="24" height="24" src="/images/channels/{{ $item->channel_id }}.png" alt=""></a>
+                            @endif
+                        </li>
                     @endforeach
                 </ul>
             </section>
@@ -22,7 +31,12 @@
             <section aria-label="قائمة المواد">
                 <ul>
                     @foreach ($items as $item)
-                        <li><a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a></li>
+                        <li>
+                            <a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a>
+                            @if(!empty($item->channel_id))
+                                <a href="/channel-{{ $item->channel_id }}.htm"><img width="24" height="24" src="/images/channels/{{ $item->channel_id }}.png" alt=""></a>
+                            @endif
+                        </li>
                     @endforeach
                 </ul>
             </section>

@@ -143,13 +143,24 @@ class BackupApiController
      * `backup.php:162-191`. `$size`/`$downloaded`/`$count`/`$speed`/
      * `$itemid`/`$catid` are the function's own parameters, confirmed
      * never populated from `$_POST`/`$_GET` anywhere in `backup.php` —
-     * every real call writes empty strings for these 6 columns.
+     * every real call writes empty/zero values for these 6 columns.
      * Reproduced exactly here: NOT read from the request, per explicit
      * instruction, even though the confirmed real Desktop App does send
      * fields with these exact names (`Form4.frm:1251-1252`) — legacy's own
      * `backup.php` source simply never reads them, so nothing this port
      * does can make legacy write real telemetry; wiring them up here
      * would be new behavior, not a port.
+     *
+     * **G-08-01 fix (Phase 1 audit):** `count`/`speed`/`itemid`/`catid` are
+     * confirmed real `int(11)`/`tinyint(4) NOT NULL` columns on
+     * `nuke_backup_sessions`, and this app's `main` connection runs in
+     * strict SQL mode (`config/database.php`) against a server whose own
+     * `sql_mode` includes `STRICT_TRANS_TABLES` — writing a literal empty
+     * string to those 4 columns risks a real "Incorrect integer value"
+     * error. Changed from `''` to integer `0`, preserving the exact same
+     * "never really populated, effectively empty" intent without writing
+     * an invalid value to a real integer column. `size`/`downloaded`
+     * remain `''` — both are real `text` columns, unaffected by this fix.
      */
     private function liveUpdate(AdminUser $admin, int $sessionId): Response
     {
@@ -171,10 +182,10 @@ class BackupApiController
             'updatetime' => time(),
             'size' => '',
             'downloaded' => '',
-            'count' => '',
-            'speed' => '',
-            'itemid' => '',
-            'catid' => '',
+            'count' => 0,
+            'speed' => 0,
+            'itemid' => 0,
+            'catid' => 0,
         ]);
 
         Log::info('backup_api.live_update', ['uid' => $admin->uid, 'session_id' => $sessionId]);

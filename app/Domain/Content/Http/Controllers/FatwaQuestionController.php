@@ -85,6 +85,14 @@ class FatwaQuestionController
      * correctly, no non-atomic pattern to modernize here) then a redirect
      * to the answer's `media_link`, matching legacy's `Header("Location:
      * ...")` exactly rather than streaming the file.
+     *
+     * **G-07-01 fix:** `download.php:13` runs `media_link` through
+     * `fix_archive_links()` (`classes/archive.php`) before redirecting —
+     * confirmed missing here (Phase 1 audit). Applied via `fixArchiveLinks()`
+     * below, a verbatim port of the same function already ported once for
+     * `BackupApiController::fixArchiveLinks()` — duplicated locally rather
+     * than shared/extracted, since that controller belongs to an unrelated
+     * feature and was out of this fix's approved scope.
      */
     public function download(int $question): RedirectResponse
     {
@@ -92,7 +100,28 @@ class FatwaQuestionController
 
         $fatwaQuestion->increment('num_download');
 
-        return redirect()->away($fatwaQuestion->media_link ?? '/');
+        return redirect()->away($this->fixArchiveLinks($fatwaQuestion->media_link ?? '') ?: '/');
+    }
+
+    /**
+     * Verbatim port of `classes/archive.php`'s `fix_archive_links()` — see
+     * `download()`'s docblock (G-07-01). Rewrites an archive.org URL to its
+     * direct-download form; passes through unchanged for any other domain.
+     */
+    private function fixArchiveLinks(string $urlOld): string
+    {
+        $urlParts = explode('/', $urlOld);
+        $domainParts = explode('.', $urlParts[2] ?? '');
+        $last = strtolower((string) ($domainParts[count($domainParts) - 1] ?? ''));
+        $secondLast = strtolower((string) ($domainParts[count($domainParts) - 2] ?? ''));
+
+        if ($last === 'org' && $secondLast === 'archive') {
+            $count = count($urlParts);
+
+            return 'http://www.archive.org/download/'.($urlParts[$count - 2] ?? '').'/'.($urlParts[$count - 1] ?? '');
+        }
+
+        return $urlOld;
     }
 
     /**

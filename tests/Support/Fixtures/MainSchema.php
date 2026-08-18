@@ -93,6 +93,11 @@ class MainSchema
             $table->string('name')->nullable();
             $table->string('prename')->nullable();
             $table->string('author_image')->nullable();
+            // Visual parity audit (khotab-video-17.htm, 2026-08-18) —
+            // already a documented real column (Author model's own
+            // docblock), just not previously needed by any fixture-
+            // consuming test until author.php's description-block portlet.
+            $table->text('description')->nullable();
             $table->unsignedInteger('audio')->default(0);
             $table->unsignedInteger('vedio')->default(0);
             $table->unsignedInteger('fatwa')->default(0);
@@ -155,6 +160,10 @@ class MainSchema
             $table->unsignedTinyInteger('hidden')->default(0);
             // Task 6.3 addition — pages/ramadan.php's WHERE ramadan='1' filter.
             $table->unsignedTinyInteger('ramadan')->default(0);
+            // G-06 addition — categories/series.php's own Ser_Cat_Breadcrumb($Series->cat, ...)
+            // (IF-039), a real, already-documented column (Series model's own
+            // @property list) not previously needed by any fixture-consuming test.
+            $table->string('cat')->nullable();
         };
     }
 
@@ -214,6 +223,13 @@ class MainSchema
             // (00-database-schema.md), just not previously needed by any
             // fixture-consuming test.
             $table->unsignedInteger('q_count')->default(0);
+            // G-06 additions — categoryTree()/anasheedCategoryTree()'s own
+            // filter columns (categories.htm/var-categories.htm), both
+            // already-documented real columns (Category model's own
+            // @property list), not previously needed by any
+            // fixture-consuming test.
+            $table->unsignedInteger('video_count')->default(0);
+            $table->unsignedInteger('anasheed_count')->default(0);
         };
     }
 
@@ -260,6 +276,9 @@ class MainSchema
             $table->unsignedTinyInteger('frame')->default(0);
             $table->unsignedTinyInteger('gif')->default(0);
             $table->unsignedInteger('lastvisit')->nullable();
+            // G-02 (Homepage Migration) addition — homeLatestVideos()/homeLatestAudios()'s
+            // ORDER BY lastmirror DESC, an already real, documented KhotabItem column.
+            $table->unsignedInteger('lastmirror')->nullable();
             $table->unsignedInteger('mirror')->default(0);
             $table->unsignedInteger('location_id')->nullable();
             $table->string('uploader')->nullable();
@@ -272,6 +291,11 @@ class MainSchema
             $table->unsignedInteger('booking')->default(0);
             $table->unsignedInteger('trial')->default(0);
             $table->unsignedInteger('downloader')->nullable();
+            // G-02 (Homepage Migration) addition — list_latest_videos()/
+            // list_latest_audios()'s `newslist = '1'` filter, an already
+            // real, documented KhotabItem column (its own @property list)
+            // not previously needed by any fixture-consuming test.
+            $table->unsignedTinyInteger('newslist')->default(0);
         };
     }
 
@@ -371,6 +395,11 @@ class MainSchema
             $table->unsignedInteger('booking')->default(0);
             $table->unsignedInteger('trial')->default(0);
             $table->unsignedInteger('downloader')->nullable();
+            // G-06 addition — categories/functions.php's ListVar()
+            // (`cat_id LIKE '%|X|%'`), a real, already-documented column
+            // (AnasheedItem model's own @property list) not previously
+            // needed by any fixture-consuming test.
+            $table->string('cat_id')->nullable();
         };
     }
 
@@ -387,6 +416,15 @@ class MainSchema
             $table->unsignedInteger('time')->nullable();
             $table->unsignedInteger('channel_id')->nullable();
             $table->unsignedInteger('author_id')->nullable();
+            // G-05 (Migration Gap Register) additions — varieties_series_view()'s
+            // own fields, confirmed real columns via Schema::getColumnListing()
+            // against real olddb (`child`, `anasheed`, `des` distinct from
+            // `description` above, `icon`), not previously needed by any
+            // fixture-consuming test.
+            $table->unsignedInteger('child')->default(0);
+            $table->unsignedInteger('anasheed')->default(0);
+            $table->text('des')->nullable();
+            $table->unsignedTinyInteger('icon')->default(0);
         };
     }
 
@@ -728,6 +766,60 @@ class MainSchema
         };
     }
 
+    /** G-02 (Homepage Migration) addition — `print_polls()`'s comment-count-quirk source table. No prior model or fixture existed for this table. */
+    public static function nukePollcomments(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->increments('id');
+            $table->unsignedInteger('pollID');
+            $table->string('comment')->nullable();
+        };
+    }
+
+    /**
+     * G-02 (Homepage Migration) addition — `show_ads_byposition()`'s
+     * table. Column list confirmed via `Schema::getColumnListing('nuke_ads')`
+     * against real `olddb` (HomeAd's own docblock).
+     */
+    public static function nukeAds(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->increments('id');
+            $table->string('name')->nullable();
+            $table->text('image_path')->nullable();
+            $table->unsignedInteger('position')->default(0);
+            $table->unsignedInteger('percentage')->nullable();
+            $table->unsignedTinyInteger('type')->default(0);
+            $table->string('ads_show_type')->nullable();
+            $table->unsignedInteger('required_num_view')->nullable();
+            $table->unsignedTinyInteger('show')->default(1);
+            $table->string('link')->nullable();
+            $table->string('startdate')->nullable();
+            $table->string('enddate')->nullable();
+            $table->unsignedInteger('num_view')->default(0);
+            $table->unsignedInteger('num_click')->nullable();
+            $table->string('path_type')->nullable();
+        };
+    }
+
+    /** G-13-06 — `slider.php`'s backing table (`nuke_7amalat`, confirmed via real olddb schema). */
+    public static function nuke7amalat(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->increments('id');
+            $table->unsignedTinyInteger('website')->default(0);
+            $table->integer('order_index')->nullable();
+            $table->string('title')->nullable();
+            $table->string('image')->nullable();
+            $table->string('mobile_image')->nullable();
+            $table->string('type')->nullable();
+            $table->unsignedBigInteger('type_id')->nullable();
+            $table->text('url')->nullable();
+            $table->string('des')->nullable();
+            $table->integer('status')->default(1);
+        };
+    }
+
     public static function room(): \Closure
     {
         return function (Blueprint $table) {
@@ -825,10 +917,16 @@ class MainSchema
             $table->string('downloaded')->nullable();
             $table->string('ip')->nullable();
             $table->string('size')->nullable();
-            $table->string('count')->nullable();
-            $table->string('speed')->nullable();
-            $table->string('itemid')->nullable();
-            $table->string('catid')->nullable();
+            // G-08-01 fix (Phase 1 audit) — count/speed/itemid/catid are
+            // real int(11)/tinyint(4) NOT NULL DEFAULT '0' columns on
+            // nuke_backup_sessions (SHOW CREATE TABLE, real olddb),
+            // previously typed as nullable strings here — that mismatch
+            // masked a real MySQL strict-mode risk (see
+            // BackupApiController::liveUpdate()'s docblock).
+            $table->unsignedInteger('count')->default(0);
+            $table->unsignedInteger('speed')->default(0);
+            $table->unsignedInteger('itemid')->default(0);
+            $table->unsignedTinyInteger('catid')->default(0);
             $table->boolean('active')->default(1);
         };
     }

@@ -91,6 +91,41 @@ it('download: 404s for a nonexistent question', function () {
     $this->get('/fatawa-download-999.htm')->assertNotFound();
 });
 
+// ---- G-07-01: fix_archive_links() reproduction (Phase 1 audit finding) ----
+
+it('download: an archive.org CDN-node media_link is rewritten to the canonical download URL, matching fix_archive_links() exactly', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_fatwa_questions')->insert([
+        'id' => 8, 'media_link' => 'https://ia802302.us.archive.org/2/items/fatawaa-98/24.mp4', 'num_download' => 0,
+    ]);
+
+    // Real olddb shape (ids 13636/13638/13791) confirmed during the Phase 1
+    // audit — the only 3 rows (of 13,353) where fix_archive_links()
+    // produces a genuinely different URL than the input.
+    $this->get('/fatawa-download-8.htm')
+        ->assertRedirect('http://www.archive.org/download/fatawaa-98/24.mp4');
+});
+
+it('download: a media_link already in the canonical archive.org/download form passes through unchanged', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_fatwa_questions')->insert([
+        'id' => 9, 'media_link' => 'http://www.archive.org/download/fatawa_way2allah-1/001.avi', 'num_download' => 0,
+    ]);
+
+    $this->get('/fatawa-download-9.htm')
+        ->assertRedirect('http://www.archive.org/download/fatawa_way2allah-1/001.avi');
+});
+
+it('download: a non-archive.org media_link is never touched by the transformation', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_fatwa_questions')->insert([
+        'id' => 10, 'media_link' => 'https://way2allah.com/files/answer10.mp4', 'num_download' => 0,
+    ]);
+
+    $this->get('/fatawa-download-10.htm')
+        ->assertRedirect('https://way2allah.com/files/answer10.mp4');
+});
+
 it('sendToFriend: validates required fields with legacy\'s own 2-character-minimum name rule', function () {
     Mail::fake();
 

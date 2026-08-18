@@ -2,7 +2,11 @@
 
 namespace App\Domain\Content\Services;
 
+use App\Domain\Admin\Models\SiteOption;
+use App\Domain\Content\Models\AnasheedItem;
+use App\Domain\Content\Models\Author;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -666,7 +670,13 @@ class ContentListingService
      *
      * @param  array{title?: string, channel_id?: int, author_id?: int, start?: int, end?: int}  $filters
      */
-    public function khotabSeriesAdvancedSearch(array $filters): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    /**
+     * G-05 addition: `$validateChannelExists` — see
+     * `applyAdvancedSearchFilters()`'s own docblock. Defaults to `false`
+     * so `KhotabSearchController`'s existing call is unaffected; only
+     * `SearchController` (the `advanced-search/index.php` port) opts in.
+     */
+    public function khotabSeriesAdvancedSearch(array $filters, bool $validateChannelExists = false): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
         $query = DB::connection('main')->table('nuke_islamic_series as tb1')
             ->join('nuke_islamic_authors as tb2', 'tb1.author_id', '=', 'tb2.id')
@@ -675,7 +685,7 @@ class ContentListingService
             ->where('tb1.count', '>', '0')
             ->select(['tb1.id', 'tb1.title', 'tb1.time', 'tb1.count', 'tb1.hidden', 'tb1.channel_id', 'tb1.author_id', 'tb2.name', 'tb2.prename']);
 
-        $this->applyAdvancedSearchFilters($query, 'tb1.title', 'tb1.channel_id', 'tb1.author_id', 'tb1.time', $filters);
+        $this->applyAdvancedSearchFilters($query, 'tb1.title', 'tb1.channel_id', 'tb1.author_id', 'tb1.time', $filters, $validateChannelExists);
 
         return $query->orderByDesc('tb1.id')->paginate(20);
     }
@@ -686,9 +696,19 @@ class ContentListingService
      * legacy's own query never selects `author_id` here), not the
      * undefined `author_id` legacy's link-building code incorrectly read.
      *
+     * G-05 additions, both defaulted to preserve `KhotabSearchController`'s
+     * existing, unmodified call exactly:
+     * - `$orderBy`: `advanced-search/index.php`'s `media_search()` config
+     *   orders this department by `tb1.weight DESC`, not `tb1.time DESC`
+     *   (`khotab/search.php`'s own convention, kept as this method's
+     *   default). `SearchController` passes `'tb1.weight'` explicitly —
+     *   the already-approved reuse of this method is kept, only its
+     *   ordering is made department-source-accurate for that caller.
+     * - `$validateChannelExists`: see `applyAdvancedSearchFilters()`.
+     *
      * @param  array{title?: string, channel_id?: int, author_id?: int, start?: int, end?: int}  $filters
      */
-    public function khotabAdvancedSearch(array $filters): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    public function khotabAdvancedSearch(array $filters, string $orderBy = 'tb1.time', bool $validateChannelExists = false): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
         $query = DB::connection('main')->table('nuke_islamic_khotab as tb1')
             ->join('nuke_islamic_authors as tb2', 'tb1.author', '=', 'tb2.id')
@@ -696,9 +716,9 @@ class ContentListingService
             ->where('tb1.hidden', '0')
             ->select(['tb1.id', 'tb1.title', 'tb1.author', 'tb1.hits', 'tb1.time', 'tb1.weight', 'tb1.channel_id', 'tb2.name', 'tb2.prename']);
 
-        $this->applyAdvancedSearchFilters($query, 'tb1.title', 'tb1.channel_id', 'tb1.author', 'tb1.time', $filters);
+        $this->applyAdvancedSearchFilters($query, 'tb1.title', 'tb1.channel_id', 'tb1.author', 'tb1.time', $filters, $validateChannelExists);
 
-        return $query->orderByDesc('tb1.time')->paginate(20);
+        return $query->orderByDesc($orderBy)->paginate(20);
     }
 
     // ---- Post-Wave-4: chat_room's lesson-browsing half (task 4.11, see
@@ -914,6 +934,40 @@ class ContentListingService
     }
 
     /**
+     * `fatawa-by-authers.php:22-31`'s default (`else`) branch — the ONLY
+     * branch reachable via the `fatawa-by-authers.htm` pretty URL, since
+     * the missing `modules.php` dispatcher never sets `$_GET['op']` to
+     * `video`/`audio`/`pdf` for this route (Phase 1 audit, G-07-03). The
+     * `video`/`audio`/`pdf` branches have real source but no reachable
+     * route — deliberately not built here (would invent reachability that
+     * doesn't exist).
+     *
+     * **Reproduced exactly, including two easy-to-miss omissions confirmed
+     * by direct re-read, not fixed:** no `hidden=0` filter (unlike the
+     * other 3 branches, which do filter on it) — an author with `hidden=1`
+     * but at least one fatwa answer still appears here. Ordered by plain
+     * `name ASC` (collation-based), NOT `ORDER BY BINARY name ASC` like
+     * the other 3 branches — a genuinely different, narrower ordering rule
+     * for this specific branch only.
+     */
+    public function fatwaAuthorsWithQuestions(): Collection
+    {
+        // Eloquent, not the query builder, so the view can call
+        // Author::fallbackImageUrl() on real model instances
+        // (get_author_img()'s own reproduction) — same join/group/order
+        // shape either way.
+        return Author::query()
+            ->join('nuke_fatwa_questions', 'nuke_fatwa_questions.auther_id', '=', 'nuke_islamic_authors.id')
+            ->groupBy('nuke_islamic_authors.id')
+            ->orderBy('nuke_islamic_authors.name')
+            ->select([
+                'nuke_islamic_authors.*',
+                DB::raw('COUNT(nuke_fatwa_questions.id) as count'),
+            ])
+            ->get();
+    }
+
+    /**
      * `fatawa/functions.php:524-534` `get_all_channel_questions($id)` — a
      * genuinely multi-step legacy query, reproduced in the same shape
      * rather than optimized into a single join (Behavior First; the N+1
@@ -1066,14 +1120,33 @@ class ContentListingService
      *
      * @param  array{title?: string, channel_id?: int, author_id?: int, from?: string, to?: string}  $filters
      */
+    /**
+     * G-05 addition: `Listmawad()`'s fatawa-specific channel condition
+     * (`index.php:922-923`) is richer than every other department's —
+     * `channel_id IN (SELECT ...) OR place_of_fatwa LIKE '%X%'` — applied
+     * here manually (channel excluded from the shared
+     * `applyAdvancedSearchFilters()` call) since no other department has
+     * this OR-extension. Confirmed this extra clause exists ONLY in
+     * `Listmawad()`'s fatawa branch, not in `ListSeries()`'s (neither the
+     * topics nor general-questions queries have it).
+     */
     public function fatwaQuestionsAdvancedSearch(array $filters): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
         $query = DB::connection('main')->table('nuke_fatwa_questions as tb1')
             ->join('nuke_islamic_authors as tb2', 'tb1.auther_id', '=', 'tb2.id')
             ->select(['tb1.*', 'tb2.name', 'tb2.prename']);
 
-        $this->applyAdvancedSearchFilters($query, 'tb1.question_text', 'tb1.channel_id', 'tb1.auther_id', 'tb1.date_of_fatwa', $filters);
+        $channelId = $filters['channel_id'] ?? null;
+        $this->applyAdvancedSearchFilters($query, 'tb1.question_text', 'tb1.channel_id', 'tb1.auther_id', 'tb1.date_of_fatwa', [...$filters, 'channel_id' => null]);
         $this->applyAdvancedSearchDateRange($query, 'tb1.date_of_fatwa', $filters);
+
+        if (! empty($channelId)) {
+            $query->where(function ($sub) use ($channelId) {
+                $sub->whereIn('tb1.channel_id', function ($inner) use ($channelId) {
+                    $inner->select('id')->from('nuke_sat_channels')->where('id', $channelId);
+                })->orWhere('tb1.place_of_fatwa', 'like', '%'.$channelId.'%');
+            });
+        }
 
         return $query->orderByDesc('tb1.date_of_fatwa')->paginate(20);
     }
@@ -1090,7 +1163,7 @@ class ContentListingService
         $query = DB::connection('main')->table('nuke_fatwa_general_questions as tb1')
             ->select(['tb1.*']);
 
-        $this->applyAdvancedSearchFilters($query, 'tb1.question_text', 'tb1.channel_id', 'tb1.author_id', 'tb1.db_insertion_date', $filters);
+        $this->applyAdvancedSearchFilters($query, 'tb1.question_text', 'tb1.channel_id', 'tb1.author_id', 'tb1.db_insertion_date', $filters, true);
         $this->applyAdvancedSearchDateRange($query, 'tb1.db_insertion_date', $filters);
 
         return $query->orderByDesc('tb1.num_view')->paginate(20);
@@ -1117,10 +1190,44 @@ class ContentListingService
         $query = DB::connection('main')->table('nuke_fatwa_topics as tb1')
             ->select(['tb1.*']);
 
-        $this->applyAdvancedSearchFilters($query, 'tb1.topic_name', 'tb1.channel_id', 'tb1.author_id', 'tb1.db_insertion_date', $filters);
+        $this->applyAdvancedSearchFilters($query, 'tb1.topic_name', 'tb1.channel_id', 'tb1.author_id', 'tb1.db_insertion_date', $filters, true);
         $this->applyAdvancedSearchDateRange($query, 'tb1.db_insertion_date', $filters);
 
         return $query->orderBy('tb1.topic_name')->paginate(20);
+    }
+
+    /**
+     * G-05 (Migration Gap Register): `advanced-search/index.php`'s
+     * `get_num_of_fatawa_for_question($g_q_id)` (`index.php:1007-1017`) —
+     * `SELECT id FROM nuke_fatwa_questions WHERE general_question_id=%d`,
+     * row count. Called once per `fatwaGeneralQuestionsAdvancedSearch()`
+     * result row by `SearchController`'s view — a confirmed legacy N+1
+     * pattern, reproduced exactly (not batched), per explicit instruction.
+     * `general_question_id` is otherwise a pipe-wrapped string column
+     * elsewhere in this codebase (`fatwaQuestionsForGeneralQuestion()`) —
+     * this method reproduces legacy's own literal integer-placeholder
+     * comparison as-is (MySQL's implicit string-to-int coercion applies
+     * here exactly as it does in legacy's raw SQL; not special-cased).
+     */
+    public function countFatawaForQuestion(int $generalQuestionId): int
+    {
+        return DB::connection('main')->table('nuke_fatwa_questions')
+            ->where('general_question_id', $generalQuestionId)
+            ->count();
+    }
+
+    /**
+     * `advanced-search/index.php`'s `get_num_of_general_questions_for_topic($t_id)`
+     * (`index.php:418-427`) — `SELECT id FROM nuke_fatwa_general_questions
+     * WHERE topic_id=%d`, row count. Same N+1-preserved reasoning as
+     * `countFatawaForQuestion()` above — called once per
+     * `fatwaTopicsAdvancedSearch()` result row.
+     */
+    public function countGeneralQuestionsForTopic(int $topicId): int
+    {
+        return DB::connection('main')->table('nuke_fatwa_general_questions')
+            ->where('topic_id', $topicId)
+            ->count();
     }
 
     /**
@@ -1145,7 +1252,7 @@ class ContentListingService
             ->where('tb1.hidden', '0')
             ->select(['tb1.*']);
 
-        $this->applyAdvancedSearchFilters($query, 'tb1.title', 'tb1.channel_id', 'tb1.author_id', 'tb1.mytime', $filters);
+        $this->applyAdvancedSearchFilters($query, 'tb1.title', 'tb1.channel_id', 'tb1.author_id', 'tb1.mytime', $filters, true);
         $this->applyAdvancedSearchDateRange($query, 'tb1.mytime', $filters);
 
         return $query->orderByDesc('tb1.weight')->paginate(20);
@@ -1166,7 +1273,7 @@ class ContentListingService
             ->where('tb1.parent_id', $parentId)
             ->select(['tb1.*']);
 
-        $this->applyAdvancedSearchFilters($query, 'tb1.title', 'tb1.channel_id', 'tb1.author_id', 'tb1.time', $filters);
+        $this->applyAdvancedSearchFilters($query, 'tb1.title', 'tb1.channel_id', 'tb1.author_id', 'tb1.time', $filters, true);
         $this->applyAdvancedSearchDateRange($query, 'tb1.time', $filters);
 
         return $query->orderByDesc('tb1.id')->paginate(20);
@@ -1185,6 +1292,15 @@ class ContentListingService
      *
      * @param  array{title?: string, channel_id?: int, author_id?: int, from?: string, to?: string}  $filters
      */
+    /**
+     * G-05 fix: ordered `tb1.weight DESC`, matching `media_search()`'s
+     * `mawad_order_by` (`index.php:510`, shared by video/audio/
+     * dumped_files) exactly — this method is `SearchController`-exclusive
+     * (no `KhotabSearchController` caller exists), so the ordering is
+     * corrected directly rather than parameterized. `$validateChannelExists`
+     * always applied (`true`, hardcoded) for the same reason — see
+     * `applyAdvancedSearchFilters()`'s docblock.
+     */
     public function khotabAudioAdvancedSearch(array $filters): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
         $query = DB::connection('main')->table('nuke_islamic_khotab as tb1')
@@ -1193,13 +1309,13 @@ class ContentListingService
             ->where('tb1.hidden', '0')
             ->select(['tb1.id', 'tb1.title', 'tb1.author', 'tb1.hits', 'tb1.time', 'tb1.weight', 'tb1.channel_id', 'tb2.name', 'tb2.prename']);
 
-        $this->applyAdvancedSearchFilters($query, 'tb1.title', 'tb1.channel_id', 'tb1.author', 'tb1.time', $filters);
+        $this->applyAdvancedSearchFilters($query, 'tb1.title', 'tb1.channel_id', 'tb1.author', 'tb1.time', $filters, true);
         $this->applyAdvancedSearchDateRange($query, 'tb1.time', $filters);
 
-        return $query->orderByDesc('tb1.time')->paginate(20);
+        return $query->orderByDesc('tb1.weight')->paginate(20);
     }
 
-    /** Series-side counterpart to `khotabAudioAdvancedSearch()` — same discrepancy/reasoning, `khotabSeriesAdvancedSearch()` untouched. */
+    /** Series-side counterpart to `khotabAudioAdvancedSearch()` — ordering already matched (`tb1.id DESC`, `series_order_by`), unchanged; `$validateChannelExists` always applied. */
     public function khotabAudioSeriesAdvancedSearch(array $filters): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
         $query = DB::connection('main')->table('nuke_islamic_series as tb1')
@@ -1209,7 +1325,7 @@ class ContentListingService
             ->where('tb1.count', '>', '0')
             ->select(['tb1.id', 'tb1.title', 'tb1.time', 'tb1.count', 'tb1.hidden', 'tb1.channel_id', 'tb1.author_id', 'tb2.name', 'tb2.prename']);
 
-        $this->applyAdvancedSearchFilters($query, 'tb1.title', 'tb1.channel_id', 'tb1.author_id', 'tb1.time', $filters);
+        $this->applyAdvancedSearchFilters($query, 'tb1.title', 'tb1.channel_id', 'tb1.author_id', 'tb1.time', $filters, true);
         $this->applyAdvancedSearchDateRange($query, 'tb1.time', $filters);
 
         return $query->orderByDesc('tb1.id')->paginate(20);
@@ -1227,6 +1343,7 @@ class ContentListingService
      *
      * @param  array{title?: string, channel_id?: int, author_id?: int, from?: string, to?: string}  $filters
      */
+    /** G-05 fix: ordered `tb1.weight DESC` (same `media_search()` config, same reasoning as `khotabAudioAdvancedSearch()`'s docblock). `$validateChannelExists` always applied. */
     public function khotabDumpedFilesAdvancedSearch(array $filters): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
         $query = DB::connection('main')->table('nuke_islamic_khotab as tb1')
@@ -1236,10 +1353,10 @@ class ContentListingService
             ->where('tb1.hidden', '0')
             ->select(['tb1.id', 'tb1.title', 'tb1.author', 'tb1.hits', 'tb1.time', 'tb1.weight', 'tb1.channel_id', 'tb2.name', 'tb2.prename']);
 
-        $this->applyAdvancedSearchFilters($query, 'tb1.title', 'tb1.channel_id', 'tb1.author', 'tb1.time', $filters);
+        $this->applyAdvancedSearchFilters($query, 'tb1.title', 'tb1.channel_id', 'tb1.author', 'tb1.time', $filters, true);
         $this->applyAdvancedSearchDateRange($query, 'tb1.time', $filters);
 
-        return $query->orderByDesc('tb1.time')->paginate(20);
+        return $query->orderByDesc('tb1.weight')->paginate(20);
     }
 
     /**
@@ -1299,7 +1416,23 @@ class ContentListingService
         return $results;
     }
 
-    /** Shared filter-application shape behind the two advanced-search methods above — only the column names differ (series uses `author_id`, khotab items use `author`, per each table's real schema). */
+    /**
+     * Shared filter-application shape behind the advanced-search methods
+     * — only the column names differ (series uses `author_id`, khotab
+     * items use `author`, per each table's real schema).
+     *
+     * G-05 (Migration Gap Register) addition: `$validateChannelExists`
+     * reproduces `advanced-search/index.php`'s own channel condition —
+     * `Listmawad()`/`ListSeries()`: `tb1.channel_id IN (SELECT id FROM
+     * nuke_sat_channels WHERE id=X)`, not a plain equality — confirmed
+     * this is `advanced-search/index.php`'s literal query shape,
+     * genuinely different from `khotab/search.php`'s own plain-equality
+     * `ListSearchKhotab()`/`ListSearchSeries()`. Defaults to `false`
+     * (plain equality) so `khotabAdvancedSearch()`/
+     * `khotabSeriesAdvancedSearch()`'s existing `KhotabSearchController`
+     * callers are completely unaffected — only `SearchController`'s own
+     * calls opt in.
+     */
     private function applyAdvancedSearchFilters(
         \Illuminate\Database\Query\Builder $query,
         string $titleColumn,
@@ -1307,13 +1440,21 @@ class ContentListingService
         string $authorColumn,
         string $timeColumn,
         array $filters,
+        bool $validateChannelExists = false,
     ): void {
         if (! empty($filters['title'])) {
             $query->where($titleColumn, 'like', '%'.$filters['title'].'%');
         }
 
         if (! empty($filters['channel_id'])) {
-            $query->where($channelColumn, $filters['channel_id']);
+            if ($validateChannelExists) {
+                $channelId = $filters['channel_id'];
+                $query->whereIn($channelColumn, function ($sub) use ($channelId) {
+                    $sub->select('id')->from('nuke_sat_channels')->where('id', $channelId);
+                });
+            } else {
+                $query->where($channelColumn, $filters['channel_id']);
+            }
         }
 
         if (! empty($filters['author_id'])) {
@@ -1323,5 +1464,259 @@ class ContentListingService
         if (! empty($filters['start']) && ! empty($filters['end'])) {
             $query->whereBetween($timeColumn, [$filters['start'], $filters['end']]);
         }
+    }
+
+    // ============================================================================
+    // G-02 (Homepage Migration Blueprint) — `index.php`/`new_content.php`/
+    // `home_functions.php`. These 9 methods back the homepage's own 17
+    // sections (several sections share a method: fatawa/telawah/videos/
+    // audios/dump-files/albums/category-487/trending are each single
+    // methods; parent-scoped anasheed backs 3 sections via one method).
+    // ============================================================================
+
+    /**
+     * `home_functions.php:4-69`'s `list_latest_videos()`. Derived-table
+     * structure preserved verbatim (own comment: avoids a real MySQL 5.7
+     * join-order regression, not incidental style) — do not simplify to a
+     * plain join. Cached 300s exactly as legacy's `SimpleCache` TTL.
+     *
+     * Visual/CSS parity phase — homepage HTTP 500 investigation: this
+     * method's own prior comment ("cached payload is a plain array,
+     * never a raw Collection — the G-06 khotab/search lesson applies
+     * here too") was itself incomplete, not just wrong about the fix —
+     * `->get()->all()` is an array of **stdClass objects**, not the
+     * plain-scalar-array shape `KhotabSearchController::rememberSafely()`
+     * (the actual G-06/G-09-02 fix) uses. Confirmed root cause: this
+     * app's `config('cache.serializable_classes')` is `false` (Laravel's
+     * own secure-by-default setting, `config/cache.php:141`), so the
+     * `file` cache store's `unserialize($value, ['allowed_classes' =>
+     * false])` converts **every** cached object — including harmless
+     * `stdClass`, not just Eloquent models — into `__PHP_Incomplete_Class`
+     * on every cache read. Reproduced deterministically: a fresh
+     * `Cache::forget()` + first request always succeeds (closure runs,
+     * no unserialize involved); every request after that fails 100% of
+     * the time, not intermittently. Not reproducible under
+     * `CACHE_STORE=array` (no serialization occurs at all), which is why
+     * the test suite never caught it. Fixed the same way
+     * `rememberSafely()` already does: cache plain arrays
+     * (`(array) $row`), rehydrate to `stdClass` via `(object)` cast
+     * after every read — that cast happens in PHP, never through
+     * `unserialize()`, so it's unaffected by `serializable_classes`.
+     */
+    public function homeLatestVideos(): Collection
+    {
+        $rows = Cache::remember('home-latest-videos', 300, function () {
+            return DB::connection('main')->query()->fromSub(function ($query) {
+                $query->select(['id', 'time', 'ser_id', 'title', 'frame', 'author', 'lastmirror'])
+                    ->from('nuke_islamic_khotab')
+                    ->where('vedio', '1')
+                    ->where('newslist', '1')
+                    ->orderByDesc('lastmirror')
+                    ->limit(3);
+            }, 'kh')
+                ->join('nuke_islamic_authors as th', 'kh.author', '=', 'th.id')
+                ->orderByDesc('kh.lastmirror')
+                ->select(['kh.id', 'kh.time', 'kh.ser_id', 'kh.title', 'kh.frame', 'th.id as thid', 'th.prename', 'th.name'])
+                ->get()
+                ->map(fn ($row) => (array) $row)
+                ->all();
+        });
+
+        return collect($rows)->map(fn (array $row) => (object) $row);
+    }
+
+    /**
+     * `home_functions.php:285-326`'s `list_latest_audios()` — same
+     * derived-table shape and cache reasoning as `homeLatestVideos()`,
+     * `vedio = '0'` instead of `'1'`, limit 7 instead of 3. Same
+     * `serializable_classes` cache fix applied — see `homeLatestVideos()`'s
+     * own docblock for the full investigation.
+     */
+    public function homeLatestAudios(): Collection
+    {
+        $rows = Cache::remember('home-latest-audios', 300, function () {
+            return DB::connection('main')->query()->fromSub(function ($query) {
+                $query->select(['id', 'title', 'time', 'author', 'lastmirror'])
+                    ->from('nuke_islamic_khotab')
+                    ->where('vedio', '0')
+                    ->where('newslist', '1')
+                    ->orderByDesc('lastmirror')
+                    ->limit(7);
+            }, 'kh')
+                ->join('nuke_islamic_authors as th', 'kh.author', '=', 'th.id')
+                ->orderByDesc('kh.lastmirror')
+                ->select(['kh.id', 'kh.title', 'kh.time', 'th.prename', 'th.name'])
+                ->get()
+                ->map(fn ($row) => (array) $row)
+                ->all();
+        });
+
+        return collect($rows)->map(fn (array $row) => (object) $row);
+    }
+
+    /**
+     * `home_functions.php:347-400`'s `get_latest_dump_files()`. Deliberately
+     * NOT `khotabPdfDump()` above (khotab/dump.php's own "latest 50 PDFs"
+     * listing) — confirmed during the Blueprint's infrastructure inspection
+     * that query additionally filters `hidden = '0'` (this homepage
+     * function has no such filter), doesn't select `frame`, uses limit 50
+     * not 3, isn't cached, and isn't a derived-table query — 4 real
+     * differences, not safely reusable without silently changing homepage
+     * behavior. Cache key includes `$limit` exactly as legacy's own
+     * `SimpleCache` key does. Same `serializable_classes` cache fix
+     * applied — see `homeLatestVideos()`'s own docblock for the full
+     * investigation.
+     */
+    public function homeLatestDumpFiles(int $limit = 3): Collection
+    {
+        $rows = Cache::remember("home-latest-dump-files-{$limit}", 300, function () use ($limit) {
+            return DB::connection('main')->query()->fromSub(function ($query) use ($limit) {
+                $query->select(['id', 'title', 'frame', 'author', 'pdf_time'])
+                    ->from('nuke_islamic_khotab')
+                    ->where('pdf', '>', 0)
+                    ->orderByDesc('pdf_time')
+                    ->limit($limit);
+            }, 'kh')
+                ->join('nuke_islamic_authors as th', 'th.id', '=', 'kh.author')
+                ->orderByDesc('kh.pdf_time')
+                ->select(['kh.id', 'kh.title', 'kh.frame', 'th.id as thid', 'th.prename', 'th.name'])
+                ->get()
+                ->map(fn ($row) => (array) $row)
+                ->all();
+        });
+
+        return collect($rows)->map(fn (array $row) => (object) $row);
+    }
+
+    /**
+     * `home_functions.php:70-93`'s `list_latest_fatawas()`. Not cached —
+     * legacy doesn't cache this one. `general_question_id`'s pipe-prefix
+     * parsing is NOT done here (a rendering-time concern, same table shape
+     * as the raw column) — see `home.blade.php`'s fatawa partial.
+     */
+    public function homeLatestFatawas(int $limit = 3): Collection
+    {
+        return DB::connection('main')->table('nuke_fatwa_questions as f')
+            ->join('nuke_islamic_authors as th', 'f.auther_id', '=', 'th.id')
+            ->orderByDesc('f.id')
+            ->limit($limit)
+            ->select(['f.general_question_id', 'f.question_text', 'th.prename', 'th.name'])
+            ->get();
+    }
+
+    /**
+     * `home_functions.php:94-181`'s `list_latest_cat_487()`. The 10
+     * hardcoded category-id -> logo mappings are NOT reproduced here (a
+     * rendering-time concern) — see `home.blade.php`'s cat-487 partial.
+     */
+    public function homeCategory487(int $limit = 3): Collection
+    {
+        return DB::connection('main')->table('nuke_w2a_cat')
+            ->where('main_cat', 487)
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->select(['id', 'title'])
+            ->get();
+    }
+
+    /** `home_functions.php:259-284`'s `list_latest_telawahs()`. Not cached — legacy doesn't cache this one. */
+    public function homeLatestTelawahs(int $limit = 7): Collection
+    {
+        return DB::connection('main')->table('nuke_telawah_telawah as t')
+            ->leftJoin('nuke_telawah_groups as g', 't.group_id', '=', 'g.id')
+            ->orderByDesc('t.id')
+            ->limit($limit)
+            ->select(['t.id', 't.title', 'g.title as group_title'])
+            ->get();
+    }
+
+    /**
+     * `home_functions.php:238-258`'s `list_latest_albums()`. Reuses the
+     * existing `SiteOption` model (`nuke_options`, already built for
+     * Wave 5's soundcloud/youtube settings) for the
+     * `home_selected_album` lookup — same table, same key convention.
+     * The 242x197 `thumbnails.php` resize itself is deliberately NOT done
+     * here (Blueprint §10: homepage-scoped, not a generic thumbnail
+     * service) — see `HomeController`/`home.blade.php`.
+     *
+     * @return array{album_id: int, images: Collection}
+     */
+    public function homeSelectedAlbumImages(int $limit = 7): array
+    {
+        $albumId = (int) (SiteOption::get('home_selected_album') ?? 0);
+
+        $images = DB::connection('main')->table('nuke_albums_images')
+            ->where('album_id', $albumId)
+            ->orderBy('order')
+            ->limit($limit)
+            ->select(['url'])
+            ->get();
+
+        return ['album_id' => $albumId, 'images' => $images];
+    }
+
+    /**
+     * G-13-06 (media/visual parity phase) — `slider.php` (included from
+     * `header.php:532-535`, gated behind `$display_slider`, set `true`
+     * only by `index.php:6` — confirmed via exhaustive grep, every other
+     * file's own copy of that assignment is commented out). Query
+     * reproduced exactly: `nuke_7amalat WHERE status=1 AND website=1
+     * ORDER BY order_index ASC LIMIT 10`. `image` already stores the full
+     * relative path (`media/7amlat/slide_*.jpg`), not a bare filename —
+     * no bucketing/transformation needed, unlike `MediaPathResolver`'s
+     * convention elsewhere.
+     */
+    public function homeSliderItems(): Collection
+    {
+        return DB::connection('main')->table('nuke_7amalat')
+            ->where('status', 1)
+            ->where('website', 1)
+            ->orderBy('order_index')
+            ->limit(10)
+            ->select(['id', 'title', 'image', 'url'])
+            ->get();
+    }
+
+    /**
+     * `functions.php:195-224`'s `listvars()`, its `parent` filter branch —
+     * backs homepage sections 6 (`parent=158`), 13 (`parent=12`), 14
+     * (`parent=57`). Uses `AnasheedItem::scopeInParent()` (added for this
+     * task) rather than `scopeInGroup()` — `parent_id`, not `group_id`,
+     * confirmed by direct re-read of `listvars()` line 215-218. `class`
+     * defaults to `'vars'` in every real call site here (none of the 3
+     * homepage sections pass `'class'`), so only that rendering branch's
+     * columns are selected.
+     */
+    public function homeAnasheedByParent(int $parentId, int $limit = 3): Collection
+    {
+        return AnasheedItem::query()
+            ->from('nuke_anasheed_anasheed as an')
+            ->leftJoin('nuke_anasheed_groups as gr', 'an.group_id', '=', 'gr.id')
+            ->inParent($parentId)
+            ->orderByDesc('an.id')
+            ->limit($limit)
+            ->select(['an.id', 'an.title', 'an.frame', 'gr.title as group_title'])
+            ->get();
+    }
+
+    /**
+     * `new_content.php`'s inline "تشاهدون الآن" query (no wrapping
+     * function in legacy — the only homepage section built directly in
+     * the template rather than via a `home_functions.php` helper):
+     * `SELECT nuke_anasheed_anasheed.id, title, frame,
+     * nuke_anasheed_advanced.adur FROM nuke_anasheed_anasheed,
+     * nuke_anasheed_advanced WHERE nuke_anasheed_advanced.id =
+     * nuke_anasheed_anasheed.id ORDER BY lastvisit DESC LIMIT 16` — an
+     * implicit inner join, reproduced as an explicit one (same result set,
+     * not a behavior change).
+     */
+    public function homeTrendingAnasheed(int $limit = 16): Collection
+    {
+        return DB::connection('main')->table('nuke_anasheed_anasheed as an')
+            ->join('nuke_anasheed_advanced as ad', 'ad.id', '=', 'an.id')
+            ->orderByDesc('an.lastvisit')
+            ->limit($limit)
+            ->select(['an.id', 'an.title', 'an.frame'])
+            ->get();
     }
 }

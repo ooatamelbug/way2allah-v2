@@ -104,7 +104,10 @@
                     <div class="portlet-body">
                         <ul class="news">
                             @foreach ($mostDownloaded as $item)
-                                <li><a href="/var-item-{{ $item->id }}.htm">{{ $item->title }}</a></li>
+                                <li class="media">
+                                    <a class="pull-left" href="/var-item-{{ $item->id }}.htm"><img class="media-object" src="{{ $item->thumb }}" alt="{{ $item->title }}" style="width: 72px; height: 50px;"></a>
+                                    <div class="media-body"><a href="/var-item-{{ $item->id }}.htm">{{ $item->title }}</a></div>
+                                </li>
                             @endforeach
                         </ul>
                     </div>
@@ -119,7 +122,10 @@
                     <div class="portlet-body">
                         <ul class="news">
                             @foreach ($mostRecent as $item)
-                                <li><a href="/var-item-{{ $item->id }}.htm">{{ $item->title }}</a></li>
+                                <li class="media">
+                                    <a class="pull-left" href="/var-item-{{ $item->id }}.htm"><img class="media-object" src="{{ $item->thumb }}" alt="{{ $item->title }}" style="width: 72px; height: 50px;"></a>
+                                    <div class="media-body"><a href="/var-item-{{ $item->id }}.htm">{{ $item->title }}</a></div>
+                                </li>
                             @endforeach
                         </ul>
                     </div>

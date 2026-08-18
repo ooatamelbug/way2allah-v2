@@ -115,7 +115,19 @@ class W2acdItem extends Model implements Viewable
      * link exactly as legacy does (`getExtension()`: substring after the
      * last `.`, empty string if none).
      *
-     * @return list<array{link: string, title: string, extension: string}>
+     * G-04 (Migration Gap Register) addition: `isPrivateServer` reproduces
+     * `list_w2acd_mirrors()`'s exact classification condition
+     * (`functions.php:146`) — `empty($exten) || $exten=='com' ||
+     * $exten=='html' || $exten=='htm' || strpos($exten,'php?')!==FALSE`
+     * — verbatim, including the `php?` substring check (real data: most
+     * `link` values are forum thread URLs like `showthread.php?t=...`,
+     * which this condition classifies as "سيرفر خاص", not a real
+     * extension). When `false`, legacy renders an `images/ext/{ext}.gif`
+     * icon with NO existence check — reproduced the same way here (view
+     * layer), not gated behind `file_exists()`, since legacy has none
+     * either.
+     *
+     * @return list<array{link: string, title: string, extension: string, isPrivateServer: bool}>
      */
     public function mirrorLinks(): array
     {
@@ -125,10 +137,13 @@ class W2acdItem extends Model implements Viewable
         $mirrors = [];
 
         foreach ($links as $index => $link) {
+            $extension = $this->extensionOf($link);
+
             $mirrors[] = [
                 'link' => $link,
                 'title' => $titles[$index] ?? '',
-                'extension' => $this->extensionOf($link),
+                'extension' => $extension,
+                'isPrivateServer' => $extension === '' || $extension === 'com' || $extension === 'html' || $extension === 'htm' || str_contains($extension, 'php?'),
             ];
         }
 

@@ -49,14 +49,28 @@ use Illuminate\Contracts\View\View;
  */
 class FatwaTopicController
 {
-    /** `fatawa.php`'s `showtree()` — top-level categories only (`main_cat=0`), same `q_count>0` filter. No `.htaccess` page parameter exists for `fatawa.htm` — none added here. */
-    public function index(): View
+    /**
+     * `fatawa.php`'s `showtree()` — top-level categories only (`main_cat=0`), same `q_count>0` filter. No `.htaccess` page parameter exists for `fatawa.htm` — none added here.
+     *
+     * **G-07-02 fix:** the page's two sidebar boxes (`tasnifat_latestadd()`/
+     * `tasnifat_active()`, `fatawa.php:147-161`) are NOT scoped to
+     * `main_cat=0` in legacy — they query the whole `nuke_w2a_cat` table.
+     * Phase 1 audit found the prior view-level approximation (re-sorting
+     * this same `main_cat=0` `$categories` collection) was 0/10 correct
+     * against legacy's real "latest added" top-10. Now sourced from
+     * `ContentSidebarWidget::fatwaLatestAddedCategories()`/
+     * `fatwaMostActiveCategories()`, dedicated unfiltered queries.
+     */
+    public function index(ContentSidebarWidget $sidebar): View
     {
         $categories = Category::where('main_cat', 0)
             ->where('q_count', '>', 0)
             ->get();
 
-        return view('fatawa.topics-index', compact('categories'));
+        $latestAddedCategories = $sidebar->fatwaLatestAddedCategories();
+        $mostActiveCategories = $sidebar->fatwaMostActiveCategories();
+
+        return view('fatawa.topics-index', compact('categories', 'latestAddedCategories', 'mostActiveCategories'));
     }
 
     /**

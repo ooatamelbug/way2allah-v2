@@ -151,7 +151,11 @@ class KhotabItem extends Model implements Viewable
         return $this->hasMany(Comment::class, 'khid');
     }
 
-    /** `khotab_category_index` junction table (Fact) — not the raw `cat` column (superseded, see class docblock). */
+    /**
+     * `khotab_category_index` junction table (Fact) — not the raw `cat` column (superseded, see class docblock).
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany<Category, $this>
+     */
     public function categories(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
         return $this->belongsToMany(Category::class, 'khotab_category_index', 'khotab_id', 'category_id');

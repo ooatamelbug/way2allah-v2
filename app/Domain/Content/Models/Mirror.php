@@ -81,6 +81,51 @@ class Mirror extends Model
         return $this->hasOne(MirrorAdvanced::class, 'id', 'id');
     }
 
+    /**
+     * G-13-13 (media/visual parity phase) — `khotab/item.php:274-308`'s
+     * per-mirror "quality" icon filename (`images/ext/{$ext}`). Fully
+     * traced (previous G-13 pass left this unresolved, flagged
+     * SOURCE_UNRECOVERABLE pending this trace): `$ext` starts as
+     * `pathinfo($link)['extension']`, lowercased/trimmed, then
+     * overwritten through a 3-way branch:
+     * - `mp3` extension, or the link's `explode('.', $link)` segments
+     *   contain the literal string `https://soundcloud` -> `mp3.gif` /
+     *   `soundcloud.png`.
+     * - `mp4` extension, or those same segments contain `youtube` or
+     *   `https://youtu` -> `mp4.gif` / `youtube_icon.png`.
+     * - anything else -> the raw extension with `.gif` appended
+     *   (`wma.gif`, `avi.gif`, etc.).
+     * The `explode('.', $link)` checks are a literal segment-equality
+     * match, not a substring search — reproduced exactly (e.g. a link
+     * not starting `https://soundcloud` right up to the next `.` will
+     * never match, even if "soundcloud" appears elsewhere in the URL).
+     * **Confirmed real quirk, not "fixed" here**: a normal
+     * `https://youtube.com/...` URL's first dot-segment is
+     * `https://youtube`, not the bare `youtube` the code checks for — so
+     * it never matches this branch at all (falls through to the generic
+     * extension case). Only `youtu.be` short-links match, via the
+     * separate `https://youtu` prefix check.
+     * No `file_exists()` gate exists in the source for this icon —
+     * an extension with no matching `images/ext/*` file produces a
+     * broken image in legacy too; not corrected here.
+     */
+    public function extensionIconFilename(): string
+    {
+        $link = (string) $this->link;
+        $ext = trim(strtolower(pathinfo($link, PATHINFO_EXTENSION)));
+        $words = explode('.', $link);
+
+        if ($ext === 'mp3' || in_array('https://soundcloud', $words, true)) {
+            return $ext === 'mp3' ? 'mp3.gif' : 'soundcloud.png';
+        }
+
+        if (in_array('youtube', $words, true) || in_array('https://youtu', $words, true) || $ext === 'mp4') {
+            return $ext === 'mp4' ? $ext.'.gif' : 'youtube_icon.png';
+        }
+
+        return $ext.'.gif';
+    }
+
     /** `khotab/functions.php:988` — `update nuke_islamic_mirror set hits=hits+1`. */
     public function incrementDownloadCount(): void
     {
