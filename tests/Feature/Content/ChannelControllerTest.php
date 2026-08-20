@@ -73,8 +73,8 @@ it('showAuthor: filters groups/series/items by author, and leaves the most-downl
     $db->table('nuke_sat_channels')->insert(['id' => 5, 'title' => 'Chan']);
     $db->table('nuke_islamic_authors')->insert(['id' => 9, 'name' => 'Shaikh Q', 'prename' => 'Dr.']);
     $db->table('nuke_islamic_khotab')->insert([
-        ['id' => 1, 'channel_id' => 5, 'author' => 9, 'ser_id' => 0, 'group_id' => 0, 'title' => 'By author 9', 'vedio' => 1, 'hits' => 999, 'time' => 1, 'hidden' => 0],
-        ['id' => 2, 'channel_id' => 5, 'author' => 42, 'ser_id' => 0, 'group_id' => 0, 'title' => 'By other author', 'vedio' => 1, 'hits' => 1, 'time' => 1, 'hidden' => 0],
+        ['id' => 1, 'channel_id' => 5, 'author' => 9, 'ser_id' => 0, 'group_id' => 0, 'title' => 'By author 9', 'vedio' => 1, 'hits' => 1, 'time' => 1, 'hidden' => 0],
+        ['id' => 2, 'channel_id' => 5, 'author' => 42, 'ser_id' => 0, 'group_id' => 0, 'title' => 'By other author', 'vedio' => 1, 'hits' => 999, 'time' => 1, 'hidden' => 0],
     ]);
 
     $response = $this->get('/channel-5-9.htm');
@@ -86,6 +86,8 @@ it('showAuthor: filters groups/series/items by author, and leaves the most-downl
     // The item with the highest hits (999) belongs to a DIFFERENT author and
     // must never appear — if the sidebar were accidentally populated here
     // (like channel.php's page, but unlike author.php's), it would leak in.
+    // (Swapped onto the excluded item, not the included one, now that Batch 1's
+    // restored table markup legitimately renders each visible item's own hit count.)
     $response->assertDontSee('999');
 });
 

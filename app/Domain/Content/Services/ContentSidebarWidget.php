@@ -346,7 +346,11 @@ class ContentSidebarWidget
         $maxId = (int) (DB::connection('main')->table('nuke_islamic_khotab')->max('id') ?? 0);
         $randomId = random_int(1, max(1, $maxId));
 
-        $columns = ['kh.id', 'kh.channel_id', 'kh.author', 'kh.title', 'kh.comments', 'kh.time', 'kh.hits', 'ath.name', 'ath.prename'];
+        // khotab-series-{id}.htm parity: functions.php:1120-1127's randomitems()
+        // branches on $Khotab->gif/$Khotab->frame to build the thumbnail path
+        // (media/khotab_gifs/ vs media/khotab_frames/, bucketed by floor(id/1000)) —
+        // neither column was selected here, so no consumer could build that path.
+        $columns = ['kh.id', 'kh.channel_id', 'kh.author', 'kh.title', 'kh.comments', 'kh.time', 'kh.hits', 'kh.gif', 'kh.frame', 'ath.name', 'ath.prename'];
 
         $forward = DB::connection('main')->table('nuke_islamic_khotab as kh')
             ->leftJoin('nuke_islamic_authors as ath', 'kh.author', '=', 'ath.id')

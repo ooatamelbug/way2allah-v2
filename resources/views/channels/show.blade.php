@@ -5,6 +5,24 @@
      anti-pattern already cataloged elsewhere in the audit — not
      reproduced here). --}}
 
+{{--
+    Batch 1 (category-1.htm/channel-1.htm parity): channels/channel.php:19-20
+    (`register_script('scripts/khotab_tables.js'); Plugins('datatables');`) —
+    confirmed unconditional. channels/author.php (author.blade.php's source)
+    does NOT call these — confirmed zero matches — so this push stays only
+    on this view, not on the shared _listing partial or author.blade.php.
+--}}
+@push('styles')
+    <link href="/assets/global/plugins/datatables/datatables.min.css" rel="stylesheet" type="text/css"/>
+    <link href="/assets/global/plugins/datatables/plugins/bootstrap/datatables.bootstrap-rtl.css" rel="stylesheet" type="text/css"/>
+@endpush
+
+@push('scripts')
+    <script src="/assets/global/plugins/datatables/datatables.min.js" type="text/javascript"></script>
+    <script src="/assets/global/plugins/datatables/plugins/bootstrap/datatables.bootstrap.js" type="text/javascript"></script>
+    <script src="/scripts/khotab_tables.js" type="text/javascript"></script>
+@endpush
+
 @section('title', 'قناة ' . $channelModel->title)
 
 @section('content')
