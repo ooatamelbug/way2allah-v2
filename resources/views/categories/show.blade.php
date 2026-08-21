@@ -21,11 +21,8 @@
 @endpush
 
 @section('content')
-    <nav aria-label="التصنيفات الموضوعية">
-        @foreach ($breadcrumbTrail as $crumb)
-            <a href="/category-{{ $crumb->id }}.htm">{{ $crumb->title }}</a>
-        @endforeach
-    </nav>
+    {{-- Shared Page Chrome Parity Audit: replaces the previous bare <nav><a> list (missing Home, the "التصنيفات الموضوعية" root label, and the real page-breadcrumb DOM) with the shared chrome. --}}
+    <x-page-chrome :heading="$categoryModel->title" :breadcrumb="$breadcrumbTrail" />
 
     <div class="row service-box margin-bottom-40">
         <div class="col-lg-9 col-md-8 col-sm-7 nopadding">

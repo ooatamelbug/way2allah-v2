@@ -11,27 +11,25 @@
 
 @section('content')
     {{--
-        Visual parity audit (khotab-video-17.htm, 2026-08-18) Batch 1:
-        page-title + breadcrumb restored from author.php:53-57. Malformed
-        legacy icon before the h3 (functions.php:541-543's `title()`) is
-        the same confirmed authoring bug already not-reproduced elsewhere
-        in this engagement. Breadcrumb's first two segments both point at
-        `/khotab-{op}.htm` (author.php:53-54's own two entries share that
-        exact URL) — the author-list page already restored in an earlier
-        batch. Final segment uses `href=""` (author.php:55 sets `'url'=>''`
-        explicitly, not omitted — breadcrumb_items() wraps it in `<a>`
-        regardless of the empty value, same pattern already established
-        for khotab/item.blade.php and khotab/authors.blade.php).
+        Shared Page Chrome Parity Audit: was rendering the breadcrumb
+        BEFORE the heading — legacy (author.php:56-57) and fresh
+        production both confirm `title()` fires before `breadcrumb()`, so
+        the `<h3>` comes first in the real DOM. Switched to the shared
+        page-chrome component (fixes the order and guarantees the trailing
+        empty `<i class=""></i>` on the current item stays correct
+        sitewide) — breadcrumb content itself (author.php:53-57) is
+        unchanged from the prior batch's restoration: first two segments
+        both point at `/khotab-{op}.htm`, final segment uses `href=""`
+        (author.php:55 sets `'url'=>''` explicitly, not omitted).
     --}}
-    <div class="page-bar">
-        <ul class="page-breadcrumb">
-            <li><i class="fa fa-home"></i><a href="/">الرئيسية</a><i class="fa fa-angle-right"></i></li>
-            <li><a href="/khotab-{{ $op }}.htm">{{ $opTitle }}</a><i class="fa fa-angle-right"></i></li>
-            <li><a href="/khotab-{{ $op }}.htm">قائمة الدعاة</a><i class="fa fa-angle-right"></i></li>
-            <li><a href="">{{ trim(($authorModel->prename ?? '').' '.($authorModel->name ?? '')) }}</a><i class=""></i></li>
-        </ul>
-    </div>
-    <h3 class="page-title">{{ $pageTitle }}</h3>
+    <x-page-chrome
+        :heading="$pageTitle"
+        :breadcrumb="[
+            ['title' => $opTitle, 'url' => '/khotab-'.$op.'.htm'],
+            ['title' => 'قائمة الدعاة', 'url' => '/khotab-'.$op.'.htm'],
+            ['title' => trim(($authorModel->prename ?? '').' '.($authorModel->name ?? '')), 'url' => ''],
+        ]"
+    />
 
     <div class="row service-box margin-bottom-40">
         <div class="col-lg-9 col-md-8 col-sm-7 nopadding">

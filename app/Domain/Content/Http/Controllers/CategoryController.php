@@ -52,7 +52,21 @@ class CategoryController
         $mostDownloaded = $sidebar->khotabMostDownloadedByCategory($category);
         $mostRecent = $sidebar->khotabMostRecentByCategory($category);
         $randomFeatured = $sidebar->khotabRandomFeatured();
-        $breadcrumbTrail = $categoryModel->breadcrumbTrail();
+
+        // Shared Page Chrome Parity Audit: category.php:70-71's real
+        // breadcrumb — 'التصنيفات الموضوعية' (linked to /categories.htm)
+        // then Cat_Breadcrumb($cat_id)'s ancestor chain (ancestors linked,
+        // current/leaf category plain — categories/functions.php:496-499's
+        // $lastlink=0 default). The bare <nav><a> markup this replaced was
+        // missing both the root label and the real page-breadcrumb DOM.
+        $ancestorTrail = $categoryModel->breadcrumbTrail();
+        $lastIndex = $ancestorTrail->count() - 1;
+        $breadcrumbTrail = [
+            ['title' => 'التصنيفات الموضوعية', 'url' => '/categories.htm'],
+            ...$ancestorTrail->values()->map(fn (Category $c, int $i) => $i === $lastIndex
+                ? ['title' => $c->title]
+                : ['title' => $c->title, 'url' => '/category-'.$c->id.'.htm'])->all(),
+        ];
 
         return view('categories.show', compact('categoryModel', 'series', 'items', 'mostDownloaded', 'mostRecent', 'randomFeatured', 'breadcrumbTrail'));
     }

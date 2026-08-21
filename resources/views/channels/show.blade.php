@@ -23,17 +23,29 @@
     <script src="/scripts/khotab_tables.js" type="text/javascript"></script>
 @endpush
 
-@section('title', 'قناة ' . $channelModel->title)
+{{--
+    Shared Page Chrome Parity Audit: channels/channel.php:12's real document
+    title is `'مرئيات قناة ' . $Channel->title` — a "مرئيات" prefix the
+    visible heading (`title('قناة ' . $Channel->title)`, no prefix) does
+    NOT carry, confirmed as two genuinely different strings against fresh
+    production (this page's own no-author branch; author.blade.php's
+    corresponding page is untouched, out of this batch's scope).
+--}}
+@section('title', 'مرئيات قناة ' . $channelModel->title)
 
 @section('content')
-    {{-- Live-Reference Comparison Report: breadcrumb + portlet wrappers + the same row/col grid already used on fatawa/khotab-item. No data/query change. --}}
-    <div class="page-bar">
-        <ul class="page-breadcrumb">
-            <li><i class="fa fa-home"></i><a href="/">الرئيسية</a><i class="fa fa-angle-right"></i></li>
-            <li><a href="/channels.htm">القنوات الفضائية</a><i class="fa fa-angle-right"></i></li>
-            <li>قناة {{ $channelModel->title }}</li>
-        </ul>
-    </div>
+    {{--
+        Shared Page Chrome Parity Audit: channels/channel.php:41-46's
+        no-author branch — `title('قناة ' . $Channel->title)` +
+        `breadcrumb([{القنوات الفضائية, url}, {قناة .. , url=''}])`.
+    --}}
+    <x-page-chrome
+        :heading="'قناة '.$channelModel->title"
+        :breadcrumb="[
+            ['title' => 'القنوات الفضائية', 'url' => '/channels.htm'],
+            ['title' => 'قناة '.$channelModel->title, 'url' => ''],
+        ]"
+    />
 
     <div class="row service-box margin-bottom-40">
         <div class="col-lg-9 col-md-8 col-sm-7 nopadding">

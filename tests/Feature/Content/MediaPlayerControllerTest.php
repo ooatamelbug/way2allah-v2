@@ -6,18 +6,21 @@ use Tests\Support\Fixtures\MainSchema;
 use Tests\Support\InMemoryConnection;
 
 /**
- * Batch 4 (media player, khotab-item-298784.htm investigation). Replaces
- * `get-mada-player.htm` (`ajax_3K2r.php?op=get-mada-player` →
- * `get_w2a_mada_player()` → `get_w2a_mada()` + `w2a_mada_play()`,
- * `functions.php:794-896`). Only `khotab`/`khotab_mirror` are in scope —
- * anasheed/telawah/fatawa/chat_room remain unwired, per this batch's
- * approved scope.
+ * Batch 4 (media player, khotab-item-298784.htm investigation) +
+ * var-item-{id}.htm parity batch. Replaces `get-mada-player.htm`
+ * (`ajax_3K2r.php?op=get-mada-player` → `get_w2a_mada_player()` →
+ * `get_w2a_mada()` + `w2a_mada_play()`, `functions.php:794-896`).
+ * `khotab`/`khotab_mirror` (Batch 4) and `anasheed`/`anasheed_mirror`
+ * (var-item-{id}.htm parity batch) are wired; telawah/fatawa/chat_room
+ * remain unwired, per each batch's own approved scope.
  */
 function useInMemoryMainConnectionForMediaPlayer(): void
 {
     InMemoryConnection::setup('main', [
         'nuke_islamic_khotab' => MainSchema::nukeIslamicKhotab(),
         'nuke_islamic_mirror' => MainSchema::nukeIslamicMirror(),
+        'nuke_anasheed_anasheed' => MainSchema::nukeAnasheedAnasheed(),
+        'nuke_anasheed_mirror' => MainSchema::nukeAnasheedMirror(),
     ]);
 }
 
@@ -71,6 +74,42 @@ it('POST /media-player: khotab_mirror type, mp3 renders a native <audio> tag', f
 
     $response->assertOk();
     expect($response->getContent())->toBe('<audio controls autoplay><source src="https://cdn.example.com/a.mp3" type="audio/mpeg"></audio>');
+});
+
+it('POST /media-player: anasheed type, mp4 renders a native <video> tag, resolving via nuke_anasheed_anasheed (var-item-{id}.htm parity)', function () {
+    DB::connection('main')->table('nuke_anasheed_anasheed')->insert([
+        'id' => 1, 'title' => 'Item', 'vedio' => 1, 'hidden' => 0,
+        'link' => 'https://cdn.example.com/a.mp4',
+    ]);
+
+    $response = $this->post('/media-player', ['id' => 1, 'type' => 'anasheed']);
+
+    $response->assertOk();
+    expect($response->getContent())->toBe('<video controls autoplay><source src="https://cdn.example.com/a.mp4" type="video/mp4"></video>');
+});
+
+it('POST /media-player: anasheed_mirror type, mp3 renders a native <audio> tag, resolving via nuke_anasheed_mirror (var-item-{id}.htm parity)', function () {
+    DB::connection('main')->table('nuke_anasheed_mirror')->insert([
+        'id' => 1, 'khid' => 1, 'title' => 'A quality', 'vedio' => 0, 'hidden' => 0,
+        'link' => 'https://cdn.example.com/a.mp3',
+    ]);
+
+    $response = $this->post('/media-player', ['id' => 1, 'type' => 'anasheed_mirror']);
+
+    $response->assertOk();
+    expect($response->getContent())->toBe('<audio controls autoplay><source src="https://cdn.example.com/a.mp3" type="audio/mpeg"></audio>');
+});
+
+it('POST /media-player: anasheed type returns empty for a hidden item, same hidden=0 filter as khotab', function () {
+    DB::connection('main')->table('nuke_anasheed_anasheed')->insert([
+        'id' => 1, 'title' => 'Item', 'vedio' => 1, 'hidden' => 1,
+        'link' => 'https://cdn.example.com/a.mp4',
+    ]);
+
+    $response = $this->post('/media-player', ['id' => 1, 'type' => 'anasheed']);
+
+    $response->assertOk();
+    expect($response->getContent())->toBe('');
 });
 
 it('POST /media-player: a youtube.com link (video) renders a YouTube iframe embed, extracting the ?v= id, matching w2a_mada_play():826-829', function () {

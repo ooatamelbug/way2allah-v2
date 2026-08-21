@@ -33,6 +33,7 @@ use App\Domain\Content\Http\Controllers\SearchController;
 use App\Domain\Content\Http\Controllers\TelawahAuthorController;
 use App\Domain\Content\Http\Controllers\TelawahGroupController;
 use App\Domain\Content\Http\Controllers\TelawahItemController;
+use App\Domain\Content\Http\Controllers\ThumbnailController;
 use App\Domain\Content\Http\Controllers\W2acdController;
 use Illuminate\Support\Facades\Route;
 
@@ -114,6 +115,16 @@ Route::post('/khotab-item-{khotab}/send-friend', [KhotabItemController::class, '
 | batch — the route itself is already reusable as-is.
 */
 Route::post('/media-player', [MediaPlayerController::class, 'show'])->name('media-player.show');
+
+/*
+| `/thumbnails.php` compatibility endpoint — Laravel-owned replacement for
+| legacy's TimThumb-based thumbnails.php (see ThumbnailController's
+| docblock for why). Registered at the exact raw legacy path, same
+| pattern as /media-player above: shared, cross-module infrastructure
+| (HomeController, ContentSidebarWidget, gallery, w2acd all already emit
+| this URL unmodified), not a redirect.
+*/
+Route::get('/thumbnails.php', [ThumbnailController::class, 'show'])->name('thumbnails.show');
 
 /*
 | khotab-{video|audio|pdf}.htm / khotab-{video|audio|pdf}-{author}.htm /

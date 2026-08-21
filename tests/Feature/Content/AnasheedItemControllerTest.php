@@ -38,6 +38,48 @@ it('show: hidden items remain viewable, matching legacy\'s confirmed lack of hid
     $this->get('/var-item-1.htm')->assertOk()->assertSee('Hidden Item');
 });
 
+// ---- var-item-{id}.htm parity: css/custom.css, w2a_play.js/anasheed_scripts.js, watch/comment/send-friend controls, modals, player container ----
+
+it('show: loads css/custom.css, w2a_play.js, and anasheed_scripts.js (item.php:5,63-64)', function () {
+    DB::connection('main')->table('nuke_anasheed_anasheed')->insert(['id' => 1, 'title' => 'A Nasheed']);
+
+    $content = $this->get('/var-item-1.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('/css/custom.css')
+        ->and($content)->toContain('/scripts/w2a_play.js')
+        ->and($content)->toContain('/scripts/anasheed_scripts.js');
+});
+
+it('show: renders the real watch/comment/send-friend controls and both modals, all previously missing', function () {
+    DB::connection('main')->table('nuke_anasheed_anasheed')->insert(['id' => 1, 'title' => 'A Nasheed']);
+
+    $content = $this->get('/var-item-1.htm')->assertOk()->getContent();
+
+    expect($content)->toContain("onclick=\"w2a_play(1,'anasheed')\"")
+        ->and($content)->toContain('مشاهدة المادة')
+        ->and($content)->toContain('id="commentsModal"')
+        ->and($content)->toContain('id="sendFriendModal"')
+        ->and($content)->toContain('class="send-friend-btn"')
+        ->and(substr_count($content, 'id="anasheed_id"'))->toBe(2) // one per modal, matches legacy's own duplicate id
+        ->and($content)->toContain('id="the_main_player"')
+        ->and($content)->toContain('id="w2a_main_player"');
+});
+
+it('show: mirror rows render the real numbered/play-button/extension-icon/size/downloads structure, not a bare title+count line', function () {
+    DB::connection('main')->table('nuke_anasheed_anasheed')->insert(['id' => 1, 'title' => 'A Nasheed', 'mirror' => 1]);
+    DB::connection('main')->table('nuke_anasheed_mirror')->insert([
+        'id' => 10, 'khid' => 1, 'title' => 'HD quality', 'link' => 'https://cdn.example.com/a.mp4', 'hits' => 42, 'linksize' => 9000000, 'vedio' => 1,
+    ]);
+
+    $content = $this->get('/var-item-1.htm')->assertOk()->getContent();
+
+    expect($content)->toContain("onclick=\"w2a_play(10,'anasheed_mirror')\"")
+        ->and($content)->toContain('1 - ')
+        ->and($content)->toContain('/images/ext/mp4.gif')
+        ->and($content)->toContain('8.58 ميجا بايت')
+        ->and($content)->toContain('fa-youtube-play');
+});
+
 it('show: IF-028 fix — comment flags render from images/flags/, not flags/', function () {
     DB::connection('main')->table('nuke_anasheed_anasheed')->insert(['id' => 1, 'title' => 'Item', 'comments' => 1]);
     DB::connection('main')->table('nuke_anasheed_comments')->insert([
@@ -253,4 +295,79 @@ it('show: paged route still increments hits and 404s for a nonexistent item, mat
 
     expect(DB::connection('main')->table('nuke_anasheed_anasheed')->find(1)->hits)->toBe(6);
     $this->get('/var-item-999-page-1.htm')->assertNotFound();
+});
+
+// ---- var-item-17350.htm targeted gap closure: title/heading, breadcrumb ancestor chain, sidebar markup, date formatting ----
+
+it('show: the <title> and <h3> heading both use " - {group} - {item}", and the <title> carries the sitename TWICE (item.php\'s own confirmed double-suffix, not a fetch artifact)', function () {
+    DB::connection('main')->table('nuke_anasheed_groups')->insert(['id' => 1, 'title' => 'A Group', 'parent_id' => 0]);
+    DB::connection('main')->table('nuke_anasheed_anasheed')->insert(['id' => 1, 'title' => 'An Item', 'group_id' => 1]);
+
+    $content = $this->get('/var-item-1.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('<title> - A Group - An Item - '.config('app.name').' - '.config('app.name').'</title>')
+        ->and($content)->toContain('<h3 class="page-title"> - A Group - An Item</h3>');
+});
+
+it('show: breadcrumb walks the FULL ancestor chain (parent_id) and does not invent a "منوعات" label', function () {
+    DB::connection('main')->table('nuke_anasheed_groups')->insert([
+        ['id' => 1, 'title' => 'Grandparent', 'parent_id' => 0],
+        ['id' => 2, 'title' => 'Parent', 'parent_id' => 1],
+        ['id' => 3, 'title' => 'Immediate Group', 'parent_id' => 2],
+    ]);
+    DB::connection('main')->table('nuke_anasheed_anasheed')->insert(['id' => 1, 'title' => 'An Item', 'group_id' => 3]);
+
+    $content = $this->get('/var-item-1.htm')->assertOk()->getContent();
+
+    // "منوعات" legitimately appears elsewhere (the sitewide nav dropdown,
+    // layouts/partials/navigation.blade.php) — scoped to the breadcrumb
+    // list specifically, not the whole page.
+    preg_match('/<ul class="page-breadcrumb">.*?<\/ul>/s', $content, $matches);
+    $breadcrumb = $matches[0] ?? '';
+
+    expect($breadcrumb)->not->toContain('منوعات')
+        ->and(strpos($breadcrumb, 'Grandparent'))->toBeLessThan(strpos($breadcrumb, 'Parent'))
+        ->and(strpos($breadcrumb, 'Parent'))->toBeLessThan(strpos($breadcrumb, 'Immediate Group'))
+        ->and($breadcrumb)->toContain('href="/var-group-1.htm"')
+        ->and($breadcrumb)->toContain('href="/var-group-2.htm"')
+        ->and($breadcrumb)->toContain('href="/var-group-3.htm"');
+});
+
+it('show: no group at all (group_id points nowhere) — page title/h3 degrade to just " - {item}", no crash', function () {
+    DB::connection('main')->table('nuke_anasheed_anasheed')->insert(['id' => 1, 'title' => 'Orphan Item', 'group_id' => 999]);
+
+    $content = $this->get('/var-item-1.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('<h3 class="page-title"> - Orphan Item</h3>');
+});
+
+it('show: detail table date row uses CoolShortDate() formatting, not a raw Y-m-d string', function () {
+    DB::connection('main')->table('nuke_anasheed_anasheed')->insert([
+        'id' => 1, 'title' => 'Item', 'mytime' => mktime(0, 0, 0, 6, 23, 2026),
+    ]);
+
+    $content = $this->get('/var-item-1.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('الثلاثاء 23 يونيو 2026 مـ')
+        ->and($content)->toContain('class="anasheed-details mada-details"');
+});
+
+it('show: sidebar boxes use the real recent_list/anasheed-latest-item markup with the correct metadata line per box (downloads vs date)', function () {
+    DB::connection('main')->table('nuke_anasheed_anasheed')->insert([
+        ['id' => 1, 'title' => 'Main Item', 'group_id' => 5, 'hits' => 0, 'downcount' => 0, 'mytime' => null],
+        ['id' => 2, 'title' => 'Sidebar Item', 'group_id' => 5, 'hits' => 10, 'downcount' => 42, 'mytime' => mktime(0, 0, 0, 6, 23, 2026)],
+    ]);
+
+    $content = $this->get('/var-item-1.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('class="recent_list"')
+        ->and($content)->toContain('class="list-group-item anasheed-latest-item"')
+        ->and($content)->toContain('مرات التحميل : 42 مرة')
+        ->and($content)->toContain('بتاريخ : الثلاثاء 23 يونيو 2026 مـ')
+        // most_recent_html() (functions.php:895,898) has a literal space
+        // inside the <a> before <img>/<h5> — confirmed against live
+        // production char-by-char; a manual visual comparison caught this
+        // being silently dropped by the previous implementation.
+        ->and($content)->toContain('/var-item-2.htm"> <img')
+        ->and($content)->toContain('/var-item-2.htm"> <h5>Sidebar Item</h5>');
 });

@@ -95,6 +95,7 @@ class AnasheedItem extends Model implements Viewable
 
     protected $guarded = ['id'];
 
+    /** @return BelongsTo<AnasheedGroup, $this> */
     public function group(): BelongsTo
     {
         return $this->belongsTo(AnasheedGroup::class, 'group_id');

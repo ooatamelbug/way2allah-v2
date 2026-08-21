@@ -61,9 +61,27 @@ class AnasheedItemController
      * its existing, unchanged behavior of auto-resolving from a `?page=`
      * query string.
      */
+    /**
+     * var-item-17350.htm parity: `item.php:6,31-32`'s `$title` — starts
+     * `""`, then `.= ' - ' . $Group->title`, then `.= ' - ' . $Anasheed->title`
+     * — used BOTH for the `<title>` (`$header['title']` = `$title.' -
+     * '.$sitename`, then `w2a_header()`'s own template appends `' - '
+     * .$sitename` a SECOND time — a confirmed, genuine double-suffix,
+     * verified against live production, not a fetch artifact) and for the
+     * `<h3 class="page-title">` heading via `title($title)` (`functions.php:541-543`
+     * — its own malformed `<i class=\fa fa-gift\">` icon already established
+     * as SOURCE_UNRECOVERABLE/deliberately dropped elsewhere in this
+     * project, applied consistently here, not re-decided).
+     */
     public function show(int $anasheed, ContentSidebarWidget $sidebar, ?int $page = null): View
     {
-        $anasheedItem = AnasheedItem::with('mirrors.advanced')->findOrFail($anasheed);
+        $anasheedItem = AnasheedItem::with(['mirrors.advanced', 'group'])->findOrFail($anasheed);
+
+        $pageTitle = $anasheedItem->group
+            ? ' - '.$anasheedItem->group->title.' - '.$anasheedItem->title
+            : ' - '.$anasheedItem->title;
+
+        $breadcrumbTrail = $anasheedItem->group?->breadcrumbTrail() ?? collect();
 
         $comments = null;
         if ($anasheedItem->comments > 0) {
@@ -75,7 +93,7 @@ class AnasheedItemController
 
         $anasheedItem->recordView();
 
-        return view('anasheed.item', compact('anasheedItem', 'comments', 'mostDownloaded', 'mostRecent'));
+        return view('anasheed.item', compact('anasheedItem', 'pageTitle', 'breadcrumbTrail', 'comments', 'mostDownloaded', 'mostRecent'));
     }
 
     public function download(int $anasheed): \Illuminate\Http\RedirectResponse

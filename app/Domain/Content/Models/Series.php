@@ -49,6 +49,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $hidden
  * @property int|null $lastupdate
  * @property int|null $ramadan
+ * @property-read \App\Domain\Content\Models\Author|null $author
+ * @property-read \App\Domain\Content\Models\Channel|null $channel
+ * @property-read \App\Domain\Content\Models\KhotabGroup|null $group
  */
 class Series extends Model
 {

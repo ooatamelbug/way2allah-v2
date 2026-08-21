@@ -31,6 +31,73 @@ it('show: renders sub-groups and items, increments the group\'s hits', function 
     expect(DB::connection('main')->table('nuke_anasheed_groups')->find(1)->hits)->toBe(4);
 });
 
+// ---- Shared Page Chrome Parity Audit: group.php:22-26's heading + ancestor breadcrumb (AnasheedGroup::breadcrumbTrail(), already proven correct by var-item-{id}.htm) ----
+
+it('show: renders the heading and the full parent_id ancestor chain, ancestors linked, current group plain', function () {
+    DB::connection('main')->table('nuke_anasheed_groups')->insert([
+        ['id' => 1, 'title' => 'Grandparent', 'parent_id' => 0, 'hits' => 0],
+        ['id' => 2, 'title' => 'Parent', 'parent_id' => 1, 'hits' => 0],
+        ['id' => 3, 'title' => 'Current Group', 'parent_id' => 2, 'hits' => 0],
+    ]);
+
+    $content = $this->get('/var-group-3.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('<h3 class="page-title">Current Group</h3>');
+    expect($content)
+        ->toContain('<li><a href="/var-group-1.htm">Grandparent</a><i class="fa fa-angle-right"></i></li>')
+        ->toContain('<li><a href="/var-group-2.htm">Parent</a><i class="fa fa-angle-right"></i></li>')
+        ->toContain('<li>Current Group<i class=""></i></li>');
+
+    $order = ['Grandparent</a>', 'Parent</a>', 'Current Group<i'];
+    $positions = array_map(fn ($needle) => strpos($content, $needle), $order);
+    expect($positions)->toBe(collect($positions)->sort()->values()->all());
+});
+
+it('show: a top-level group (parent_id=0) has a breadcrumb with only itself, current/plain', function () {
+    DB::connection('main')->table('nuke_anasheed_groups')->insert([
+        ['id' => 1, 'title' => 'Top Level Group', 'parent_id' => 0, 'hits' => 0],
+    ]);
+
+    $content = $this->get('/var-group-1.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('<li>Top Level Group<i class=""></i></li>')
+        ->not->toContain('<a href="/var-group-1.htm">Top Level Group</a>');
+});
+
+// ---- var-group-{id}.htm parity: css/custom.css + the real portlet/card/download-block structure ----
+
+it('show: loads css/custom.css (group.php:5) and renders the real portlet/card markup, not the prior plain <ul>/<div> list', function () {
+    DB::connection('main')->table('nuke_anasheed_groups')->insert([
+        ['id' => 1, 'title' => 'Parent Group', 'parent_id' => 0, 'child' => 0, 'anasheed' => 0, 'hits' => 0, 'des' => null],
+        ['id' => 2, 'title' => 'Sub Group', 'parent_id' => 1, 'child' => 1, 'anasheed' => 5, 'hits' => 9, 'des' => 'A comment'],
+    ]);
+    DB::connection('main')->table('nuke_anasheed_anasheed')->insert(['id' => 1, 'title' => 'Group Item', 'group_id' => 1]);
+
+    $content = $this->get('/var-group-1.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('/css/custom.css')
+        ->and(substr_count($content, 'portlet-title'))->toBe(3) // sub-groups + download + items
+        ->and($content)->toContain('telawah-author')
+        ->and($content)->toContain('telawa-details')
+        ->and($content)->toContain('var_group_item')
+        ->and($content)->toContain('var_group_download')
+        ->and($content)->toContain('/var-series-1.grx')
+        ->and($content)->toContain('الأقسام الفرعية : 1 قسم')
+        ->and($content)->toContain('المقاطع : 5 مقطع')
+        ->and($content)->toContain('الزيارات : 9 زيارة')
+        ->and($content)->toContain('التعليق : A comment');
+});
+
+it('show: the GetRight-download and items portlets do NOT render when the group has zero items (group.php:60-78\'s shared gate)', function () {
+    DB::connection('main')->table('nuke_anasheed_groups')->insert(['id' => 1, 'title' => 'Empty Group', 'parent_id' => 0]);
+
+    $content = $this->get('/var-group-1.htm')->assertOk()->getContent();
+
+    expect($content)->not->toContain('var_group_download')
+        ->and($content)->not->toContain('تحميل سلسلة')
+        ->and($content)->not->toContain('قائمة المواد :');
+});
+
 // ---- G-13 closure (Anasheed Group Sidebar parity fix): group.php never calls most_downloaded_recent_sidebar() ----
 
 it('show: does NOT render a "most downloaded"/"most recent" sidebar — group.php has no such box, unlike item.php', function () {
@@ -141,17 +208,12 @@ it('show: paged route\'s page 2 shows the next 30 items, not page 1\'s items aga
     DB::connection('main')->table('nuke_anasheed_anasheed')->insert($items);
 
     // orderByDesc('mytime') — item 31 (highest mytime) is first, so page 1
-    // (items 31..2, 30 items) does not include item 1; page 2 does. Scoped
-    // to "قائمة المواد" specifically since the (unpaginated, tie-ordered)
-    // "most downloaded" sidebar can otherwise coincidentally include item 1.
-    $extractList = function (string $html): string {
-        preg_match('/قائمة المواد">(.*?)<\/section>/s', $html, $matches);
-
-        return $matches[1] ?? '';
-    };
-
-    $page1 = $extractList($this->get('/var-group-1-page-1.htm')->assertOk()->getContent());
-    $page2 = $extractList($this->get('/var-group-1-page-2.htm')->assertOk()->getContent());
+    // (items 31..2, 30 items) does not include item 1; page 2 does. No
+    // extraction/scoping needed — group.php confirmed has no sidebar at
+    // all (G-13 closure), so there's no unrelated "most downloaded" box
+    // that could coincidentally leak item 1 into the assertion.
+    $page1 = $this->get('/var-group-1-page-1.htm')->assertOk()->getContent();
+    $page2 = $this->get('/var-group-1-page-2.htm')->assertOk()->getContent();
 
     expect($page1)->not->toContain('Item 1<')->and($page1)->toContain('Item 31');
     expect($page2)->toContain('Item 1<')->and($page2)->not->toContain('Item 31');

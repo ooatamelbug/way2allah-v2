@@ -38,6 +38,23 @@ it('index: G-13-08 — each row shows the flat images/channels/{id}.png logo, ma
     $this->get('/channels.htm')->assertOk()->assertSee('/images/channels/7.png', false);
 });
 
+it('index: loads gallery.css and renders the hover-reveal gallery-item/zoomix/channel-logo markup it targets (channels.php:9,41-51)', function () {
+    DB::connection('main')->table('nuke_sat_channels')->insert([
+        'id' => 7, 'title' => 'A Channel', 'active' => 0, 'khotab' => 1,
+        'freq' => '11000', 'polar' => 'V', 'srate' => '27500', 'fec' => '3/4',
+    ]);
+
+    $response = $this->get('/channels.htm');
+
+    $response->assertOk()
+        ->assertSee('/assets/frontend/pages/css/gallery.css', false)
+        ->assertSee('gallery-item', false)
+        ->assertSee('zoomix', false)
+        ->assertSee('channel-logo', false)
+        ->assertSee('قناة : A Channel')
+        ->assertSee('التردد : 11000');
+});
+
 it('index: orders by khotab desc', function () {
     $db = DB::connection('main');
     $db->table('nuke_sat_channels')->insert([
@@ -66,6 +83,31 @@ it('show: renders groups/series/items scoped to the channel and a populated most
 
 it('show: 404s for a nonexistent channel', function () {
     $this->get('/channel-999.htm')->assertNotFound();
+});
+
+// ---- Shared Page Chrome Parity Audit: channel.php:41-46's heading/breadcrumb (no-author branch) + document <title>'s real "مرئيات" prefix ----
+
+it('show: renders the heading, breadcrumb, and the document-title "مرئيات" prefix, all distinct strings per channel.php', function () {
+    DB::connection('main')->table('nuke_sat_channels')->insert(['id' => 5, 'title' => 'Chan', 'khotab' => 0]);
+
+    $content = $this->get('/channel-5.htm')->assertOk()->getContent();
+
+    // channel.php:12's real document title has a "مرئيات" prefix the visible heading does not.
+    expect($content)->toContain('<title>مرئيات قناة Chan - ')
+        ->and($content)->toContain('<h3 class="page-title">قناة Chan</h3>')
+        ->and($content)->not->toContain('<title>قناة Chan - ');
+
+    expect($content)
+        ->toContain('<li><a href="/channels.htm">القنوات الفضائية</a><i class="fa fa-angle-right"></i></li>')
+        ->toContain('<li><a href="">قناة Chan</a><i class=""></i></li>');
+});
+
+it('index: renders the heading and the single-item (current page, empty-href) breadcrumb', function () {
+    $content = $this->get('/channels.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('<h3 class="page-title">قائمة القنوات الفضائية</h3>')
+        ->toContain('<li><a href="">القنوات الفضائية</a><i class=""></i></li>');
 });
 
 it('showAuthor: filters groups/series/items by author, and leaves the most-downloaded/newest boxes empty (IF-012)', function () {

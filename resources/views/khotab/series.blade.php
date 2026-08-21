@@ -1,8 +1,11 @@
 @extends('layouts.app')
 
-@section('title', 'سلسلة ' . $seriesModel->title)
+{{-- Shared Page Chrome Parity Audit: series.php:36's real document title includes the author suffix, same string as the visible heading. --}}
+@section('title', $pageHeading)
 
 @section('content')
+    <x-page-chrome :heading="$pageHeading" :breadcrumb="$breadcrumbTrail" />
+
     <div class="row service-box margin-bottom-40">
         <div class="col-lg-9 col-md-8 col-sm-7 nopadding">
             {{--

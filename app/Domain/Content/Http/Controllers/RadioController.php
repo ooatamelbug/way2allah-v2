@@ -4,6 +4,7 @@ namespace App\Domain\Content\Http\Controllers;
 
 use App\Domain\Content\Services\ContentSidebarWidget;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 
 /**
@@ -34,13 +35,24 @@ use Illuminate\Support\Collection;
  */
 class RadioController
 {
-    public function index(ContentSidebarWidget $sidebar): View
+    public function index(Request $request, ContentSidebarWidget $sidebar): View
     {
         $playlist = $this->presentPlaylist($sidebar->radioPlaylist());
         $newestVideo = $sidebar->radioMostRecentByVideoFlag(true);
         $newestAudio = $sidebar->radioMostRecentByVideoFlag(false);
 
-        return view('radio.index', compact('playlist', 'newestVideo', 'newestAudio'));
+        // radio.htm parity gap closure: the class docblock above already
+        // documented this as "reproduced as a query-string check", but the
+        // check itself was never actually written — this closes that gap.
+        // `radio-mobile.htm`'s `.htaccess` rewrite target
+        // (`radio/index.php?mobile_me=true`) doesn't reach Laravel as a real
+        // query string (it's a distinct named route, not a rewrite), so the
+        // route itself is checked too — both paths reproduce the one real
+        // `detect_if_mobile_view()` condition this migration ports
+        // (`!empty($_GET['mobile_me'])`).
+        $isMobile = $request->boolean('mobile_me') || $request->routeIs('radio.index.mobile');
+
+        return view('radio.index', compact('playlist', 'newestVideo', 'newestAudio', 'isMobile'));
     }
 
     /**

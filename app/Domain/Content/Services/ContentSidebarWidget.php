@@ -167,9 +167,16 @@ class ContentSidebarWidget
     private function withAnasheedThumb(Collection $items): Collection
     {
         return $items->map(function ($item) {
+            // var-item-17350.htm parity: functions.php:150-187's thumbnail()
+            // routes BOTH branches through thumbnails.php (`$imgurl` is set
+            // once, before the frame==1 check, since 'h'/'w' are always
+            // passed here) — the fallback is `thumbnails.php?h=50&w=72&
+            // src=images/tvnoise.gif`, not a direct /images/tvnoise.gif path.
+            // Confirmed against live production, not assumed from the
+            // frame==1 branch's own convention.
             $item->thumb = ((int) $item->frame) === 1
                 ? '/thumbnails.php?h=50&w=72&src='.MediaPathResolver::path('anasheed/frame', (int) $item->id, 'jpg')
-                : '/images/tvnoise.gif';
+                : '/thumbnails.php?h=50&w=72&src=images/tvnoise.gif';
 
             return $item;
         });

@@ -76,7 +76,18 @@ class AnasheedGroupController
         // anasheed/group.php:79 — group hit-count, unconditional on load.
         $groupModel->increment('hits');
 
-        return view('anasheed.group', compact('groupModel', 'subGroups', 'items'));
+        // Shared Page Chrome Parity Audit: group.php:22-26's breadcrumb —
+        // reuses the already-existing AnasheedGroup::breadcrumbTrail()
+        // (built for var-item-{id}.htm's own ancestor chain, same
+        // parent_id walk), ancestors linked to /var-group-{id}.htm, the
+        // current group plain (group.php:26 — no `url` key at all).
+        $ancestorTrail = $groupModel->breadcrumbTrail();
+        $lastIndex = $ancestorTrail->count() - 1;
+        $breadcrumbTrail = $ancestorTrail->values()->map(fn (AnasheedGroup $g, int $i) => $i === $lastIndex
+            ? ['title' => $g->title]
+            : ['title' => $g->title, 'url' => '/var-group-'.$g->id.'.htm'])->all();
+
+        return view('anasheed.group', compact('groupModel', 'subGroups', 'items', 'breadcrumbTrail'));
     }
 
     public function downloadGetright(int $group, ContentListingService $listing): Response

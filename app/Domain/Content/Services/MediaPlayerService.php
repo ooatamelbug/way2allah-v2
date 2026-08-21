@@ -2,6 +2,8 @@
 
 namespace App\Domain\Content\Services;
 
+use App\Domain\Content\Models\AnasheedItem;
+use App\Domain\Content\Models\AnasheedMirror;
 use App\Domain\Content\Models\KhotabItem;
 use App\Domain\Content\Models\Mirror;
 
@@ -10,10 +12,11 @@ use App\Domain\Content\Models\Mirror;
  * (:794-855) — the shared, cross-module AJAX in-page player backing
  * `w2a_play()`/`get-mada-player.htm`. Confirmed shared infrastructure
  * (khotab-item-298784.htm Batch 4 investigation): also called by anasheed,
- * telawah, fatawa, and chat_room — only `khotab`/`khotab_mirror` are
- * implemented here; the other types are deliberately NOT added (out of
- * this batch's approved scope), matching the same `resolveMedia()` branch
- * shape they'd extend later without restructuring this class.
+ * telawah, fatawa, and chat_room. `khotab`/`khotab_mirror` (Batch 4) and
+ * `anasheed`/`anasheed_mirror` (var-item-{id}.htm parity batch) are
+ * implemented; `telawat`/`fatawa` are deliberately NOT added yet (out of
+ * approved scope so far), matching the same `resolveMedia()` branch shape
+ * they'd extend later without restructuring this class.
  *
  * **Security, not a behavior change:** `get_w2a_mada()` builds its SQL by
  * concatenating `$id` (raw `$_POST`/`$_GET` input) directly into the query
@@ -51,8 +54,9 @@ class MediaPlayerService
     }
 
     /**
-     * `get_w2a_mada($id, $type)`'s `khotab`/`khotab_mirror` branches
-     * (`functions.php:861-864`) — the only two types this batch approves.
+     * `get_w2a_mada($id, $type)`'s `khotab`/`khotab_mirror` (`functions.php:861-864`)
+     * and `anasheed`/`anasheed_mirror` (`:865-868`) branches — `telawat`/`fatawa`
+     * remain deliberately unimplemented.
      *
      * @return object{title: string, link: string, video: bool}|null
      */
@@ -68,6 +72,20 @@ class MediaPlayerService
 
         if ($type === 'khotab_mirror') {
             return $this->fromMirror($id);
+        }
+
+        // var-item-{id}.htm parity: functions.php:856-869's get_w2a_mada()
+        // also handles 'anasheed'/'anasheed_mirror' — confirmed both are
+        // genuinely reachable (real w2a_play(id,'anasheed')/w2a_play(id,
+        // 'anasheed_mirror') calls in anasheed_details()/list_anasheed_mirrors()),
+        // not deferred like 'telawat'/'fatawa'. Same shape as khotab's two
+        // branches above — purely additive, khotab/khotab_mirror unchanged.
+        if ($type === 'anasheed') {
+            return $this->fromAnasheedItem($id);
+        }
+
+        if ($type === 'anasheed_mirror') {
+            return $this->fromAnasheedMirror($id);
         }
 
         return null;
@@ -99,6 +117,37 @@ class MediaPlayerService
 
         return (object) [
             'title' => (string) $mirror->comment,
+            'link' => (string) $mirror->link,
+            'video' => (bool) $mirror->vedio,
+        ];
+    }
+
+    private function fromAnasheedItem(int $id): ?object
+    {
+        $item = AnasheedItem::where('hidden', 0)->find($id);
+
+        if ($item === null) {
+            return null;
+        }
+
+        return (object) [
+            'title' => (string) $item->title,
+            'link' => (string) $item->link,
+            'video' => (bool) $item->vedio,
+        ];
+    }
+
+    /** `get_w2a_mada()`'s own `title AS title` for anasheed mirrors (khotab_mirror uses `comment AS title` instead — a real, distinct column). */
+    private function fromAnasheedMirror(int $id): ?object
+    {
+        $mirror = AnasheedMirror::where('hidden', 0)->find($id);
+
+        if ($mirror === null) {
+            return null;
+        }
+
+        return (object) [
+            'title' => (string) $mirror->title,
             'link' => (string) $mirror->link,
             'video' => (bool) $mirror->vedio,
         ];

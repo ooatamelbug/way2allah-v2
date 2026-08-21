@@ -84,10 +84,13 @@ it('show: breadcrumb trail walks main_cat up to the root, ancestors first', func
     $content = $this->get('/category-3.htm')->assertOk()->getContent();
 
     // "Leaf" (the category being viewed) also appears earlier on the page
-    // (<title>, <h1>) than in the breadcrumb nav itself, so the position
-    // check is scoped to the nav element — a page-wide strpos comparison
-    // would find the wrong (earlier) "Leaf" occurrence.
-    preg_match('/<nav aria-label="التصنيفات الموضوعية">(.*?)<\/nav>/s', $content, $matches);
+    // (<title>, <h3 class="page-title">) than in the breadcrumb nav
+    // itself, so the position check is scoped to the nav element — a
+    // page-wide strpos comparison would find the wrong (earlier) "Leaf"
+    // occurrence. Shared Page Chrome Parity Audit: scoped to the shared
+    // <x-page-chrome> component's <ul class="page-breadcrumb"> now,
+    // replacing the previous bare <nav> markup.
+    preg_match('/<ul class="page-breadcrumb">(.*?)<\/ul>/s', $content, $matches);
     $nav = $matches[1] ?? '';
 
     expect(strpos($nav, 'Root'))->toBeLessThan(strpos($nav, 'Branch'));
@@ -96,6 +99,27 @@ it('show: breadcrumb trail walks main_cat up to the root, ancestors first', func
 
 it('show: 404s for a nonexistent category', function () {
     $this->get('/category-999.htm')->assertNotFound();
+});
+
+// ---- Shared Page Chrome Parity Audit: category.php:70-71's real heading + root "التصنيفات الموضوعية" breadcrumb item (previously a bare <nav><a>, missing Home and the root label entirely) ----
+
+it('show: renders the heading and the "التصنيفات الموضوعية" root breadcrumb item, linked, before the ancestor chain', function () {
+    DB::connection('main')->table('nuke_w2a_cat')->insert([
+        ['id' => 1, 'title' => 'Root Cat', 'main_cat' => 0],
+        ['id' => 2, 'title' => 'Leaf Cat', 'main_cat' => 1],
+    ]);
+
+    $content = $this->get('/category-2.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('<h3 class="page-title">Leaf Cat</h3>');
+    expect($content)
+        ->toContain('<li><a href="/categories.htm">التصنيفات الموضوعية</a><i class="fa fa-angle-right"></i></li>')
+        ->toContain('<li><a href="/category-1.htm">Root Cat</a><i class="fa fa-angle-right"></i></li>')
+        ->toContain('<li>Leaf Cat<i class=""></i></li>');
+
+    $order = ['التصنيفات الموضوعية</a>', 'Root Cat</a>', 'Leaf Cat<i'];
+    $positions = array_map(fn ($needle) => strpos($content, $needle), $order);
+    expect($positions)->toBe(collect($positions)->sort()->values()->all());
 });
 
 // Roadmap task 4.2 amendment (added post-Wave-4 — see

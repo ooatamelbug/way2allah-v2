@@ -445,6 +445,11 @@ class MainSchema
             $table->unsignedInteger('downloader')->nullable();
             $table->unsignedInteger('online')->default(0);
             $table->unsignedInteger('checktime')->default(0);
+            // var-item-{id}.htm parity batch — already-documented real
+            // columns (AnasheedMirror's own @property list: vedio, hidden),
+            // not previously needed by any fixture-consuming test.
+            $table->unsignedTinyInteger('vedio')->default(1);
+            $table->unsignedTinyInteger('hidden')->default(0);
         };
     }
 

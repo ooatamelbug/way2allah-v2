@@ -86,4 +86,32 @@ class AnasheedGroup extends Model
 
         return '/images/pix001.gif';
     }
+
+    /**
+     * var-item-17350.htm parity: `anasheed/item.php:47-58`'s breadcrumb
+     * ancestor walk — `while ($Group->parent_id > 0) { fetch parent }`,
+     * then `array_reverse()`, ending with this group last (the caller
+     * appends the item title after this). Same shape as `Category::
+     * breadcrumbTrail()` (`main_cat` there vs `parent_id` here) — a
+     * page-local model helper, not a new shared hierarchy abstraction.
+     */
+    public function breadcrumbTrail(): \Illuminate\Support\Collection
+    {
+        /** @var list<self> $trail */
+        $trail = [$this];
+        $current = $this;
+
+        while ($current->parent_id > 0) {
+            $next = self::find($current->parent_id);
+
+            if ($next === null) {
+                break;
+            }
+
+            $trail[] = $next;
+            $current = $next;
+        }
+
+        return collect(array_reverse($trail));
+    }
 }

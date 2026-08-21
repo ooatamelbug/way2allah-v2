@@ -46,6 +46,48 @@ it('series show: 404s for a hidden series', function () {
     $this->get('/khotab-series-10.htm')->assertNotFound();
 });
 
+// ---- Shared Page Chrome Parity Audit: series.php:36,62-79's heading/breadcrumb ----
+
+it('series show: renders the heading and the full author/group/series breadcrumb chain, video op', function () {
+    DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Author', 'prename' => 'Sheikh']);
+    DB::connection('main')->table('nuke_islamic_groups')->insert(['id' => 5, 'title' => 'A Group']);
+    DB::connection('main')->table('nuke_islamic_series')->insert([
+        'id' => 10, 'author_id' => 1, 'group_id' => 5, 'title' => 'A Series', 'vedio' => 1, 'hidden' => 0,
+    ]);
+
+    $content = $this->get('/khotab-series-10.htm')->assertOk()->getContent();
+
+    // series.php:36's real document title AND visible heading are the same string.
+    expect($content)->toContain('<title>سلسلة A Series - Sheikh Author - ')
+        ->and($content)->toContain('<h3 class="page-title">سلسلة A Series - Sheikh Author</h3>');
+
+    expect($content)
+        ->toContain('<li><a href="/khotab-video.htm">المرئيات</a><i class="fa fa-angle-right"></i></li>')
+        ->toContain('<li><a href="/khotab-video.htm">قائمة الدعاة</a><i class="fa fa-angle-right"></i></li>')
+        ->toContain('<li><a href="/khotab-video-1.htm">Sheikh Author</a><i class="fa fa-angle-right"></i></li>')
+        ->toContain('<li><a href="/khotab-group-5.htm">مجموعة A Group</a><i class="fa fa-angle-right"></i></li>')
+        ->toContain('<li><a href="">سلسلة A Series</a><i class=""></i></li>');
+
+    // Ordering: op label, then author list, then author, then group, then series (current).
+    $order = ['المرئيات</a>', 'قائمة الدعاة</a>', 'Sheikh Author</a>', 'مجموعة A Group</a>', 'سلسلة A Series</a>'];
+    $positions = array_map(fn ($needle) => strpos($content, $needle), $order);
+    expect($positions)->toBe(collect($positions)->sort()->values()->all());
+});
+
+it('series show: audio op uses الصوتيات/khotab-audio.htm throughout, and omits the group segment when ungrouped', function () {
+    DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 2, 'name' => 'Author', 'prename' => 'Sheikh']);
+    DB::connection('main')->table('nuke_islamic_series')->insert([
+        'id' => 11, 'author_id' => 2, 'group_id' => 0, 'title' => 'B Series', 'vedio' => 0, 'hidden' => 0,
+    ]);
+
+    $content = $this->get('/khotab-series-11.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('<li><a href="/khotab-audio.htm">الصوتيات</a><i class="fa fa-angle-right"></i></li>')
+        ->toContain('<li><a href="/khotab-audio-2.htm">Sheikh Author</a><i class="fa fa-angle-right"></i></li>')
+        ->not->toContain('مجموعة');
+});
+
 // ---- group.php (no bug — sanity check it still renders) ----
 
 it('group show: renders series and items scoped to the group', function () {
@@ -118,6 +160,29 @@ it('day: IF-016 fix — the page title reflects the browsed date, not a blank/un
     $response->assertOk()->assertSee('المواد المنشورة بتاريخ');
 });
 
+// ---- Shared Page Chrome Parity Audit: day.php:90-98's breadcrumb, heading deliberately omitted ----
+
+it('day: renders no <h3 class="page-title"> at all — LEGACY_BUG_NOT_FOR_REPRODUCTION for the confirmed $Author-null empty-heading bug', function () {
+    $content = $this->get('/khotab-video-today.htm')->assertOk()->getContent();
+
+    expect($content)->not->toContain('page-title');
+    // IF-016's own document-<title> decision must stay untouched by this batch.
+    expect($content)->toContain('<title>المواد المنشورة بتاريخ '.date('Y-m-d').' - ');
+});
+
+it('day: breadcrumb chain — المرئيات (linked) → تقسيم المواد بالتاريخ (plain) → current date label (empty-href, "اليوم - " prefixed)', function () {
+    $content = $this->get('/khotab-video-today.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('<li><a href="/khotab-video.htm">المرئيات </a><i class="fa fa-angle-right"></i></li>');
+    // "تقسيم المواد بالتاريخ" has no `url` key in legacy — plain text, not a link.
+    expect($content)->not->toContain('<a href="">تقسيم المواد بالتاريخ</a>');
+    expect($content)->toMatch('/<li>تقسيم المواد بالتاريخ<i class="fa fa-angle-right"><\/i><\/li>/');
+    expect($content)->toContain('اليوم - ');
+
+    $audio = $this->get('/khotab-audio-today.htm')->assertOk()->getContent();
+    expect($audio)->toContain('<li><a href="/khotab-audio.htm">الصوتيات </a><i class="fa fa-angle-right"></i></li>');
+});
+
 it('day: IF-022 fix — a dated URL scopes the main list to that date\'s items, not today\'s', function () {
     // Sidebar "Most Downloaded"/"Newest" boxes are global (unscoped by
     // date), matching legacy exactly — so this asserts within the
@@ -136,11 +201,40 @@ it('day: IF-022 fix — a dated URL scopes the main list to that date\'s items, 
 
     $content = $this->get('/khotab-videodate-15-1-2020.htm')->assertOk()->getContent();
 
-    preg_match('/قائمة المواد">(.*?)<\/section>/s', $content, $matches);
-    $listSection = $matches[1] ?? '';
+    // khotab-video-today.htm parity batch: the "قائمة المواد" portlet is now
+    // the real ListKhotab()/tabelkht table markup, not a plain <section>, so
+    // the boundary is "up to the sidebar <aside>" rather than "up to the
+    // next </section>" — it's still the only main-content portlet on this
+    // page, so this remains an unambiguous items-list-only slice.
+    preg_match('/قائمة المواد.*?(?=<aside)/s', $content, $matches);
+    $listSection = $matches[0] ?? '';
 
     expect($listSection)->toContain('Old Day Item');
     expect($listSection)->not->toContain('Today Item');
+});
+
+it('day: khotab-video-today.htm parity — 4 portlets, datepicker assets loaded, empty-state message when no items today, "newest" box shows a date not a hit count', function () {
+    $response = $this->get('/khotab-video-today.htm');
+    $content = $response->assertOk()->getContent();
+
+    expect(substr_count($content, 'portlet-title'))->toBe(4)
+        ->and($content)->toContain('بحث بالتاريخ')
+        ->and($content)->toContain('bootstrap-datepicker3.min.css')
+        ->and($content)->toContain('bootstrap-datepicker.js')
+        ->and($content)->toContain('scripts/khotab_date.js')
+        ->and($content)->toContain("\$('#form_datetime_1').datepicker(")
+        ->and($content)->toContain('لا توجد مواد مطابقة بقاعدة بيانات الموقع');
+});
+
+it('day: "جديد المواد" box uses mode=\'time\' (a formatted date), unlike khotab-series-{id}.htm\'s always-\'hits\' boxes', function () {
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 0, 'title' => 'Recent Item', 'vedio' => 1, 'hidden' => 0,
+        'time' => mktime(0, 0, 0, 6, 28, 2026), 'hits' => 5,
+    ]);
+
+    $content = $this->get('/khotab-video-today.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('بتاريخ: الأحد 28 يونيو 2026 مـ');
 });
 
 // ---- IF-017 + IF-021: news.php / author.php pdf-op sidebars ----

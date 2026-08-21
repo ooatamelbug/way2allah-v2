@@ -52,13 +52,13 @@ it('index: renders the continuous playlist, excluding broken/hidden/non-mp3 item
 
     $content = $this->get('/radio.htm')->assertOk()->getContent();
 
-    // Scoped to the playlist section specifically — the sidebar's "newest
+    // Scoped to the playlist <ul> specifically — the sidebar's "newest
     // audio" box is a legitimately different, unfiltered-by-broken/hidden
     // query (same shape as khotabMostRecentByVideoFlag's existing
     // sibling, which also has no hidden/broken filter), so it can and
     // does list the excluded items too. Only the playlist JOIN query
     // itself filters broken=0/hidden=0/mp3-only.
-    preg_match('/قائمة التشغيل الحالية">(.*?)<\/section>/s', $content, $matches);
+    preg_match('/<ul class="playlist">(.*?)<\/ul>/s', $content, $matches);
     $playlistSection = $matches[1] ?? '';
 
     expect($playlistSection)
@@ -106,4 +106,127 @@ it('IF-032: the 3 personalized-playlist op-routes are not reproduced as working 
     $this->get('/remove-playlist-item-1-audio.htm')->assertNotFound();
     $this->get('/playlist-item-1.htm')->assertNotFound();
     $this->get('/save-last-listen.htm')->assertNotFound();
+});
+
+it('index: loads the two registered stylesheets and two registered scripts, in legacy\'s own registration order', function () {
+    seedRadioPlaylistFixture();
+
+    $content = $this->get('/radio.htm')->getContent();
+
+    // register_css('css/w2a_radio.css') then register_css('css/custom.css').
+    // Exact quoted href= match — layouts.app's own sitewide, always-loaded
+    // stylesheet is /assets/frontend/layout/css/custom.css, which contains
+    // the bare string "/css/custom.css" as a trailing substring, so an
+    // unquoted search would false-positive-match that unrelated, earlier tag.
+    expect(strpos($content, 'href="/css/w2a_radio.css"'))->toBeLessThan(strpos($content, 'href="/css/custom.css"'));
+    // register_script(jquery-ui) then register_script('scripts/w2a_radio.js').
+    expect(strpos($content, 'src="/assets/global/plugins/jquery-ui/jquery-ui.min.js"'))
+        ->toBeLessThan(strpos($content, 'src="/scripts/w2a_radio.js"'));
+});
+
+it('index: renders the full player widget markup w2a_radio.css/w2a_radio.js target (controls, tracker, volume, timer)', function () {
+    seedRadioPlaylistFixture();
+
+    $content = $this->get('/radio.htm')->getContent();
+
+    expect($content)
+        ->toContain('id="w2a_radio"')
+        ->toContain('class="player"')
+        ->toContain('class="play-loading"')
+        ->toContain('class="tracker"')
+        ->toContain('class="volume"')
+        ->toContain('class="controls"')
+        ->toContain('class="play"')
+        ->toContain('class="pause"')
+        ->toContain('class="rew"')
+        ->toContain('class="fwd"')
+        ->toContain('current-t')
+        ->toContain('total-t');
+});
+
+it('index: #w2a_radio wraps only the player/playlist column, not the sidebar (w2a_radio.css scopes direction:ltr to it)', function () {
+    seedRadioPlaylistFixture();
+
+    $content = $this->get('/radio.htm')->getContent();
+
+    $w2aRadioStart = strpos($content, 'id="w2a_radio"');
+    $sidebarStart = strpos($content, 'جديد المواد المرئية');
+    // The sidebar heading must come after #w2a_radio's div has already closed,
+    // i.e. well past its own small player+playlist markup, not nested inside it.
+    $w2aRadioBlock = substr($content, $w2aRadioStart, $sidebarStart - $w2aRadioStart);
+    expect($w2aRadioBlock)->not->toContain('جديد المواد المرئية');
+});
+
+it('index: playlist items carry the cover="cover1.jpg" attribute, matching radio/index.php:124 exactly', function () {
+    seedRadioPlaylistFixture();
+
+    $content = $this->get('/radio.htm')->getContent();
+
+    expect($content)->toContain('cover="cover1.jpg"');
+});
+
+it('index: playlist is wrapped in a portlet box (title + fa-eject icon), not a bare section', function () {
+    seedRadioPlaylistFixture();
+
+    $content = $this->get('/radio.htm')->getContent();
+
+    expect($content)->toContain('fa-eject');
+    // The literal w2a_open_div() portlet shape: caption before body, both inside one portlet.box.
+    expect($content)->toMatch('/portlet box blue.*?fa-eject.*?قائمة التشغيل الحالية.*?portlet-body.*?class="playlist"/s');
+});
+
+it('index: sidebar boxes are portlets with the legacy icons and show the hits ("عدد مرات التحميل") line, not a date', function () {
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 200, 'title' => 'Video Item', 'vedio' => 1, 'hidden' => 0, 'time' => 1, 'hits' => 42,
+    ]);
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 201, 'title' => 'Audio Item', 'vedio' => 0, 'hidden' => 0, 'time' => 1, 'hits' => 7,
+    ]);
+
+    $content = $this->get('/radio.htm')->getContent();
+
+    expect($content)
+        ->toContain('fa-video-camera')
+        ->toContain('fa-headphones')
+        ->toContain('media-list')
+        ->toContain('media-heading')
+        ->toContain('عدد مرات التحميل: 42 مرة')
+        ->toContain('عدد مرات التحميل: 7 مرة');
+    // Thumbnail anchor is inert (javascript:;) — only the title anchor links to the item, matching topitems()/day.blade.php's established convention.
+    expect($content)->toMatch('#<a class="pull-left" href="javascript:;"><img class="media-object" src="[^"]*" alt="Video Item"#');
+});
+
+it('index: shows the guest "current-user-warning" notice, matching radio/index.php:33-36', function () {
+    seedRadioPlaylistFixture();
+
+    $content = $this->get('/radio.htm')->getContent();
+
+    expect($content)
+        ->toContain('current-user-warning')
+        ->toContain('يمكنك الإستماع زائرنا الكريم إلى أحدث الدروس المضافة إلى موقعنا على هيئة صوتيات');
+});
+
+it('index: /radio.htm has no w2a_is_mobile hidden input; /radio-mobile.htm does (detect_if_mobile_view() gap closure)', function () {
+    seedRadioPlaylistFixture();
+
+    $this->get('/radio.htm')->assertDontSee('w2a_is_mobile', false);
+    $this->get('/radio-mobile.htm')->assertSee('id="w2a_is_mobile"', false);
+});
+
+it('index: ?mobile_me=true on the plain /radio.htm path also sets the hidden input, matching detect_if_mobile_view()\'s real $_GET check', function () {
+    seedRadioPlaylistFixture();
+
+    $this->get('/radio.htm?mobile_me=true')->assertSee('id="w2a_is_mobile"', false);
+});
+
+// ---- Shared Page Chrome Parity Audit: radio/index.php:24-27's single-item (current page, no url key) breadcrumb ----
+
+it('index: renders the heading and the single-item plain-text breadcrumb, before the player row', function () {
+    seedRadioPlaylistFixture();
+
+    $content = $this->get('/radio.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('<h3 class="page-title">راديو الطريق الى الله</h3>');
+    expect($content)->toContain('<li>راديو الطريق الى الله<i class=""></i></li>');
+    expect(strpos($content, 'page-title'))->toBeLessThan(strpos($content, 'id="w2a_radio"'));
 });

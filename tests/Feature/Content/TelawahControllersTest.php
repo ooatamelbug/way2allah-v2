@@ -63,12 +63,62 @@ it('group show: G-13-07 — sub-group rows show the hardcoded telawah.gif too', 
     $this->get('/recite-group-1.htm')->assertOk()->assertSee('/images/telawah.gif', false);
 });
 
+// ---- recite.htm parity: one outer portlet containing a flat card grid, not one portlet per reader ----
+
+it('authors index: renders exactly ONE portlet (list_telawat_groups() wraps all readers in a single portlet, not one each)', function () {
+    DB::connection('main')->table('nuke_telawah_groups')->insert([
+        ['id' => 1, 'title' => 'Reader One', 'parent_id' => 0, 'hits' => 5, 'child' => 2, 'telawah' => 10],
+        ['id' => 2, 'title' => 'Reader Two', 'parent_id' => 0, 'hits' => 7, 'child' => 0, 'telawah' => 3],
+    ]);
+
+    $content = $this->get('/recite.htm')->assertOk()->getContent();
+
+    expect(substr_count($content, 'portlet-title'))->toBe(1)
+        ->and(substr_count($content, 'telawah-author'))->toBe(2)
+        ->and($content)->toContain('fa-users');
+});
+
+it('authors index: card metadata matches list_telawat_groups() exactly — counts, comment fallback/truncation, and the untruncated tooltip', function () {
+    DB::connection('main')->table('nuke_telawah_groups')->insert([
+        ['id' => 1, 'title' => 'No Comment Reader', 'parent_id' => 0, 'hits' => 100, 'child' => 3, 'telawah' => 25, 'des' => ''],
+        ['id' => 2, 'title' => 'Long Comment Reader', 'parent_id' => 0, 'hits' => 1, 'child' => 0, 'telawah' => 1,
+            'des' => str_repeat('كلمة ', 30), // >90 bytes, must truncate at a word boundary with "..."
+        ],
+    ]);
+
+    $content = $this->get('/recite.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('الأقسام الفرعية : <span>3</span> قسم')
+        ->and($content)->toContain('التلاوات : <span>25</span> تلاوة')
+        ->and($content)->toContain('الزيارات : <span>100</span> زيارة')
+        ->and($content)->toContain('بدون تعليق') // functions.php:151's fallback for an empty `des`
+        ->and($content)->toContain('...'); // the long comment must be truncated, not shown in full
+});
+
 it('item show: renders details WITHOUT incrementing hits — legacy never does either', function () {
     DB::connection('main')->table('nuke_telawah_telawah')->insert(['id' => 1, 'title' => 'A Recitation', 'hits' => 7]);
 
     $this->get('/recite-item-1.htm')->assertOk()->assertSee('A Recitation');
 
     expect(DB::connection('main')->table('nuke_telawah_telawah')->find(1)->hits)->toBe(7);
+});
+
+// ---- Shared Page Chrome Parity Audit: recite.htm's heading vs document <title> are genuinely different strings ----
+
+it('authors index: document <title> ("قسم التلاوات") and visible heading ("قائمة القراء بقسم التلاوات") are different, real strings — not the same text reused', function () {
+    $content = $this->get('/recite.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('<title>قسم التلاوات - ')
+        ->and($content)->toContain('<h3 class="page-title">قائمة القراء بقسم التلاوات</h3>')
+        ->and($content)->not->toContain('<title>قائمة القراء بقسم التلاوات - ');
+});
+
+it('authors index: breadcrumb — التلاوات is a real (empty-href) link, قائمة القراء is plain text with the trailing empty icon', function () {
+    $content = $this->get('/recite.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('<li><a href="">التلاوات</a><i class="fa fa-angle-right"></i></li>')
+        ->toContain('<li>قائمة القراء<i class=""></i></li>');
 });
 
 it('item download: redirects to the raw link (no https rewrite, unlike anasheed) and increments downcount', function () {

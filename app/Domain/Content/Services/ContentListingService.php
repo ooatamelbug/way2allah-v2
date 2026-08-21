@@ -302,9 +302,13 @@ class ContentListingService
             ->where('kh.time', '>=', $dayStart)
             ->where('kh.time', '<', $dayEnd)
             ->orderByDesc('kh.weight')->orderByDesc('kh.id')
+            // khotab-video-today.htm parity: khotab/functions.php's ListKhotab()
+            // 'day' branch (mode == 'day') shows an author link per row —
+            // functions.php:662 uses $item->author (the raw FK column), not an
+            // aliased id — kh.author was missing here, added for that link.
             ->select([
                 'kh.id', 'kh.channel_id', 'ch.title as channel', 'kh.title', 'kh.comments',
-                'kh.time', 'kh.hits', 'kh.weight', 'ad.adur', 'ath.name', 'ath.prename',
+                'kh.time', 'kh.hits', 'kh.weight', 'ad.adur', 'kh.author', 'ath.name', 'ath.prename',
             ]);
 
         if (! $includeHidden) {

@@ -69,4 +69,45 @@ class AnasheedMirror extends Model
     {
         $this->increment('hits');
     }
+
+    /**
+     * var-item-{id}.htm parity: `anasheed/functions.php:703-736`'s
+     * `list_anasheed_mirrors()` extension-icon branch — same 3-way shape
+     * already ported for khotab's `Mirror::extensionIconFilename()`,
+     * verified identical logic by direct comparison, not assumed.
+     */
+    public function extensionIconFilename(): string
+    {
+        $link = (string) $this->link;
+        $ext = trim(strtolower(pathinfo($link, PATHINFO_EXTENSION)));
+        $words = explode('.', $link);
+
+        if ($ext === 'mp3' || in_array('https://soundcloud', $words, true)) {
+            return $ext === 'mp3' ? 'mp3.gif' : 'soundcloud.png';
+        }
+
+        if (in_array('youtube', $words, true) || in_array('https://youtu', $words, true) || $ext === 'mp4') {
+            return $ext === 'mp4' ? $ext.'.gif' : 'youtube_icon.png';
+        }
+
+        return $ext.'.gif';
+    }
+
+    /**
+     * `list_anasheed_mirrors()`'s first branch condition (`functions.php:714`)
+     * — determines both the "استماع"/"fa-headphones" vs "مشاهدة"/
+     * "fa-youtube-play" play-word/icon pair and the play-title tooltip.
+     * Unlike khotab-item.blade.php's own mirror table (which derives its
+     * icon from `$mirror->vedio`, a genuinely different legacy function's
+     * logic) — confirmed NOT the same convention, not assumed from that
+     * sibling.
+     */
+    public function isAudioLike(): bool
+    {
+        $link = (string) $this->link;
+        $ext = trim(strtolower(pathinfo($link, PATHINFO_EXTENSION)));
+        $words = explode('.', $link);
+
+        return $ext === 'mp3' || in_array('https://soundcloud', $words, true);
+    }
 }

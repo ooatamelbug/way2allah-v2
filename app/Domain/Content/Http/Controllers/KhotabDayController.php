@@ -4,6 +4,7 @@ namespace App\Domain\Content\Http\Controllers;
 
 use App\Domain\Content\Services\ContentListingService;
 use App\Domain\Content\Services\ContentSidebarWidget;
+use App\Domain\Content\Support\LegacyShortDateFormatter;
 use Illuminate\Contracts\View\View;
 
 /**
@@ -21,27 +22,36 @@ use Illuminate\Contracts\View\View;
  * than legacy's `strtotime('+1 day' . $mydate)` (a concatenation without a
  * separating space) — an unambiguous, display-irrelevant simplification
  * of the exact same "next day" intent, not a behavior change.
+ *
+ * Shared Page Chrome Parity Audit: `day.php:90-98`'s breadcrumb restored
+ * (heading deliberately NOT — see the view's own comment). `$mydate`
+ * (day.php:93-97) is `'اليوم - ' . CoolShortDate(time())` only on the
+ * empty-`$date` legacy branch (i.e. `videoToday()`/`audioToday()`);
+ * `videoByDate()`/`audioByDate()` use `CoolShortDate(strtotime($date))`
+ * with no "اليوم - " prefix — reproduced via the `$isToday` flag, using
+ * real `time()` (not `$dayStart`) for the today case, matching legacy's
+ * own literal `CoolShortDate(time())` call exactly.
  */
 class KhotabDayController
 {
     public function videoToday(ContentListingService $listing, ContentSidebarWidget $sidebar): View
     {
-        return $this->render(true, $this->today(), $listing, $sidebar);
+        return $this->render(true, $this->today(), true, $listing, $sidebar);
     }
 
     public function audioToday(ContentListingService $listing, ContentSidebarWidget $sidebar): View
     {
-        return $this->render(false, $this->today(), $listing, $sidebar);
+        return $this->render(false, $this->today(), true, $listing, $sidebar);
     }
 
     public function videoByDate(int $d, int $m, int $y, ContentListingService $listing, ContentSidebarWidget $sidebar): View
     {
-        return $this->render(true, mktime(0, 0, 0, $m, $d, $y), $listing, $sidebar);
+        return $this->render(true, mktime(0, 0, 0, $m, $d, $y), false, $listing, $sidebar);
     }
 
     public function audioByDate(int $d, int $m, int $y, ContentListingService $listing, ContentSidebarWidget $sidebar): View
     {
-        return $this->render(false, mktime(0, 0, 0, $m, $d, $y), $listing, $sidebar);
+        return $this->render(false, mktime(0, 0, 0, $m, $d, $y), false, $listing, $sidebar);
     }
 
     private function today(): int
@@ -49,7 +59,7 @@ class KhotabDayController
         return mktime(0, 0, 0, (int) date('n'), (int) date('j'), (int) date('Y'));
     }
 
-    private function render(bool $video, int $dayStart, ContentListingService $listing, ContentSidebarWidget $sidebar): View
+    private function render(bool $video, int $dayStart, bool $isToday, ContentListingService $listing, ContentSidebarWidget $sidebar): View
     {
         $dayEnd = $dayStart + 86400;
 
@@ -57,12 +67,24 @@ class KhotabDayController
         $mostDownloaded = $sidebar->khotabMostDownloadedByVideoFlag($video);
         $mostRecent = $sidebar->khotabMostRecentByVideoFlag($video);
 
+        $op = $video ? 'video' : 'audio';
+        $mydate = $isToday
+            ? 'اليوم - '.LegacyShortDateFormatter::format(time())
+            : LegacyShortDateFormatter::format($dayStart);
+
+        $breadcrumbTrail = [
+            ['title' => $video ? 'المرئيات ' : 'الصوتيات ', 'url' => "/khotab-{$op}.htm"],
+            ['title' => 'تقسيم المواد بالتاريخ'],
+            ['title' => ' المواد المنشورة بتاريخ '.$mydate, 'url' => ''],
+        ];
+
         return view('khotab.day', [
             'video' => $video,
             'date' => $dayStart,
             'items' => $items,
             'mostDownloaded' => $mostDownloaded,
             'mostRecent' => $mostRecent,
+            'breadcrumbTrail' => $breadcrumbTrail,
         ]);
     }
 }

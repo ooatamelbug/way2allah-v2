@@ -41,7 +41,7 @@ it('anasheedMostDownloaded: orders by hits desc, limits to 7, filters by group o
         ->and($this->widget->anasheedMostDownloaded(groupId: 1))->toHaveCount(3);
 });
 
-it('anasheedMostDownloaded: G-13-09 — frame=1 rows get a thumbnails.php-wrapped thumb (w=72,h=50), frame=0 rows always fall back to tvnoise.gif, no file_exists() gate', function () {
+it('anasheedMostDownloaded: G-13-09 — frame=1 rows get a thumbnails.php-wrapped thumb (w=72,h=50), frame=0 rows fall back to a thumbnails.php-wrapped tvnoise.gif too (var-item-17350.htm parity: functions.php:150-187\'s thumbnail() routes BOTH branches through thumbnails.php, not just frame=1), no file_exists() gate', function () {
     DB::connection('main')->table('nuke_anasheed_anasheed')->insert([
         ['id' => 100, 'hits' => 2, 'frame' => 1],
         ['id' => 200, 'hits' => 1, 'frame' => 0],
@@ -50,7 +50,7 @@ it('anasheedMostDownloaded: G-13-09 — frame=1 rows get a thumbnails.php-wrappe
     $results = $this->widget->anasheedMostDownloaded()->keyBy('id');
 
     expect($results[100]->thumb)->toBe('/thumbnails.php?h=50&w=72&src=media/anasheed/frame/0/100.jpg')
-        ->and($results[200]->thumb)->toBe('/images/tvnoise.gif');
+        ->and($results[200]->thumb)->toBe('/thumbnails.php?h=50&w=72&src=images/tvnoise.gif');
 });
 
 it('anasheedMostRecent: orders by mytime desc, not hits', function () {
