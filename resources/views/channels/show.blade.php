@@ -53,46 +53,91 @@
         </div>
 
         <aside class="col-lg-3 col-md-4 col-sm-5 nopadding" aria-label="الشريط الجانبي">
+            {{--
+                Final Sidebar Gap Closure (2026-08-22): channel.php:70-89's
+                "بيانات القناة" box — fa-child icon (w2a_open_div()'s own
+                argument, re-read fresh), real `.thumbnail`/`.caption`
+                structure with an `<h3>` title, and 2 legacy-hardcoded
+                lines ("القمر الصناعي : النايل سات" / "الموقع المداري : 7
+                غرباً") that are NOT DB fields — confirmed literal strings
+                in channel.php:81-82, not $Channel-> properties. The logo
+                `<img>` intentionally stays relative (/images/channels/{id}.png),
+                not legacy's hardcoded http://way2allah.com/... domain
+                (P-018, already-established anti-pattern, not reproduced).
+            --}}
             <div class="col-md-12 col-sm-12">
                 <div class="portlet box blue">
                     <div class="portlet-title">
-                        <div class="caption">بيانات القناة</div>
+                        <div class="caption"><i class="fa fa-child"></i> بيانات القناة</div>
                     </div>
                     <div class="portlet-body">
-                        <img src="/images/channels/{{ $channelModel->id }}.png" alt="{{ $channelModel->title }}">
-                        <p>التردد: {{ $channelModel->freq }}</p>
-                        <p>الإستقطاب: {{ $channelModel->polar }}</p>
-                        <p>معدل الترميز: {{ $channelModel->srate }}</p>
-                        <p>معامل التصويب: {{ $channelModel->fec }}</p>
-                        <p>التشفير: {{ $channelModel->enc }}</p>
+                        <div class="thumbnail">
+                            <img src="/images/channels/{{ $channelModel->id }}.png" alt="{{ $channelModel->title }}" style="width: 100%; height: 200px; display: block;">
+                            <div class="caption">
+                                <h3>قناة {{ $channelModel->title }}</h3>
+                                <p>القمر الصناعي : النايل سات</p>
+                                <p>الموقع المداري : 7 غرباً</p>
+                                <p>التردد : {{ $channelModel->freq }}</p>
+                                <p>الإستقطاب : {{ $channelModel->polar }}</p>
+                                <p>معدل الترميز : {{ $channelModel->srate }}</p>
+                                <p>معامل التصويب : {{ $channelModel->fec }}</p>
+                                <p>التشفير : {{ $channelModel->enc }}</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
+            {{--
+                channel.php:94-101 — topitems('hits', "channel_id='X' and
+                vedio='1'", "hits DESC", 5), fa-cloud-download icon. Real
+                functions.php:992-1090 media-list card DOM: 60x40 thumb
+                (topitemsThumb(), the already-verified G-13-01 helper — the
+                author-photo fallback branch is a confirmed deterministic
+                legacy bug, never a real lookup), <h5> title link to
+                khotab-item-{id}.htm, hits metadata (mode='hits').
+            --}}
             <div class="col-md-12 col-sm-12">
                 <div class="portlet box blue">
                     <div class="portlet-title">
-                        <div class="caption">الأكثر تحميلا</div>
+                        <div class="caption"><i class="fa fa-cloud-download"></i> الأكثر تحميلا</div>
                     </div>
                     <div class="portlet-body">
-                        <ul class="news">
+                        <ul class="media-list">
                             @foreach ($mostDownloaded as $item)
-                                <li><a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a></li>
+                                <li class="media">
+                                    <a class="pull-left" href="javascript:;"><img class="media-object" src="{{ $item->thumb }}" alt="{{ $item->title }}" style="width: 60px; height: 40px;"></a>
+                                    <div class="media-body">
+                                        <a href="/khotab-item-{{ $item->id }}.htm"><h5 class="media-heading">{{ $item->title }}</h5></a>
+                                        <small>عدد مرات التحميل: {{ number_format($item->hits) }} مرة</small>
+                                    </div>
+                                </li>
                             @endforeach
                         </ul>
                     </div>
                 </div>
             </div>
 
+            {{--
+                channel.php:103-111 — topitems('time', ..., "time DESC", 5),
+                fa-flash icon. mode='time' confirmed directly from source
+                (not assumed) — real date metadata, not a hit count.
+            --}}
             <div class="col-md-12 col-sm-12">
                 <div class="portlet box blue">
                     <div class="portlet-title">
-                        <div class="caption">جديد المواد</div>
+                        <div class="caption"><i class="fa fa-flash"></i> جديد المواد</div>
                     </div>
                     <div class="portlet-body">
-                        <ul class="news">
+                        <ul class="media-list">
                             @foreach ($mostRecent as $item)
-                                <li><a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a></li>
+                                <li class="media">
+                                    <a class="pull-left" href="javascript:;"><img class="media-object" src="{{ $item->thumb }}" alt="{{ $item->title }}" style="width: 60px; height: 40px;"></a>
+                                    <div class="media-body">
+                                        <a href="/khotab-item-{{ $item->id }}.htm"><h5 class="media-heading">{{ $item->title }}</h5></a>
+                                        <small>بتاريخ: {{ \App\Domain\Content\Support\LegacyShortDateFormatter::format((int) $item->time) }}</small>
+                                    </div>
+                                </li>
                             @endforeach
                         </ul>
                     </div>

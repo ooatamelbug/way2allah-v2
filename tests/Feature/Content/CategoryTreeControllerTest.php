@@ -15,6 +15,13 @@ function useInMemoryMainConnectionForCategoryTree(): void
 {
     InMemoryConnection::setup('main', [
         'nuke_w2a_cat' => MainSchema::nukeW2aCat(),
+        // fatawa-category-{id}.htm (owner-approved alternate route onto
+        // FatwaTopicController::show()) needs these too — see routes/content.php.
+        'nuke_fatwa_topics' => MainSchema::nukeFatwaTopics(),
+        'nuke_fatwa_questions' => MainSchema::nukeFatwaQuestions(),
+        // Full Design Parity Pass — each topic row's question-count badge
+        // (ContentListingService::fatwaGeneralQuestionCountForTopic()).
+        'nuke_fatwa_general_questions' => MainSchema::nukeFatwaGeneralQuestions(),
     ]);
 }
 
@@ -81,7 +88,10 @@ it('var-categories.htm: lists only categories with anasheed_count > 0, linking t
         ->not->toContain('href="/var-category-2.htm"')->not->toContain('No Anasheed');
 });
 
-// ---- fatawa-categories.htm (q_count filter, fatawa-category- slug — a confirmed dead link target, IF-038) ----
+// ---- fatawa-categories.htm (q_count filter, fatawa-category- slug — IF-038's
+// unrecoverable-source finding stands, but the link target itself was later
+// given an owner-approved alternate route; see routes/content.php's own
+// docblock and FatwaTopicControllerTest's "category:" tests) ----
 
 it('fatawa-categories.htm: lists only categories with q_count > 0, linking to fatawa-category-{id}.htm', function () {
     DB::connection('main')->table('nuke_w2a_cat')->insert([
@@ -95,10 +105,12 @@ it('fatawa-categories.htm: lists only categories with q_count > 0, linking to fa
         ->not->toContain('href="/fatawa-category-2.htm"')->not->toContain('No Fatawa');
 });
 
-it('fatawa-categories.htm: IF-038 — the generated fatawa-category-{id}.htm links are confirmed dead (404), preserved as-is, not redirected or invented', function () {
-    DB::connection('main')->table('nuke_w2a_cat')->insert(['id' => 1, 'title' => 'Has Fatawa', 'main_cat' => 0, 'q_count' => 7]);
+it('fatawa-categories.htm: the generated fatawa-category-{id}.htm links now resolve (owner-approved alternate route, no longer dead)', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_w2a_cat')->insert(['id' => 1, 'title' => 'Has Fatawa', 'main_cat' => 0, 'q_count' => 7]);
+    $db->table('nuke_fatwa_topics')->insert(['id' => 10, 'topic_name' => 'A Topic', 'parent_id' => 1]);
 
     $this->get('/fatawa-categories.htm')->assertOk()->assertSee('href="/fatawa-category-1.htm"', false);
 
-    $this->get('/fatawa-category-1.htm')->assertNotFound();
+    $this->get('/fatawa-category-1.htm')->assertOk()->assertSee('A Topic');
 });

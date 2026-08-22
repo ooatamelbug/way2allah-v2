@@ -75,6 +75,74 @@ it('download: 404s when the file does not exist on disk', function () {
 
 // ---- G-03 (Migration Gap Register): thumbnails.php parity + lightbox ----
 
+// ---- Full Design Parity Pass (gallery.htm): page chrome, portlet, card DOM ----
+
+it('index: renders the shared page chrome (title/breadcrumb), not a bare <section>', function () {
+    $content = $this->get('/gallery.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('<h3 class="page-title">التصميمات الدعوية</h3>')
+        ->toContain('<div class="page-bar">')
+        ->toContain('<title>التصميمات الدعوية - ');
+});
+
+it('index: wraps the album grid in the real w2a_open_div() portlet, including the extra outer .row list.php:32 emits', function () {
+    DB::connection('main')->table('nuke_albums')->insert(['album_id' => 1, 'title' => 'Ramadan Album', 'count' => 1]);
+    DB::connection('main')->table('nuke_albums_images')->insert(['image_id' => 1, 'album_id' => 1, 'url' => 'media/albums/a.jpg', 'order' => 1]);
+
+    $content = $this->get('/gallery.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('<div class="caption"><i class="fa fa-picture-o"></i> التصميمات الدعوية</div>')
+        ->toContain('<div class="portlet-body ">')
+        ->toContain('<div class="row albums_list row-fluid">');
+});
+
+it('index: omits the portlet entirely when there are no albums, matching legacy\'s own !empty($albums) gate', function () {
+    $content = $this->get('/gallery.htm')->assertOk()->getContent();
+
+    expect($content)->not->toContain('albums_list')->not->toContain('fa-picture-o');
+});
+
+it('index: each card uses the real .album-item DOM — a SEPARATE .w2a_album_title link around the <h5>, not the title nested inside the thumbnail link', function () {
+    DB::connection('main')->table('nuke_albums')->insert(['album_id' => 7, 'title' => 'Eid Cards', 'count' => 3]);
+    DB::connection('main')->table('nuke_albums_images')->insert(['image_id' => 1, 'album_id' => 7, 'url' => 'media/albums/a.jpg', 'order' => 1]);
+
+    $content = $this->get('/gallery.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('<div class="album-item">')
+        ->toContain('<a class="standard" href="/gallery-7.htm">')
+        ->toContain('<a class="w2a_album_title" href="/gallery-7.htm">')
+        ->toContain('<h5 class="text-center">Eid Cards</h5>')
+        ->toContain('<span class="album_last_update"><i class="fa fa-calendar"></i>')
+        ->toContain('<span class="w2a_gallery_imgs_c"><i class="fa fa-files-o"></i> 3 صورة</span>');
+});
+
+it('index: shows the "حفظ الألبوم" save-album button only for compressed albums (is_compressed=1)', function () {
+    DB::connection('main')->table('nuke_albums')->insert([
+        ['album_id' => 1, 'title' => 'Compressed Album', 'is_compressed' => 1],
+        ['album_id' => 2, 'title' => 'Plain Album', 'is_compressed' => 0],
+    ]);
+
+    $content = $this->get('/gallery.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('onclick="downlaod_gellery_images(1)"')
+        ->toContain('class="w2a_album_save"')
+        ->toContain('title="حفظ جميع صور الألبوم : Compressed Album"')
+        ->not->toContain('downlaod_gellery_images(2)');
+});
+
+it('index: the downlaod_gellery_images() script is present, matching list.php\'s own inline trigger — its real destination is a separately-confirmed dead route, not built here', function () {
+    DB::connection('main')->table('nuke_albums')->insert(['album_id' => 1, 'title' => 'Album', 'is_compressed' => 1]);
+
+    $content = $this->get('/gallery.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('function downlaod_gellery_images(id)')
+        ->toContain('download-album-');
+});
+
 it('index: album thumbnail routes through thumbnails.php at the exact legacy 250x350 dimensions, not the raw image', function () {
     DB::connection('main')->table('nuke_albums')->insert(['album_id' => 1, 'title' => 'Ramadan Album', 'count' => 1]);
     DB::connection('main')->table('nuke_albums_images')->insert(['image_id' => 1, 'album_id' => 1, 'url' => 'media/albums/first.jpg', 'order' => 1]);
@@ -85,14 +153,19 @@ it('index: album thumbnail routes through thumbnails.php at the exact legacy 250
         ->and($content)->toContain('class="img-responsive"');
 });
 
-it('index: shows the album\'s last-update date using plain date(), not CoolShortDate()', function () {
+// Full Design Parity Pass (gallery.htm): list.php:51 calls
+// CoolShortDate($album->last_update) — default $full_date=true — not
+// tinydate()/plain date(). Confirmed live on production
+// (`السبت 13 يناير 2018 مـ`). The prior version of this test asserted
+// the opposite; corrected here, not just the markup.
+it('index: shows the album\'s last-update date using CoolShortDate() (LegacyShortDateFormatter), the real legacy format', function () {
     $timestamp = mktime(0, 0, 0, 3, 15, 2024);
     DB::connection('main')->table('nuke_albums')->insert(['album_id' => 1, 'title' => 'Dated Album', 'last_update' => $timestamp]);
 
     $content = $this->get('/gallery.htm')->assertOk()->getContent();
 
-    expect($content)->toContain(date('Y-m-d', $timestamp))
-        ->not->toContain('مارس'); // CoolShortDate()'s Arabic month name — confirms no verbatim port
+    expect($content)->toContain(\App\Domain\Content\Support\LegacyShortDateFormatter::format($timestamp))
+        ->toContain('مارس'); // CoolShortDate()'s Arabic month name for March.
 });
 
 it('show: image thumbnail routes through thumbnails.php at the exact legacy 150x166 dimensions', function () {
@@ -114,6 +187,74 @@ it('show: lightbox target uses width-only thumbnails.php (w=500, NO h, NO zc) �
     expect($content)->toContain('href="/thumbnails.php?w=500&amp;src=media/albums/a.jpg"')
         ->not->toContain('w=500&amp;h=')
         ->not->toContain('zc=');
+});
+
+// ---- Full Design Parity Pass (gallery-{id}.htm): page chrome, portlet, card DOM ----
+
+it('show: renders the shared page chrome — heading + two-item breadcrumb (linked gallery.htm, plain current album)', function () {
+    DB::connection('main')->table('nuke_albums')->insert(['album_id' => 1, 'title' => 'Ramadan Album']);
+    DB::connection('main')->table('nuke_albums_images')->insert(['image_id' => 1, 'album_id' => 1, 'url' => 'media/albums/a.jpg', 'order' => 1]);
+
+    $content = $this->get('/gallery-1.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('<h3 class="page-title">التصميمات الدعوية - Ramadan Album</h3>')
+        ->toContain('<a href="/gallery.htm">التصميمات الدعوية</a>')
+        ->toContain('<li>Ramadan Album<i class=""></i></li>')
+        ->toContain('<title>التصميمات الدعوية - Ramadan Album - ');
+});
+
+it('show: wraps the image grid in the real w2a_open_div() portlet with the "ألبوم : {title}" caption, not a bare <section><h1>', function () {
+    DB::connection('main')->table('nuke_albums')->insert(['album_id' => 1, 'title' => 'Ramadan Album']);
+    DB::connection('main')->table('nuke_albums_images')->insert(['image_id' => 1, 'album_id' => 1, 'url' => 'media/albums/a.jpg', 'order' => 1]);
+
+    $content = $this->get('/gallery-1.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('<div class="caption"><i class="fa fa-picture-o"></i> ألبوم : Ramadan Album</div>')
+        ->toContain('<div class="portlet-body ">')
+        ->toContain('<div class="row albums_list row-fluid">');
+});
+
+it('show: each image card uses the real .album-item.albumpic / .center-block.album-img wrappers and the w2a_singl_img lightbox class', function () {
+    DB::connection('main')->table('nuke_albums')->insert(['album_id' => 1, 'title' => 'Album']);
+    DB::connection('main')->table('nuke_albums_images')->insert(['image_id' => 5, 'album_id' => 1, 'url' => 'media/albums/a.jpg', 'order' => 1]);
+
+    $content = $this->get('/gallery-1.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('<div class="album-item albumpic">')
+        ->toContain('<div class="center-block album-img">')
+        ->toContain('class="lightbox w2a_singl_img" rel="album1"');
+});
+
+it('show: each image card renders the real w2a_gal_sav save-image link — real class, onclick, and icon — not a bare <a>', function () {
+    DB::connection('main')->table('nuke_albums')->insert(['album_id' => 1, 'title' => 'Album']);
+    DB::connection('main')->table('nuke_albums_images')->insert(['image_id' => 5, 'album_id' => 1, 'url' => 'media/albums/a.jpg', 'order' => 1]);
+
+    $content = $this->get('/gallery-1.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('class="w2a_gal_sav"')
+        ->toContain("onclick=\"loadImg('http://way2allah.com/media/albums/a.jpg')\"")
+        ->toContain('href="/albumimg-download-5.htm"')
+        ->toContain('<i></i> حفظ الصورة');
+});
+
+it('show: the empty-album message uses the real .alert.alert-info[role=alert] structure with a bold "عفوا!" lead-in, not a bare <p>', function () {
+    DB::connection('main')->table('nuke_albums')->insert(['album_id' => 1, 'title' => 'Empty Album']);
+
+    $content = $this->get('/gallery-1.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('<div class="alert alert-info" role="alert"> <strong>عفوا!</strong> لا يوجد صور مضافة في هذا الالبوم بعد. </div>');
+});
+
+it('show: omits the portlet entirely for an empty album, matching legacy\'s own if/else — no image-grid markup alongside the empty message', function () {
+    DB::connection('main')->table('nuke_albums')->insert(['album_id' => 1, 'title' => 'Empty Album']);
+
+    $content = $this->get('/gallery-1.htm')->assertOk()->getContent();
+
+    expect($content)->not->toContain('albums_list')->not->toContain('fa-picture-o');
 });
 
 it('show: loads the legacy lightbox CSS/JS assets and the exact legacy init call', function () {

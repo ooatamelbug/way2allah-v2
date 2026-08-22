@@ -373,6 +373,34 @@ class ContentListingService
         return $query->get();
     }
 
+    /**
+     * `categories/functions.php:222`'s `ListMediaCoverage()` sub-category
+     * listing — `SELECT * FROM nuke_w2a_cat WHERE main_cat=487 ORDER BY id
+     * DESC`, no LIMIT (confirmed live: 50 rows on production). A DIFFERENT
+     * query from `homeCategory487()` (`home_functions.php`'s
+     * `list_latest_cat_487()`) despite the identical `main_cat=487`
+     * filter/ordering shape — that one is a homepage widget hardcoded to
+     * `LIMIT 3`; this one has none. Kept separate rather than adding an
+     * optional `?int $limit` to the other method, since the two callers'
+     * real behavior genuinely differs (a widget preview vs. the full
+     * listing this branch renders) — not a case for one generalized
+     * "children of a category" method.
+     *
+     * Not category-parameterized beyond what's proven: only ever called
+     * with `487` (`category.php:80`'s own hardcoded check), so this method
+     * takes no parameter either — narrowing scope to what's actually
+     * reachable, not inventing a generic "any category's media coverage"
+     * capability nothing calls.
+     */
+    public function mediaCoverageSubcategories(): Collection
+    {
+        return DB::connection('main')->table('nuke_w2a_cat')
+            ->where('main_cat', 487)
+            ->orderByDesc('id')
+            ->select(['id', 'title'])
+            ->get();
+    }
+
     /** categories/functions.php ListKhotab() — filter by category (junction table) + series + group, includes author, no hidden override, orders by time only (no weight). */
     public function khotabItemsByCategory(int $categoryId, int $serId, int $groupId, bool $video): Collection
     {
@@ -805,6 +833,31 @@ class ContentListingService
             ->get();
     }
 
+    /**
+     * `chat_room/functions.php:196-208`'s `list_most_chat_room_authors()`
+     * — a DIFFERENT query shape from `authorsByLocation()` above despite
+     * the same two tables: ordered by `lessons_count DESC` (participation
+     * ranking), not alphabetically, and capped at 15 (that method has no
+     * limit). Confirmed during the `chat_room.htm` owner-approved partial
+     * reconstruction — do not consolidate with `authorsByLocation()`
+     * without re-verifying both call sites still need their own distinct
+     * ordering/limit. Legacy's own SELECT also includes `th.banner`, but
+     * that column is never actually echoed anywhere in
+     * `list_most_chat_room_authors()`'s markup (confirmed by direct
+     * re-read) — not selected here, a dead column in the original query.
+     */
+    public function mostActiveAuthorsAtLocation(int $locationId, int $limit = 15): Collection
+    {
+        return DB::connection('main')->table('nuke_islamic_authors as auth')
+            ->join('nuke_islamic_authors_location as loc', 'loc.author_id', '=', 'auth.id')
+            ->where('loc.location_id', $locationId)
+            ->where('auth.hidden', '0')
+            ->select(['auth.id', 'auth.prename', 'auth.name', 'loc.count as lessons_count'])
+            ->orderByDesc('lessons_count')
+            ->limit($limit)
+            ->get();
+    }
+
     // ---- Fatawa (Roadmap task 6.1) ------------------------------------
 
     /**
@@ -826,6 +879,22 @@ class ContentListingService
         return DB::connection('main')->table('nuke_fatwa_topics')
             ->where('parent_id', $categoryId)
             ->paginate(25, ['*'], 'page', $page);
+    }
+
+    /**
+     * `get_all_tasnifat()`'s own per-row question-count badge
+     * (`fatawa/functions.php:364`) — a genuinely different query shape
+     * from `fatwaGeneralQuestionsByTopic()` above: a `LIKE '%|{id}|%'`
+     * multi-membership *count* here, vs. that method's exact
+     * single-membership match for the actual question listing. Both are
+     * real, distinct legacy query patterns for different purposes, not a
+     * duplicate/inconsistency to reconcile.
+     */
+    public function fatwaGeneralQuestionCountForTopic(int $topicId): int
+    {
+        return DB::connection('main')->table('nuke_fatwa_general_questions')
+            ->where('topic_id', 'like', '%|'.$topicId.'|%')
+            ->count();
     }
 
     /**
@@ -866,6 +935,23 @@ class ContentListingService
             ->where('q.general_question_id', "|{$generalQuestionId}|")
             ->select(['q.*', 'auth.name as author_name', 'auth.prename as author_prename'])
             ->get();
+    }
+
+    /**
+     * `get_all_questions()`'s own per-row answer-count badge
+     * (`fatawa/functions.php:413-414`) — a lightweight, join-free count
+     * variant of the same exact-match convention as
+     * `fatwaQuestionsForGeneralQuestion()` above. Not a duplicate of that
+     * method: this one exists specifically for cheap per-row counts on a
+     * paginated list (`fatawa-group-{topic}-{category}.htm`'s question
+     * rows), where fetching the full joined answer collection just to
+     * count it would be wasteful.
+     */
+    public function fatwaAnswerCountForGeneralQuestion(int $generalQuestionId): int
+    {
+        return DB::connection('main')->table('nuke_fatwa_questions')
+            ->where('general_question_id', "|{$generalQuestionId}|")
+            ->count();
     }
 
     /** `more.php:8` — latest 50 individual answers, joined with the answering author, no pagination in legacy (a flat `LIMIT 50`, no `page`/`offset` — reproduced exactly, no `.htaccess` page parameter exists for `more-fatawa.htm` either). */

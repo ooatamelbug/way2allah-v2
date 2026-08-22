@@ -283,6 +283,16 @@ Route::get('/w2acd/item.php', [W2acdController::class, 'show'])->name('w2acd.sho
 // W2acdController::index() already serves — no new controller logic.
 Route::get('/cds-main.htm', [W2acdController::class, 'index'])->name('w2acd.index.pretty');
 
+// Legacy-Source Reconstruction (cds-item-{id}.htm): same G-11-01
+// reasoning as cds-main.htm above, not a new exception — cds-main.htm's
+// own already-reconstructed card grid generates real `/cds-item-{id}.htm`
+// links ("cds-item-{id}.htm", built via a short-echo tag in `w2acd/cds.php`, ported
+// verbatim), so this completes that already-existing reference rather
+// than leaving it 404. `khid` arrives as a path segment here, not the
+// query string `/w2acd/item.php` uses — `W2acdController::show()` checks
+// both.
+Route::get('/cds-item-{khid}.htm', [W2acdController::class, 'show'])->whereNumber('khid')->name('w2acd.show.pretty');
+
 // gallery — Roadmap task 4.6. gallery.htm / gallery-{id}.htm /
 // albumimg-download-{id}.htm are real, live .htaccess rules (unlike
 // w2acd's cds-*.htm set) — kept at their exact legacy path.
@@ -386,10 +396,19 @@ Route::get('/radio-mobile.htm', [RadioController::class, 'index'])->name('radio.
 // chat_room's lesson-browsing half — Roadmap task 4.11 (added post-Wave-4,
 // see docs/reviews/gap-closure-action-plan.md item 4). chat_author_{id}.htm
 // / chat_lesson_{id}.htm / lesson-download-{id}.htm are real, live
-// .htaccess rules — kept at their exact legacy path. chat_room.htm and
-// chat_{id}.htm (the live voice-room half of this same legacy directory)
-// are NOT part of this task — see ChatRoomLessonController's docblock;
-// that half stays task 6.5, gated on Business Confirmation #4.
+// .htaccess rules — kept at their exact legacy path. chat_{id}.htm (the
+// live voice-room half of this same legacy directory) is NOT part of this
+// task — see ChatRoomLessonController's docblock; that half stays task
+// 6.5, gated on Business Confirmation #4.
+//
+// chat_room.htm — `chat_room.htm` Owner-Approved Partial Reconstruction.
+// `.htaccess:348` is a direct, real rule (`chat_room/chat_rooms.php`, no
+// missing dispatcher). Per the decomposition audit + owner decision, only
+// this file's still-active recorded-lesson-discovery sections are
+// implemented (ChatRoomLessonController::index()) — its live-room and
+// weekly-schedule sections are retired (decision-log #14) and
+// intentionally not rendered, not routed.
+Route::get('/chat_room.htm', [ChatRoomLessonController::class, 'index'])->name('chat-room.index');
 Route::get('/chat_author_{author}.htm', [ChatRoomLessonController::class, 'author'])
     ->whereNumber('author')
     ->name('chat-room.author');
@@ -461,14 +480,31 @@ Route::get('/location-{location}-item-{khotab}.htm', [LocationController::class,
 // own legacy source is complete (same showtree() already ported for
 // categories.htm/var-categories.htm) and is built below.
 //
-// STILL NOT registered, genuinely blocked, not a scope choice:
-// fatawa-category-{id}.htm — its legacy source (fatawa/category.php) is
-// confirmed unrecoverable (git history checked, exhaustive codebase
-// search performed, no trace found anywhere — see IF-038, Fatawa
-// Categories Source Recovery pass). The tree page below will generate
-// real fatawa-category-{id}.htm links that do not resolve — a known,
-// documented, separate open item, not a defect in the tree page itself.
-// No redirect or invented replacement is registered for it.
+// fatawa-category-{id}.htm — HISTORIC_HANDLER = UNKNOWN /
+// SOURCE_UNRECOVERABLE: its literal .htaccess target (fatawa/category.php)
+// never existed in this repo's git history (checked, exhaustive codebase
+// search performed, no trace anywhere — IF-038, Fatawa Categories Source
+// Recovery pass). Owner-approved decision (2026-08-22, Legacy-Source
+// Reconstruction — fatawa-category-{id}.htm ONLY): the URL is real and
+// live (production's own fatawa-categories.htm tree still generates
+// ~209 real fatawa-category-{id}.htm links today), and fatawa/tobics.php
+// — the file FatwaTopicController::show() below already ports — is
+// proven, via matching nuke_w2a_cat id space/hierarchy field and its own
+// topic_name() lookup, to be the functionally-equivalent "view this
+// category" page, despite legacy itself only ever linking to it via the
+// differently-shaped fatawa-topics-{cat_id}-{page}.htm. Per the same
+// class of owner-approved canonical-reference decision used for
+// fatawa-all-{id}.htm -> answer2.php: OWNER_APPROVED_CANONICAL_MIGRATION_
+// REFERENCE = tobics.php, NOT a claim that it was ever fatawa-category-
+// {id}.htm's real historic handler. Reuses show() unmodified — page
+// defaults to 1 since this URL carries no page segment (no
+// fatawa-category-{id}-page-{n}.htm alias is invented; the existing
+// fatawa-topics-{cat_id}-{page}.htm family is unchanged).
+Route::get('/fatawa-category-{category}.htm', [FatwaTopicController::class, 'show'])
+    ->whereNumber('category')
+    ->defaults('page', 1)
+    ->name('fatawa.category.show');
+
 Route::get('/fatawa-categories.htm', [CategoryTreeController::class, 'fatawaIndex'])
     ->name('categories.tree-fatawa');
 

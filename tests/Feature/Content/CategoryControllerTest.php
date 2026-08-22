@@ -101,6 +101,189 @@ it('show: 404s for a nonexistent category', function () {
     $this->get('/category-999.htm')->assertNotFound();
 });
 
+// ---- Final Conditional-Branch Audit (category-487.htm): ListMediaCoverage() ----
+
+it('show: category 487 renders the "برامج حصرية" portlet listing its main_cat=487 sub-categories, BEFORE the Series portlet', function () {
+    DB::connection('main')->table('nuke_w2a_cat')->insert([
+        ['id' => 487, 'title' => 'Media Coverage', 'main_cat' => 0],
+        ['id' => 622, 'title' => 'Flood Coverage', 'main_cat' => 487],
+    ]);
+    DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Author']);
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 1, 'title' => 'Coverage Lesson', 'vedio' => 1, 'hidden' => 0,
+    ]);
+    DB::connection('main')->table('khotab_category_index')->insert(['khotab_id' => 1, 'category_id' => 487]);
+
+    $content = $this->get('/category-487.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('برامج حصرية لشبكة الطريق إلى الله')
+        ->toContain('col-xs-12 col-sm-6 col-md-4 col-lg-3 telawah-author')
+        ->toContain('href="/category-622.htm"')
+        ->toContain('Flood Coverage');
+    expect(strpos($content, 'برامج حصرية'))->toBeLessThan(strpos($content, 'قائمة المواد'));
+});
+
+it('show: category 487\'s media-coverage cards use the hardcoded logo for known sub-category ids, and the generic placeholder for any other', function () {
+    DB::connection('main')->table('nuke_w2a_cat')->insert([
+        ['id' => 487, 'title' => 'Media Coverage', 'main_cat' => 0],
+        ['id' => 613, 'title' => 'Salon', 'main_cat' => 487],
+        ['id' => 999, 'title' => 'Unmapped', 'main_cat' => 487],
+    ]);
+    DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Author']);
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 1, 'title' => 'Coverage Lesson', 'vedio' => 1, 'hidden' => 0,
+    ]);
+    DB::connection('main')->table('khotab_category_index')->insert(['khotab_id' => 1, 'category_id' => 487]);
+
+    $content = $this->get('/category-487.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('src="/images/logos/Salon.gif"')
+        ->toContain('src="https://way2allah.com//images/tvnoise.gif"');
+});
+
+it('show: category 487 omits the media-coverage portlet entirely when it has no qualifying khotab items, even though its sub-categories exist', function () {
+    DB::connection('main')->table('nuke_w2a_cat')->insert([
+        ['id' => 487, 'title' => 'Media Coverage', 'main_cat' => 0],
+        ['id' => 622, 'title' => 'Flood Coverage', 'main_cat' => 487],
+    ]);
+    // No khotab_category_index row for category 487 at all.
+
+    $content = $this->get('/category-487.htm')->assertOk()->getContent();
+
+    // The bare phrase "برامج حصرية" alone would false-positive against
+    // this app's own standing site-nav link to category-487.htm
+    // (layouts/partials/navigation.blade.php:76, present on every page) —
+    // check the actual portlet caption markup instead.
+    expect($content)
+        ->not->toContain('<div class="caption"><i class="fa fa-child"></i> برامج حصرية لشبكة الطريق إلى الله</div>')
+        ->not->toContain('Flood Coverage');
+});
+
+it('show: a DIFFERENT category never renders the media-coverage portlet, even with khotab items present', function () {
+    DB::connection('main')->table('nuke_w2a_cat')->insert(['id' => 5, 'title' => 'Fiqh', 'main_cat' => 0]);
+    DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Author']);
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 1, 'title' => 'Fiqh Lesson', 'vedio' => 1, 'hidden' => 0,
+    ]);
+    DB::connection('main')->table('khotab_category_index')->insert(['khotab_id' => 1, 'category_id' => 5]);
+
+    $content = $this->get('/category-5.htm')->assertOk()->getContent();
+
+    expect($content)->not->toContain('<div class="caption"><i class="fa fa-child"></i> برامج حصرية لشبكة الطريق إلى الله</div>');
+});
+
+// ---- Full Design Parity Pass (category-{id}.htm): the real Series card-grid ----
+// ListSeries()'s <table>/<tr> markup is entirely HTML-commented out in
+// source and on live production — only a `.telawah-author` card survives.
+
+it('show: renders each series as a .telawah-author card with the real static placeholder image, empty title attribute (a confirmed legacy $Item/$item bug), and the correct category-series link', function () {
+    DB::connection('main')->table('nuke_w2a_cat')->insert(['id' => 5, 'title' => 'Fiqh', 'main_cat' => 0]);
+    DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Adawy', 'prename' => 'Sheikh']);
+    DB::connection('main')->table('nuke_islamic_series')->insert([
+        'id' => 42, 'author_id' => 1, 'group_id' => 0, 'title' => 'Ethics Series', 'vedio' => 1, 'hidden' => 0, 'count' => 3,
+    ]);
+    DB::connection('main')->table('series_category_index')->insert(['series_id' => 42, 'category_id' => 5]);
+
+    $content = $this->get('/category-5.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('col-xs-12 col-sm-6 col-md-4 col-lg-3 telawah-author')
+        ->toContain('<img src="https://way2allah.com//images/tvnoise.gif" title="" width="" height="">')
+        ->toContain('<a href="/category-series-42-5.htm">')
+        ->toContain('Ethics Series')
+        ->toContain('Sheikh Adawy');
+});
+
+it('show: omits the entire "قائمة السلاسل" portlet (not an empty-state message) when the category has no series, matching legacy\'s own num_rows>0 gate', function () {
+    DB::connection('main')->table('nuke_w2a_cat')->insert(['id' => 5, 'title' => 'Fiqh', 'main_cat' => 0]);
+
+    $content = $this->get('/category-5.htm')->assertOk()->getContent();
+
+    // 'telawah-author' alone would false-positive against this page's own
+    // page-specific <style> block (category.php:1-18), which defines that
+    // selector unconditionally — check the actual card div's classlist instead.
+    expect($content)->not->toContain('قائمة السلاسل')->not->toContain('col-lg-3 telawah-author');
+});
+
+it('show: the Series portlet is wrapped in the real w2a_open_div() structure, matching every other portlet on this page', function () {
+    DB::connection('main')->table('nuke_w2a_cat')->insert(['id' => 5, 'title' => 'Fiqh', 'main_cat' => 0]);
+    DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Adawy', 'prename' => 'Sheikh']);
+    DB::connection('main')->table('nuke_islamic_series')->insert([
+        'id' => 42, 'author_id' => 1, 'group_id' => 0, 'title' => 'Ethics Series', 'vedio' => 1, 'hidden' => 0, 'count' => 3,
+    ]);
+    DB::connection('main')->table('series_category_index')->insert(['series_id' => 42, 'category_id' => 5]);
+
+    $content = $this->get('/category-5.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('<div class="caption"><i class="fa fa-child"></i> قائمة السلاسل</div>');
+    // Series renders before Khotab, matching category.php:84-85's real call order.
+    expect(strpos($content, 'قائمة السلاسل'))->toBeLessThan(strpos($content, 'قائمة المواد'));
+});
+
+// ---- Full Design Parity Pass: the 3 sidebar portlets — real w2a_open_div() wrappers + real per-item markup ----
+
+it('show: "اخترنا لك هذه المادة" wraps randomFeatured in a real portlet with a thumbnail/caption card per item, using khotab_frames when frame=1', function () {
+    DB::connection('main')->table('nuke_w2a_cat')->insert(['id' => 5, 'title' => 'Fiqh', 'main_cat' => 0]);
+    DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Adawy', 'prename' => 'Sheikh']);
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 500, 'author' => 1, 'title' => 'Featured Lesson', 'vedio' => 1, 'hidden' => 0, 'frame' => 1, 'gif' => 0,
+    ]);
+
+    $content = $this->get('/category-5.htm')->assertOk()->getContent();
+
+    // randomitems() (functions.php:1132) echoes only $Khotab->name in the
+    // <h3> — no prename, unlike topitems()'s prename+name convention
+    // elsewhere on this page. Reproduced as found, not "fixed" to match.
+    expect($content)
+        ->toContain('<div class="caption"><i class="fa fa-child"></i> اخترنا لك هذه المادة</div>')
+        ->toContain('/media/khotab_frames/0/500.jpg')
+        ->toContain('<h3>Adawy</h3>')
+        ->toContain('<p><a href="/khotab-item-500.htm">Featured Lesson</a></p>');
+});
+
+it('show: "الأكثر تحميلا" renders real <li class="media"> markup with a thumbnail and download-count label, not a bare list item', function () {
+    DB::connection('main')->table('nuke_w2a_cat')->insert(['id' => 5, 'title' => 'Fiqh', 'main_cat' => 0]);
+    DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Author']);
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 501, 'author' => 1, 'title' => 'Popular Lesson', 'vedio' => 1, 'hidden' => 0, 'hits' => 12345, 'frame' => 0,
+    ]);
+    DB::connection('main')->table('khotab_category_index')->insert(['khotab_id' => 501, 'category_id' => 5]);
+
+    $content = $this->get('/category-5.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('<li class="media">')
+        ->toContain('class="media-object"')
+        ->toContain('<h5 class="media-heading">Popular Lesson</h5>')
+        ->toContain('عدد مرات التحميل: 12,345 مرة')
+        // frame=0 -> the confirmed-broken author-photo path never resolves, always the generic placeholder.
+        ->toContain('/images/way2_withoutimg.png');
+});
+
+it('show: "جديد المواد" shows a CoolShortDate-formatted date label, not a download count', function () {
+    DB::connection('main')->table('nuke_w2a_cat')->insert(['id' => 5, 'title' => 'Fiqh', 'main_cat' => 0]);
+    DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Author']);
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 502, 'author' => 1, 'title' => 'Recent Lesson', 'vedio' => 1, 'hidden' => 0, 'time' => strtotime('2026-06-14'),
+    ]);
+    DB::connection('main')->table('khotab_category_index')->insert(['khotab_id' => 502, 'category_id' => 5]);
+
+    $content = $this->get('/category-5.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('بتاريخ:')->not->toContain('بتاريخ: عدد مرات التحميل');
+});
+
+it('show: the category description portlet uses the real w2a_open_div() wrapper, not a bare <section>', function () {
+    DB::connection('main')->table('nuke_w2a_cat')->insert(['id' => 5, 'title' => 'Fiqh', 'main_cat' => 0, 'description' => 'A real description']);
+
+    $content = $this->get('/category-5.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('<p>A real description</p>');
+    expect(substr_count($content, 'class="portlet box blue"'))->toBeGreaterThan(1);
+});
+
 // ---- Shared Page Chrome Parity Audit: category.php:70-71's real heading + root "التصنيفات الموضوعية" breadcrumb item (previously a bare <nav><a>, missing Home and the root label entirely) ----
 
 it('show: renders the heading and the "التصنيفات الموضوعية" root breadcrumb item, linked, before the ancestor chain', function () {

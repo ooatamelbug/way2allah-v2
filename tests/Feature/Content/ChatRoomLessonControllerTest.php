@@ -152,3 +152,115 @@ it('download: increments downcount and redirects to the raw link, no location/hi
 
     expect(DB::connection('main')->table('nuke_islamic_khotab')->where('id', 1)->value('downcount'))->toBe(4);
 });
+
+// ---- chat_room.htm: Owner-Approved Partial Reconstruction ----
+// OWNER_DECISION: live FlashChat rooms + weekly live-lesson schedule are
+// retired (decision-log #14, "FlashChat = NO, Zoom = NO, no replacement
+// of any kind") and intentionally omitted, not rendered as empty/unavailable.
+// Only recorded-lesson discovery (most active authors, most viewed/recent
+// recorded lessons) is implemented.
+
+it('index: returns 200 and renders the shared page chrome', function () {
+    $response = $this->get('/chat_room.htm');
+
+    $response->assertOk()
+        ->assertSee('<h3 class="page-title">الغرف الصوتية - غرفة الهداية الدعوية</h3>', false)
+        ->assertSee('<div class="page-bar">', false);
+});
+
+it('index: lists the most active authors ordered by lessons_count DESC, capped at 15, linking to chat_author_{id}.htm', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_islamic_authors')->insert([
+        ['id' => 1, 'name' => 'Least Active', 'prename' => 'Sh.', 'hidden' => 0],
+        ['id' => 2, 'name' => 'Most Active', 'prename' => 'Sh.', 'hidden' => 0],
+    ]);
+    $db->table('nuke_islamic_authors_location')->insert([
+        ['author_id' => 1, 'location_id' => 10, 'count' => 2],
+        ['author_id' => 2, 'location_id' => 10, 'count' => 9],
+    ]);
+
+    $content = $this->get('/chat_room.htm')->getContent();
+
+    expect(strpos($content, 'Most Active'))->toBeLessThan(strpos($content, 'Least Active'));
+    expect($content)->toContain('href="/chat_author_1.htm"')->toContain('href="/chat_author_2.htm"');
+    expect($content)->toContain('9 درس')->toContain('2 درس');
+});
+
+it('index: caps the most-active-authors list at 15, matching legacy\'s LIMIT 15', function () {
+    $db = DB::connection('main');
+    for ($i = 1; $i <= 20; $i++) {
+        $db->table('nuke_islamic_authors')->insert(['id' => $i, 'name' => "Author {$i}", 'prename' => 'Sh.', 'hidden' => 0]);
+        $db->table('nuke_islamic_authors_location')->insert(['author_id' => $i, 'location_id' => 10, 'count' => $i]);
+    }
+
+    $content = $this->get('/chat_room.htm')->getContent();
+
+    expect(substr_count($content, 'class="author author-block"'))->toBe(15);
+});
+
+it('index: excludes a hidden author and an author registered at a different location', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_islamic_authors')->insert([
+        ['id' => 1, 'name' => 'Hidden Author', 'prename' => 'Sh.', 'hidden' => 1],
+        ['id' => 2, 'name' => 'Other Location Author', 'prename' => 'Sh.', 'hidden' => 0],
+    ]);
+    $db->table('nuke_islamic_authors_location')->insert([
+        ['author_id' => 1, 'location_id' => 10, 'count' => 5],
+        ['author_id' => 2, 'location_id' => 99, 'count' => 5],
+    ]);
+
+    $content = $this->get('/chat_room.htm')->getContent();
+
+    expect($content)->not->toContain('Hidden Author')->not->toContain('Other Location Author');
+});
+
+it('index: shows the real empty-results message when no authors are registered at this location', function () {
+    $content = $this->get('/chat_room.htm')->getContent();
+
+    expect($content)->toContain('عفوا ، لا يوجد نتائج');
+});
+
+it('index: renders most-viewed and most-recent recorded lessons, ordered correctly, linking to chat_lesson_{id}.htm', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_islamic_khotab')->insert([
+        ['id' => 1, 'author' => 1, 'location_id' => 10, 'hidden' => 0, 'title' => 'Least Viewed', 'hits' => 1, 'vedio' => 0],
+        ['id' => 2, 'author' => 1, 'location_id' => 10, 'hidden' => 0, 'title' => 'Most Viewed', 'hits' => 99, 'vedio' => 1],
+    ]);
+
+    $content = $this->get('/chat_room.htm')->getContent();
+
+    expect($content)->toContain('أكثر دروس الغرفة مشاهدة')->toContain('أجدد تسجيلات الغرفة');
+    expect($content)->toContain('href="/chat_lesson_1.htm"')->toContain('href="/chat_lesson_2.htm"');
+    // Most-viewed section: highest hits first.
+    $viewedStart = strpos($content, 'أكثر دروس الغرفة مشاهدة');
+    $recentStart = strpos($content, 'أجدد تسجيلات الغرفة');
+    $viewedSection = substr($content, $viewedStart, $recentStart - $viewedStart);
+    expect(strpos($viewedSection, 'Most Viewed'))->toBeLessThan(strpos($viewedSection, 'Least Viewed'));
+    expect($content)->toContain('fa-video-camera')->toContain('fa-microphone');
+});
+
+it('index: omits the most-viewed/most-recent portlets entirely when no recorded lessons exist at this location, matching legacy\'s own $TotalList > 0 guard', function () {
+    $content = $this->get('/chat_room.htm')->getContent();
+
+    expect($content)->not->toContain('أكثر دروس الغرفة مشاهدة')->not->toContain('أجدد تسجيلات الغرفة');
+});
+
+it('index: intentionally omits the retired live-room and today\'s-lesson sections entirely — no listing, no empty-room message, no schedule, no notice', function () {
+    $content = $this->get('/chat_room.htm')->getContent();
+
+    expect($content)
+        ->not->toContain('قائمة الغرف الحالية')
+        ->not->toContain('لا يوجد غرف متاحة الأن')
+        ->not->toContain('دروس اليوم للغرف الصوتية')
+        ->not->toContain('لا يوجد دروس متاحة اليوم')
+        ->not->toContain('غير متاحة')
+        ->not->toContain('flashchat')
+        ->not->toContain('123flashchat')
+        ->not->toContain('zoom')
+        ->not->toContain('Zoom')
+        ->not->toContain('<iframe');
+});
+
+it('index: does not register the retired live-room routes', function () {
+    $this->get('/chat_1.htm')->assertNotFound();
+});

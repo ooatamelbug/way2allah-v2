@@ -24,15 +24,13 @@ it('index: IF-025 fix — a specific group\'s page only lists that group\'s item
 
     $content = $this->get('/w2acd/cds.php?id=5')->assertOk()->getContent();
 
-    // The sidebar's "Most Downloaded"/"Newest" boxes are legitimately
-    // group-unscoped (the legacy $Group parameter they take is confirmed
-    // dead — ContentSidebarWidget's own docblock, P-016 §2), so the
-    // assertion is scoped to the main list section only.
-    preg_match('/قائمة الإسطوانات">(.*?)<\/section>/s', $content, $matches);
-    $listSection = $matches[1] ?? '';
-
-    expect($listSection)->toContain('In Group Five');
-    expect($listSection)->not->toContain('In Group Nine');
+    // Legacy-Source Reconstruction (cds-main.htm): the previous bare
+    // <section aria-label="قائمة الإسطوانات"> wrapper this regex targeted
+    // no longer exists — cds.php's own markup is a single portlet with no
+    // sidebar at all (confirmed by a full re-read + a live raw fetch of
+    // w2acd/cds.php), so a page-wide assertion is now unambiguous on its own.
+    expect($content)->toContain('In Group Five')
+        ->not->toContain('In Group Nine');
 });
 
 it('index: IF-025 fix — visiting a group increments THAT group\'s hits, not group 0', function () {
@@ -105,11 +103,16 @@ it('show: hidden items remain viewable but suppress the image gallery, matching 
 
     $content = $this->get('/w2acd/item.php?khid=1')->assertOk()->getContent();
 
-    // Scoped to the detail section only — the sidebar (G-04) legitimately shows
-    // this same item's thumbnail too, since most_downloaded_list()/most_recent_list()
-    // never filter on `hidden` either (only the detail gallery does).
-    preg_match('/تفاصيل الاسطوانة">(.*?)<\/section>/s', $content, $matches);
-    $detailSection = $matches[1] ?? '';
+    // Scoped to the "تفاصيل الاسطوانة" portlet only — the sidebar (G-04)
+    // legitimately shows this same item's thumbnail too, since
+    // most_downloaded_list()/most_recent_list() never filter on `hidden`
+    // either (only the detail gallery does). Legacy-Source Reconstruction:
+    // the previous <section aria-label="..."> anchor this regex used is
+    // gone (replaced by the real portlet markup) — re-scoped to the span
+    // between the two main-column portlet captions instead.
+    $detailStart = strpos($content, 'تفاصيل الاسطوانة');
+    $detailEnd = strpos($content, 'روابط الاسطوانة');
+    $detailSection = substr($content, $detailStart, $detailEnd - $detailStart);
 
     expect($content)->toContain('Hidden CD');
     expect($detailSection)->not->toContain('cds_image2/a.jpg');
@@ -143,31 +146,70 @@ it('index: loads the module CSS (gallery.css) already reachable via the existing
     expect($content)->toContain('/assets/frontend/pages/css/gallery.css');
 });
 
-it('index: sidebar shows a raw (non-thumbnails.php) thumbnail and the exact legacy subtext for both lists', function () {
-    // group_id=9 (not the default 0 the page lists) so these rows appear ONLY via the
-    // group-unscoped sidebar queries, not also in the main listing section (which
-    // legitimately DOES thumbnails.php-wrap — isolating the assertion to prove the
-    // sidebar copy specifically stays raw).
-    DB::connection('main')->table('nuke_w2acd_w2acd')->insert([
-        ['id' => 1, 'group_id' => 9, 'title' => 'Popular', 'thumbnail' => 'p.png', 'hits' => 42, 'mytime' => null],
-        ['id' => 2, 'group_id' => 9, 'title' => 'Newest', 'thumbnail' => 'n.png', 'hits' => 0, 'mytime' => mktime(0, 0, 0, 6, 15, 2020)],
-    ]);
+// ---- Legacy-Source Reconstruction (cds-main.htm): page chrome, portlet, card DOM ----
 
-    $content = $this->get('/w2acd/cds.php')->assertOk()->getContent();
+it('index: renders the shared page chrome — heading differs from the document <title>, and a single-suffix title (not double)', function () {
+    $response = $this->get('/cds-main.htm');
 
-    expect($content)->toContain('/images/cds_image2/p.png')
-        ->toContain('/images/cds_image2/n.png')
-        ->not->toContain('/thumbnails.php?h=104&amp;w=105&amp;src=/images/cds_image2/p.png') // sidebar copy must stay raw
-        ->toContain('مرات التحميل : 42 مرة')
-        ->toContain('بتاريخ : 2020-06-15');
+    $content = $response->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('<h3 class="page-title">قائمة الإسطوانات الدعوية</h3>')
+        ->toContain('<title>قسم الاسطوانات الدعوية - ');
+    // Single suffix: exactly one occurrence of the app name in <title>.
+    $titleTag = substr($content, (int) strpos($content, '<title>'), 120);
+    expect(substr_count($titleTag, config('app.name')))->toBe(1);
 });
 
-it('index: sidebar falls back to tvnoise.gif when an item has no thumbnail', function () {
-    DB::connection('main')->table('nuke_w2acd_w2acd')->insert(['id' => 1, 'title' => 'No Thumb', 'thumbnail' => '', 'hits' => 5]);
+it('index: breadcrumb has one plain-href item ("الاسطوانات الدعوية"), matching cds.php\'s own url=\'\' (isset-true) breadcrumb entry', function () {
+    $content = $this->get('/cds-main.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('<li><a href="">الاسطوانات الدعوية</a><i class=""></i></li>');
+});
+
+it('index: wraps the grid in the real w2acd_open_div() portlet — caption, double-nested portlet-body, fa-child icon', function () {
+    DB::connection('main')->table('nuke_w2acd_w2acd')->insert(['id' => 1, 'title' => 'A CD', 'group_id' => 0]);
+
+    $content = $this->get('/cds-main.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('<div class="caption"><i class="fa fa-child"></i> قائمة الإسطوانات العامة</div>')
+        ->toContain('<div class="portlet-body ">')
+        ->toContain('<div class="portlet-body series-overflow series-overflow-auto">');
+});
+
+it('index: each card uses the real .var_item.cd_bg_class DOM, the cd_bg_img link class, and the confirmed malformed alt attribute', function () {
+    DB::connection('main')->table('nuke_w2acd_w2acd')->insert(['id' => 7, 'title' => 'Ramadan CD', 'group_id' => 0]);
+
+    $content = $this->get('/cds-main.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('col-lg-2 col-md-3 col-sm-4 col-xs-6 text-center')
+        ->toContain('<div class="var_item cd_bg_class">')
+        ->toContain('<a href="/cds-item-7.htm" class="cd_bg_img">')
+        // Confirmed live, byte-for-byte legacy artifact — not a typo to "fix".
+        ->toContain("alt=\"إضغط لمشاهدة ''&nbsp;Ramadan CD> ''\"")
+        ->toContain('<br/><span>Ramadan CD</span>');
+});
+
+// Legacy-Source Reconstruction (cds-main.htm) supersedes the two tests
+// that previously stood here: `cds.php` (read in full, and confirmed
+// against a live raw fetch of `w2acd/cds.php`) never calls
+// `most_downloaded_recent_sidebar()`/`most_downloaded_list()`/
+// `most_recent_list()` at all — that sidebar belongs to `w2acd/item.php`
+// only (see this file's own `show: sidebar shows a raw...` test below,
+// which correctly covers it on the page that actually has it).
+
+it('index: renders no sidebar at all — a single, full-width portlet, matching cds.php\'s own confirmed layout', function () {
+    DB::connection('main')->table('nuke_w2acd_w2acd')->insert(['id' => 1, 'title' => 'Only Item', 'group_id' => 0, 'hits' => 999]);
 
     $content = $this->get('/w2acd/cds.php')->assertOk()->getContent();
 
-    expect($content)->toContain('/images/tvnoise.gif');
+    expect($content)
+        ->not->toContain('الأكثر تحميلا')
+        ->not->toContain('احدث المواد')
+        ->not->toContain('aria-label="الشريط الجانبي"')
+        ->not->toContain('col-lg-3');
 });
 
 it('show: detail images route through thumbnails.php at h=400&w=400&zc=0&q=100, first image distinct from the rest', function () {
@@ -213,7 +255,7 @@ it('show: mirror save column — icon-only (no link) when the extension is empty
 
     expect($content)->toContain('/images/save.png')
         ->toContain('/images/2.png')
-        ->toContain('<th>حفظ</th>');
+        ->toContain('<th class="">حفظ</th>');
 });
 
 it('show: sidebar shows a raw (non-thumbnails.php) thumbnail and subtext, same as the index page', function () {
@@ -225,4 +267,86 @@ it('show: sidebar shows a raw (non-thumbnails.php) thumbnail and subtext, same a
 
     expect($content)->toContain('/images/cds_image2/p.png')
         ->toContain('مرات التحميل : 42 مرة');
+});
+
+// ---- Legacy-Source Reconstruction (cds-item-{id}.htm): page chrome, portlet, date format, sidebar card DOM ----
+
+it('show: renders the shared page chrome — heading matches the item title, and a 2-item breadcrumb linking back to cds-main.htm', function () {
+    DB::connection('main')->table('nuke_w2acd_w2acd')->insert(['id' => 1, 'title' => 'Ramadan CD', 'link' => 'https://example.com/a.mp3', 'cd' => 'Only']);
+
+    $content = $this->get('/cds-item-1.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('<h3 class="page-title">Ramadan CD</h3>')
+        ->toContain('<a href="/cds-main.htm">الاسطوانات الدعوية</a>')
+        // item.php:27 — the current item's own breadcrumb entry is
+        // `'url' => ''`, present-not-absent, so isset() (functions.php:530)
+        // still renders a link, just to an empty href — not plain text.
+        ->toContain('<a href="">Ramadan CD</a>');
+    // Single-suffix title, matching cds.php's own confirmed convention.
+    $titleTag = substr($content, (int) strpos($content, '<title>'), 120);
+    expect(substr_count($titleTag, config('app.name')))->toBe(1);
+});
+
+it('show: wraps the detail table and mirrors list in real portlets — fa-desktop / fa-link icons, anasheed-details/anasheed-mirrors wrappers', function () {
+    DB::connection('main')->table('nuke_w2acd_w2acd')->insert(['id' => 1, 'title' => 'A CD', 'link' => 'https://example.com/a.mp3', 'cd' => 'Only']);
+
+    $content = $this->get('/cds-item-1.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('<div class="caption"><i class="fa fa-desktop"></i> تفاصيل الاسطوانة</div>')
+        ->toContain('<div class="anasheed-details mada-details">')
+        ->toContain('<div class="caption"><i class="fa fa-link"></i> روابط الاسطوانة</div>')
+        ->toContain('<div class="anasheed-mirrors table-responsive">');
+});
+
+it('show: "تاريخ التحميل" uses the real CoolShortDate() Arabic format (LegacyShortDateFormatter), not plain Y-m-d', function () {
+    DB::connection('main')->table('nuke_w2acd_w2acd')->insert([
+        'id' => 1, 'title' => 'Dated CD', 'link' => 'https://example.com/a.mp3', 'cd' => 'Only',
+        'mytime' => mktime(0, 0, 0, 6, 6, 2015),
+    ]);
+
+    $content = $this->get('/cds-item-1.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain(\App\Domain\Content\Support\LegacyShortDateFormatter::format(mktime(0, 0, 0, 6, 6, 2015)))
+        ->not->toContain('2015-06-06');
+});
+
+it('show: sidebar cards use the real .list-group-item.anasheed-latest-item DOM with an <h6> title, not a bare <li>', function () {
+    DB::connection('main')->table('nuke_w2acd_w2acd')->insert([
+        ['id' => 1, 'title' => 'Viewed', 'link' => 'https://example.com/a.mp3', 'cd' => 'Only', 'hits' => 0],
+        ['id' => 2, 'title' => 'Popular Sidebar Item', 'link' => '', 'cd' => '', 'hits' => 500],
+    ]);
+
+    $content = $this->get('/cds-item-1.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('<li class="list-group-item anasheed-latest-item">')
+        ->toContain('<div class="col-lg-3 col-md-3 col-sm-3 col-xs-4">')
+        ->toContain('<div class="col-lg-9 col-md-9 col-sm-9 col-xs-8">')
+        ->toContain('<h6>Popular Sidebar Item</h6>')
+        ->toContain('img-responsive img-thumbnail')
+        ->toContain('<ul class="recent_list">');
+});
+
+it('show: sidebar "احدث المواد" label also uses the real Arabic date format, not Y-m-d', function () {
+    DB::connection('main')->table('nuke_w2acd_w2acd')->insert([
+        ['id' => 1, 'title' => 'Viewed', 'link' => 'https://example.com/a.mp3', 'cd' => 'Only', 'hits' => 0, 'mytime' => null],
+        ['id' => 2, 'title' => 'Recent Sidebar Item', 'link' => '', 'cd' => '', 'hits' => 0, 'mytime' => mktime(0, 0, 0, 6, 6, 2015)],
+    ]);
+
+    $content = $this->get('/cds-item-1.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('بتاريخ : '.\App\Domain\Content\Support\LegacyShortDateFormatter::format(mktime(0, 0, 0, 6, 6, 2015)))
+        ->not->toContain('بتاريخ : 2015-06-06');
+});
+
+it('show: sidebar portlets use the blue top_side color variant, matching most_downloaded_list()/most_recent_list()\'s own $data', function () {
+    DB::connection('main')->table('nuke_w2acd_w2acd')->insert(['id' => 1, 'title' => 'A CD', 'link' => 'https://example.com/a.mp3', 'cd' => 'Only', 'hits' => 1]);
+
+    $content = $this->get('/cds-item-1.htm')->assertOk()->getContent();
+
+    expect(substr_count($content, 'class="portlet box blue top_side"'))->toBe(2);
 });

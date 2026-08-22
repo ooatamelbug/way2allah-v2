@@ -26,6 +26,24 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/privacy', PrivacyController::class)->name('pages.privacy');
 Route::get('/about', AboutController::class)->name('pages.about');
+
+// Four-Route Migration Gap Audit — `landing_page.htm` (ROUTE_MAPPING_GAP,
+// not a new page). `.htaccess:417` — `landing_page.htm` → `new_modules.php
+// ?name=help&op=about_page` — targets the same confirmed-missing
+// `new_modules.php` dispatcher already found for `share.htm`/`ramadan.htm`
+// (decision-log #8/#18/#19), but `header.php:346`'s real, standing nav
+// link (`<a href="landing_page.htm">من نحن</a>` — the exact label `/about`
+// itself renders) and `help/`'s directory contents (only `about.php` and
+// `share.php` exist — `op=about_page` can only mean `help/about.php`)
+// together confirm this is the SAME content already live at `/about`,
+// under a second legacy pretty-URL. Registered directly at its exact
+// legacy path to the same `AboutController` — no redirect, same pattern
+// already established for `social.htm` above (a real nav link with a
+// missing dispatcher rule) and for `/khotab/search` +
+// `/video-advanced-search.htm` both reaching `KhotabSearchController`
+// (routes/content.php) — not a new controller, not a duplicated view.
+Route::get('/landing_page.htm', AboutController::class)->name('pages.landing-page');
+
 Route::get('/mobile-app', MobileAppController::class)->name('pages.mobile-app');
 Route::get('/visitor-feedback', VisitorFeedbackController::class)->name('pages.visitor-feedback');
 Route::get('/quran-memorization-application', QuranMemorizationApplicationController::class)->name('pages.quran-memorization-application');

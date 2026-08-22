@@ -1,7 +1,21 @@
 @extends('layouts.app')
 
-{{-- IF-016 fix: title reflects the browsed date, not a nonexistent $Author. --}}
-@section('title', 'المواد المنشورة بتاريخ ' . date('Y-m-d', $date))
+{{--
+    Title Gap Closure (2026-08-22): the reconciliation audit found day.php's
+    real `$header['title']` (day.php:10-19,24-25) is the plain, date-
+    INdependent 'المرئيات '/'الصوتيات ' string — confirmed against a fresh
+    live fetch of khotab-video-today.htm ("<title>المرئيات  - ...</title>").
+    IF-016's own premise (this comment used to read "title reflects the
+    browsed date, not a nonexistent $Author") conflated the DOCUMENT title
+    with day.php:100's separate, broken `title($Author->prename.' '.
+    $Author->name)` call — that call feeds the visible `<h3>` HEADING, not
+    this `<title>` tag, and its own $Author bug is correctly handled
+    elsewhere (heading omitted entirely — see this file's own comment
+    below, unchanged by this fix). The breadcrumb's date text
+    ($breadcrumbTrail, KhotabDayController::render()) is a genuinely
+    separate string built from day.php:88-99 and is NOT touched here.
+--}}
+@section('title', $video ? 'المرئيات ' : 'الصوتيات ')
 
 {{--
     khotab-video-today.htm parity: khotab/day.php:20-23 registers

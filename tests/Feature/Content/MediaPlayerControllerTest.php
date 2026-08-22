@@ -10,9 +10,11 @@ use Tests\Support\InMemoryConnection;
  * var-item-{id}.htm parity batch. Replaces `get-mada-player.htm`
  * (`ajax_3K2r.php?op=get-mada-player` → `get_w2a_mada_player()` →
  * `get_w2a_mada()` + `w2a_mada_play()`, `functions.php:794-896`).
- * `khotab`/`khotab_mirror` (Batch 4) and `anasheed`/`anasheed_mirror`
- * (var-item-{id}.htm parity batch) are wired; telawah/fatawa/chat_room
- * remain unwired, per each batch's own approved scope.
+ * `khotab`/`khotab_mirror` (Batch 4), `anasheed`/`anasheed_mirror`
+ * (var-item-{id}.htm parity batch), and now `fatawa`
+ * (`fatawa-all-{id}.htm` owner-approved `answer2.php` reconstruction) are
+ * wired; telawah/chat_room remain unwired, per each batch's own approved
+ * scope.
  */
 function useInMemoryMainConnectionForMediaPlayer(): void
 {
@@ -21,6 +23,7 @@ function useInMemoryMainConnectionForMediaPlayer(): void
         'nuke_islamic_mirror' => MainSchema::nukeIslamicMirror(),
         'nuke_anasheed_anasheed' => MainSchema::nukeAnasheedAnasheed(),
         'nuke_anasheed_mirror' => MainSchema::nukeAnasheedMirror(),
+        'nuke_fatwa_questions' => MainSchema::nukeFatwaQuestions(),
     ]);
 }
 
@@ -224,4 +227,35 @@ it('MediaPlayerService::play(): returns null for the confirmed-material-but-deli
 
 it('the legacy literal get-mada-player.htm path remains unrouted', function () {
     $this->post('/get-mada-player.htm', ['id' => 1, 'type' => 'khotab'])->assertNotFound();
+});
+
+// ---- fatawa-all-{id}.htm owner-approved answer2.php reconstruction: MediaPlayerService::fromFatwaQuestion() ----
+
+it('POST /media-player: fatawa type, mp4 renders a native <video> tag, resolving by the real nuke_fatwa_questions.id (not legacy\'s page-ordinal position)', function () {
+    DB::connection('main')->table('nuke_fatwa_questions')->insert([
+        'id' => 42, 'question_text' => 'Q', 'media_link' => 'https://cdn.example.com/fatwa.mp4',
+    ]);
+
+    $response = $this->post('/media-player', ['id' => 42, 'type' => 'fatawa']);
+
+    $response->assertOk();
+    expect($response->getContent())->toBe('<video controls autoplay><source src="https://cdn.example.com/fatwa.mp4" type="video/mp4"></video>');
+});
+
+it('POST /media-player: fatawa type is unconditionally treated as video, matching get_w2a_mada_player()\'s dead media_type if/else (both arms call the same thing)', function () {
+    DB::connection('main')->table('nuke_fatwa_questions')->insert([
+        'id' => 43, 'question_text' => 'Q', 'media_type' => 'audio', 'media_link' => 'https://cdn.example.com/fatwa.mp4',
+    ]);
+
+    $response = $this->post('/media-player', ['id' => 43, 'type' => 'fatawa']);
+
+    $response->assertOk();
+    expect($response->getContent())->toBe('<video controls autoplay><source src="https://cdn.example.com/fatwa.mp4" type="video/mp4"></video>');
+});
+
+it('POST /media-player: fatawa type, an unresolvable id returns an empty 200 body', function () {
+    $response = $this->post('/media-player', ['id' => 999999999, 'type' => 'fatawa']);
+
+    $response->assertOk();
+    expect($response->getContent())->toBe('');
 });

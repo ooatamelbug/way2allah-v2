@@ -11,9 +11,16 @@ use Illuminate\Contracts\View\View;
  * Replaces `khotab/day.php` — Roadmap task 4.1. Public-only, same scope
  * decision as `KhotabItemController`.
  *
- * IF-016's fix: page title uses the browsed date (mirroring the
- * breadcrumb text legacy already builds correctly), not a nonexistent
- * `$Author`.
+ * IF-016 (superseded by the Title Gap Closure task, 2026-08-22): the
+ * document `<title>` is day.php's plain, date-independent 'المرئيات '/
+ * 'الصوتيات ' string (day.php:10-19,24-25) — set directly in
+ * `khotab.day`'s own `@section('title', ...)` from the `$video` flag
+ * already passed below, no controller change needed. IF-016's original
+ * premise (page title "mirrors the breadcrumb text") conflated this with
+ * day.php:100's separate, broken `title($Author->...)` call, which feeds
+ * the visible `<h3>` heading, not this `<title>` tag — that heading's own
+ * undefined-`$Author` bug is unrelated and stays correctly omitted (the
+ * view's own comment).
  * IF-022's fix: the date actually comes from the route, not an always-
  * empty `$_POST['date']` — see that finding for why every dated legacy
  * URL was previously dead.

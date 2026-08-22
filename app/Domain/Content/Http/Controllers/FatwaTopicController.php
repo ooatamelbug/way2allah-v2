@@ -82,17 +82,69 @@ class FatwaTopicController
      * text re-read — `^fatawa-topics-([0-9]*)-([0-9]*).htm ...&cat_id=$1&page=$2`
      * — no 1-parameter variant exists at all; `$page` is a real, required
      * part of this URL, not optional.
+     *
+     * **Full Design Parity Pass (2026-08-22) additions:**
+     * - `under_this_tasnif()`'s real ordering is `ORDER BY level DESC, id
+     *   DESC` then `krsort()` (array-position reversal) — net effect
+     *   `level ASC, id ASC`, confirmed against a fresh live fetch
+     *   (`fatawa/tobics.php?id=48`'s subcategory list, ascending ids).
+     *   `children()` had no explicit order at all before this; added
+     *   directly rather than via `Category::breadcrumbTrail()` (a
+     *   different function, `Cat_Breadcrumb()`, unbounded depth — not
+     *   reused, per the standing instruction not to conflate the two).
+     * - `$ancestorChain` reproduces `page_bar()`'s own ancestor walk
+     *   (`fatawa/functions.php:250-260`) exactly: up to 4 `main_cat`
+     *   levels, self pushed first, each parent pushed only if its title
+     *   is non-empty, final order root-first/self-last (legacy's own
+     *   `krsort()` on a sequentially-keyed array). This is `page_bar()`'s
+     *   own bounded-depth logic, not `Cat_Breadcrumb()`'s unbounded walk —
+     *   built here, not on the `Category` model, since it belongs to this
+     *   one Fatwa-specific chrome function alone.
      */
     public function show(int $category, int $page, ContentListingService $listing, ContentSidebarWidget $sidebar): View
     {
         $categoryModel = Category::findOrFail($category);
 
-        $subCategories = $categoryModel->children()->where('q_count', '>', 0)->get();
+        $subCategories = $categoryModel->children()
+            ->where('q_count', '>', 0)
+            ->orderBy('level')
+            ->orderBy('id')
+            ->get();
         $topics = $listing->fatwaTopicsByCategory($category, $page);
         $mostDownloaded = $sidebar->fatwaMostDownloadedByCategory($category);
         $mostRecent = $sidebar->fatwaMostRecentByCategory($category);
+        $ancestorChain = $this->pageBarAncestorChain($categoryModel);
+        $questionCounts = collect($topics->items())
+            ->mapWithKeys(fn ($topic) => [$topic->id => $listing->fatwaGeneralQuestionCountForTopic($topic->id)]);
 
-        return view('fatawa.topics-show', compact('categoryModel', 'subCategories', 'topics', 'mostDownloaded', 'mostRecent'));
+        return view('fatawa.topics-show', compact('categoryModel', 'subCategories', 'topics', 'mostDownloaded', 'mostRecent', 'ancestorChain', 'questionCounts'));
+    }
+
+    /** @return \Illuminate\Support\Collection<int, Category> */
+    private function pageBarAncestorChain(Category $categoryModel): \Illuminate\Support\Collection
+    {
+        $chain = [$categoryModel];
+        $current = $categoryModel;
+
+        for ($i = 0; $i < 4; $i++) {
+            if ($current->main_cat == 0) {
+                continue;
+            }
+
+            $parent = Category::find($current->main_cat);
+
+            if ($parent === null) {
+                break;
+            }
+
+            if (! empty($parent->title)) {
+                $chain[] = $parent;
+            }
+
+            $current = $parent;
+        }
+
+        return collect(array_reverse($chain));
     }
 
     /**
@@ -108,14 +160,38 @@ class FatwaTopicController
      * shipped in increment 1. Two real rules exist: a 2-parameter form
      * (page defaults to 1) and a 3-parameter form with an explicit page —
      * both registered in `routes/content.php`.
+     *
+     * **Full Design Parity Pass (2026-08-22) additions — independently
+     * verified against `subtobics.php`'s own source, NOT inferred from
+     * `tobics.php`/`show()` above:**
+     * - `page_bar($cat_id, $id)` — subtobics.php:34 passes the topic as
+     *   the SECOND argument (`$tobic`), activating a branch `show()`
+     *   above never exercises: one extra trailing breadcrumb entry
+     *   ("موضوع {topic_name}", linking to this same page) appended after
+     *   the same category ancestor chain `show()` already builds — same
+     *   `pageBarAncestorChain()` helper, category-only, reused verbatim.
+     * - Sidebars confirmed (not assumed) category-scoped, same as
+     *   `show()`: `subtobics.php:104/117` call `mostdownload($cat_id)`/
+     *   `recentlyadd($cat_id)`, the category id, not the topic id.
+     * - `fatwaAnswerCountForGeneralQuestion()` reproduces `get_all_questions()`'s
+     *   own per-row "عدد الفتاوى" badge (`functions.php:413-414`) — a
+     *   different query shape from this page's own main list query
+     *   (`fatwaGeneralQuestionsByTopic()`'s exact `topic_id='|id|'` match
+     *   is the outer list; this is a join-free count of
+     *   `nuke_fatwa_questions.general_question_id='|id|'` per row).
      */
-    public function questions(int $topic, int $category, int $page, ContentListingService $listing): View
+    public function questions(int $topic, int $category, int $page, ContentListingService $listing, ContentSidebarWidget $sidebar): View
     {
         $categoryModel = Category::findOrFail($category);
         $topicModel = FatwaTopic::findOrFail($topic);
 
         $generalQuestions = $listing->fatwaGeneralQuestionsByTopic($topic, $page);
+        $answerCounts = collect($generalQuestions->items())
+            ->mapWithKeys(fn ($question) => [$question->id => $listing->fatwaAnswerCountForGeneralQuestion($question->id)]);
+        $mostDownloaded = $sidebar->fatwaMostDownloadedByCategory($category);
+        $mostRecent = $sidebar->fatwaMostRecentByCategory($category);
+        $ancestorChain = $this->pageBarAncestorChain($categoryModel);
 
-        return view('fatawa.questions', compact('categoryModel', 'topicModel', 'generalQuestions'));
+        return view('fatawa.questions', compact('categoryModel', 'topicModel', 'generalQuestions', 'answerCounts', 'mostDownloaded', 'mostRecent', 'ancestorChain'));
     }
 }

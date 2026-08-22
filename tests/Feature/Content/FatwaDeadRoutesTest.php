@@ -8,9 +8,12 @@
  * behavior: if any of these ever start resolving, that's a route
  * registered somewhere it shouldn't be.
  */
-it('fatawa-category-{id}.htm stays 404 — fatawa/category.php is confirmed source-unrecoverable (IF-038)', function () {
-    $this->get('/fatawa-category-1.htm')->assertNotFound();
-});
+// fatawa-category-{id}.htm moved OUT of this file (2026-08-22): its
+// literal handler (fatawa/category.php) is still IF-038
+// source-unrecoverable, but the URL itself was given an owner-approved
+// alternate route onto FatwaTopicController::show() — see
+// routes/content.php's own docblock and FatwaTopicControllerTest's
+// "category:" tests. No longer a dead route.
 
 it('fatawa-play-{id}.htm stays 404 — no file implements op=play', function () {
     $this->get('/fatawa-play-1.htm')->assertNotFound();

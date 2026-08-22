@@ -38,15 +38,26 @@ class FatwaChannelController
      * (confirmed genuinely channel-filtered, unlike the author page's
      * equivalent — see `ContentSidebarWidget::fatwaMostDownloadedByChannel()`'s
      * docblock).
+     *
+     * Legacy-Source Reconstruction (fatawa-channel-{id}.htm): `channel_fatawa.php:19`'s
+     * `if($channel->title) $title=$channel->title; else $title='بدون قناه';`
+     * fallback and `:36-37`'s `str_replace('W',' غرباً',...)`/
+     * `str_replace('E',' شرقاً',...)` orbital-position translation —
+     * both used repeatedly across the page (heading, both portlet
+     * captions, the info box) — computed once here rather than
+     * duplicated per Blade usage.
      */
     public function show(int $channel, int $page, ContentListingService $listing, ContentSidebarWidget $sidebar): View
     {
-        $channelModel = Channel::findOrFail($channel);
+        $channelModel = Channel::findOrFail($channel)->load('satellite');
 
         $generalQuestions = $listing->fatwaQuestionsForChannel($channel, $page);
         $mostDownloaded = $sidebar->fatwaMostDownloadedByChannel($channel);
         $mostRecent = $sidebar->fatwaMostRecentByChannel($channel);
 
-        return view('fatawa.channel-show', compact('channelModel', 'generalQuestions', 'mostDownloaded', 'mostRecent'));
+        $title = $channelModel->title ?: 'بدون قناه';
+        $position = str_replace(['W', 'E'], [' غرباً', ' شرقاً'], (string) $channelModel->satellite?->pos);
+
+        return view('fatawa.channel-show', compact('channelModel', 'generalQuestions', 'mostDownloaded', 'mostRecent', 'title', 'position'));
     }
 }

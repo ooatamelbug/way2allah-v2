@@ -22,11 +22,22 @@ use Illuminate\Contracts\View\View;
  * targets a different content type/table (`nuke_anasheed_anasheed`, not
  * `nuke_islamic_khotab`) with its own distinct view.
  *
+ * `cat_id == 487`'s hardcoded special case (`ListMediaCoverage()`,
+ * category.php:80-82) IS implemented — Final Conditional-Branch Audit
+ * (category-487.htm). Confirmed live on production (50 sub-category
+ * cards, real standing nav link). Additive, rendered BEFORE Series/Khotab
+ * — not a replacement branch. Its own gating query
+ * (`if($w2adb->num_rows>0)`) is the exact same query already computed
+ * below as `$items` (`khotabItemsByCategory()` with the same
+ * category/video/ser_id/group_id filters) — its result rows are never
+ * actually used by `ListMediaCoverage()` itself, only the row *count*
+ * gates the portlet, so `$items->isNotEmpty()` reproduces that gate
+ * exactly without a second query. The sub-category listing itself
+ * (`SELECT * FROM nuke_w2a_cat WHERE main_cat=487`) is a genuinely
+ * separate, unrelated dataset — see `mediaCoverageSubcategories()`.
+ *
  * Deliberately NOT reproduced this pass (real, but not confirmed
  * reachable from this specific page — deferred, not silently dropped):
- * - `cat_id == 487`'s hardcoded special case (`ListMediaCoverage()`) — an
- *   unexplained magic category id with no evident business reason found
- *   in code; a Business Confirmation candidate, not implemented blind.
  * - `categories/functions.php`'s own `ListGroup()` — confirmed NOT
  *   called anywhere in `category.php` itself despite existing in the
  *   same file; presumably reachable from a categories page not yet
@@ -53,6 +64,13 @@ class CategoryController
         $mostRecent = $sidebar->khotabMostRecentByCategory($category);
         $randomFeatured = $sidebar->khotabRandomFeatured();
 
+        // category.php:80-82's if($cat_id==487) gate, reproduced exactly —
+        // the query only ever runs for category 487, matching legacy's own
+        // call-site condition (not attempted for every category page).
+        $mediaCoverageSubcategories = $category === 487 && $items->isNotEmpty()
+            ? $listing->mediaCoverageSubcategories()
+            : collect();
+
         // Shared Page Chrome Parity Audit: category.php:70-71's real
         // breadcrumb — 'التصنيفات الموضوعية' (linked to /categories.htm)
         // then Cat_Breadcrumb($cat_id)'s ancestor chain (ancestors linked,
@@ -68,7 +86,7 @@ class CategoryController
                 : ['title' => $c->title, 'url' => '/category-'.$c->id.'.htm'])->all(),
         ];
 
-        return view('categories.show', compact('categoryModel', 'series', 'items', 'mostDownloaded', 'mostRecent', 'randomFeatured', 'breadcrumbTrail'));
+        return view('categories.show', compact('categoryModel', 'series', 'items', 'mostDownloaded', 'mostRecent', 'randomFeatured', 'breadcrumbTrail', 'mediaCoverageSubcategories'));
     }
 
     /**

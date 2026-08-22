@@ -3,6 +3,7 @@
 namespace App\Domain\Content\Http\Controllers;
 
 use App\Domain\Content\Services\ContentListingService;
+use App\Domain\Content\Support\ArabicDateConverter;
 use Illuminate\Contracts\View\View;
 
 /**
@@ -45,49 +46,12 @@ class FatwaDayController
 
         $featured = $listing->fatwaRandomFeatured();
         $questions = $listing->fatwaQuestionsByDate($date, $page);
-        $displayDate = $this->arabicDateConvert($date);
+        // fatwa-today.php's own display call passes no second argument in
+        // legacy either, but that op's real usage never needs the year
+        // suffix — kept as the explicit `false` this controller already
+        // relied on before the shared ArabicDateConverter existed.
+        $displayDate = ArabicDateConverter::convert($date, false);
 
         return view('fatawa.day', compact('featured', 'questions', 'displayDate'));
-    }
-
-    /**
-     * `fatawa/functions.php:753-782` `ArabicDateConvert($your_date, $year)`
-     * — ported verbatim (weekday + day + Arabic month name + year, Eastern
-     * Arabic numeral substitution). No equivalent existed anywhere in the
-     * Laravel app yet; kept private/local here since this is its only
-     * confirmed caller in the module scope covered so far, not promoted
-     * to a shared helper without a second evidenced consumer.
-     */
-    private function arabicDateConvert(string $date, bool $withYear = false): string
-    {
-        if ($date === '0000-00-00' || $date === '') {
-            return 'غير معلوم';
-        }
-
-        $months = [
-            'Jan' => 'يناير', 'Feb' => 'فبراير', 'Mar' => 'مارس', 'Apr' => 'أبريل',
-            'May' => 'مايو', 'Jun' => 'يونيو', 'Jul' => 'يوليو', 'Aug' => 'أغسطس',
-            'Sep' => 'سبتمبر', 'Oct' => 'أكتوبر', 'Nov' => 'نوفمبر', 'Dec' => 'ديسمبر',
-        ];
-        $days = [
-            'Sat' => 'السبت', 'Sun' => 'الأحد', 'Mon' => 'الإثنين', 'Tue' => 'الثلاثاء',
-            'Wed' => 'الأربعاء', 'Thu' => 'الخميس', 'Fri' => 'الجمعة',
-        ];
-
-        $timestamp = strtotime($date);
-        $arMonth = $months[date('M', $timestamp)] ?? '';
-        $arDay = $days[date('D', $timestamp)] ?? '';
-
-        $current = $withYear
-            ? "{$arDay} ".date('d', $timestamp)." {$arMonth} ".date('Y', $timestamp).'م'
-            : "{$arDay} ".date('d', $timestamp)." {$arMonth} ".date('Y', $timestamp);
-
-        $current = str_replace(['pm', 'am'], ['م', 'ص'], $current);
-
-        return str_replace(
-            ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
-            ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'],
-            $current
-        );
     }
 }

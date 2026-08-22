@@ -60,9 +60,20 @@ class W2acdController
         return view('w2acd.index', compact('items', 'groupId', 'mostDownloaded', 'mostRecent'));
     }
 
+    /**
+     * `khid` normally arrives as a query string (`/w2acd/item.php?khid=X`,
+     * IF-026). Legacy-Source Reconstruction (`cds-item-{id}.htm`) adds a
+     * second, direct route at the exact real pretty path with `khid` as a
+     * path segment instead — not the `Route::redirect()` IF-026 already
+     * ruled out (that can't carry a query string), and not a new clean
+     * path either: `cds-main.htm`'s own reconstructed card grid already
+     * generates real `/cds-item-{id}.htm` links (same G-11-01 precedent —
+     * a real generated link needing to resolve), so this just completes
+     * that already-existing reference, `cds-main.htm` itself untouched.
+     */
     public function show(Request $request): View
     {
-        $id = (int) $request->query('khid', 0);
+        $id = (int) ($request->route('khid') ?? $request->query('khid', 0));
 
         $w2acdItem = W2acdItem::findOrFail($id);
 

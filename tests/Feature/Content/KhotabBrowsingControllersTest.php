@@ -152,12 +152,202 @@ it('group show: G-13-03 — renders the previously-missing "الملف الشخ�
         ->and($content)->toContain('/media/authors/no_author_image.png');
 });
 
+// ---- Full Design Parity Pass (khotab-group-{id}.htm) ----
+
+function seedKhotabGroupParityFixture(): void
+{
+    $db = DB::connection('main');
+    $db->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Al-Sawy', 'prename' => 'Dr.']);
+    $db->table('nuke_islamic_groups')->insert(['id' => 20, 'author_id' => 1, 'title' => 'Tafsir Group', 'vedio' => 1, 'hidden' => 0, 'description' => 'Group notes']);
+    $db->table('nuke_islamic_series')->insert([
+        'id' => 30, 'author_id' => 1, 'group_id' => 20, 'title' => 'Juz Tabarak', 'vedio' => 1, 'hidden' => 0,
+        'count' => 32, 'time' => mktime(0, 0, 0, 11, 15, 2010), 'lastupdate' => mktime(0, 0, 0, 12, 31, 2010), 'channel_id' => 9,
+    ]);
+    $db->table('nuke_islamic_khotab')->insert([
+        'id' => 40, 'author' => 1, 'group_id' => 20, 'ser_id' => 0, 'title' => 'Surah Al-Bayyina', 'vedio' => 1, 'hidden' => 0,
+        'comments' => 1, 'hits' => 2529, 'time' => mktime(0, 0, 0, 12, 19, 2006), 'channel_id' => 9,
+    ]);
+    $db->table('nuke_sat_channels')->insert(['id' => 9, 'title' => 'Iqraa']);
+}
+
+it('group show: renders the shared page chrome — heading includes the author name, and the real 4-item video breadcrumb', function () {
+    seedKhotabGroupParityFixture();
+
+    $content = $this->get('/khotab-group-20.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('<h3 class="page-title">مجموعة Tafsir Group - Dr. Al-Sawy</h3>')
+        ->toContain('<a href="/khotab-video.htm">المرئيات</a>')
+        ->toContain('<a href="/khotab-video.htm">قائمة الدعاة</a>')
+        ->toContain('<a href="/khotab-video-1.htm">Dr. Al-Sawy</a>')
+        ->toContain('<a href="">مجموعة Tafsir Group</a>');
+});
+
+// ---- Title Gap Closure (2026-08-22): group.php's own $title never
+// includes the sitename — header.php's own unconditional append is the
+// only one, exactly once. The prior test above only checked a PREFIX of
+// the <title> tag, which passed regardless of a single or double suffix —
+// this asserts the complete tag exactly, guarding against that regression. ----
+
+it('group show: document title is exactly "مجموعة {group} - {author} - {sitename}", single suffix, not doubled', function () {
+    seedKhotabGroupParityFixture();
+
+    $content = $this->get('/khotab-group-20.htm')->assertOk()->getContent();
+
+    $titleTag = substr($content, (int) strpos($content, '<title>'), 120);
+    expect($titleTag)->toContain('<title>مجموعة Tafsir Group - Dr. Al-Sawy - '.config('app.name').'</title>')
+        ->and(substr_count($titleTag, (string) config('app.name')))->toBe(1);
+});
+
+it('group show: audio group uses الصوتيات/khotab-audio.htm throughout the breadcrumb', function () {
+    DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Author', 'prename' => 'Sh.']);
+    DB::connection('main')->table('nuke_islamic_groups')->insert(['id' => 20, 'author_id' => 1, 'title' => 'Audio Group', 'vedio' => 0, 'hidden' => 0]);
+
+    $content = $this->get('/khotab-group-20.htm')->assertOk()->getContent();
+
+    // 'المرئيات' alone would false-positive against the sitewide nav
+    // menu's own standing link — scope the check to the breadcrumb itself.
+    preg_match('/<ul class="page-breadcrumb">(.*?)<\/ul>/s', $content, $matches);
+    $breadcrumbHtml = $matches[1] ?? '';
+
+    expect($breadcrumbHtml)
+        ->toContain('<a href="/khotab-audio.htm">الصوتيات</a>')
+        ->toContain('<a href="/khotab-audio-1.htm">Sh. Author</a>')
+        ->not->toContain('المرئيات');
+});
+
+it('group show: all 6 portlets use fa-child uniformly, matching this page\'s own confirmed convention (not the varied icons other pages use)', function () {
+    seedKhotabGroupParityFixture();
+
+    $content = $this->get('/khotab-group-20.htm')->assertOk()->getContent();
+
+    expect(substr_count($content, '<i class="fa fa-child"></i>'))->toBe(6);
+});
+
+it('group show: the Series portlet reproduces the real double-nested portlet-body, id="tableser", and full metadata row (date/lastupdate/count/channel)', function () {
+    seedKhotabGroupParityFixture();
+
+    $content = $this->get('/khotab-group-20.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('<div class="portlet-body ">')
+        ->toContain('<div class="portlet-body series-overflow">')
+        ->toContain('id="tableser"')
+        ->toContain('<a href="/khotab-series-30.htm">Juz Tabarak</a>')
+        ->toContain('<i class="fa fa-calendar"></i> 2010-11-15')
+        ->toContain('<i class="fa fa-refresh"></i> 2010-12-31')
+        ->toContain('<i class="fa fa-play-circle-o"></i> المواد: 32')
+        ->toContain('<i class="fa fa-television"></i> القناة:')
+        ->toContain('/images/channels/9.png');
+});
+
+it('group show: the Series portlet shows the real empty-state text when the group has no series, not an omitted block', function () {
+    DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Author']);
+    DB::connection('main')->table('nuke_islamic_groups')->insert(['id' => 20, 'author_id' => 1, 'title' => 'Empty Group', 'vedio' => 1, 'hidden' => 0]);
+
+    $content = $this->get('/khotab-group-20.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('لا توجد سلاسل مطابقة بقاعدة بيانات الموقع');
+});
+
+it('group show: the Khotab items portlet shows date/comments/hits/channel/duration but NEVER an author link — a confirmed difference from categories\' own ListKhotab()', function () {
+    seedKhotabGroupParityFixture();
+
+    $content = $this->get('/khotab-group-20.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('id="tabelkht"')
+        ->toContain('<a href="/khotab-item-40.htm">Surah Al-Bayyina</a>')
+        ->toContain('<i class="fa fa-calendar"></i> 2006-12-19')
+        ->toContain('<i class="fa fa-commenting-o"></i> التعليقات: 1')
+        ->toContain('<i class="fa fa-eye"></i> مشاهدات: 2,529')
+        ->not->toContain('الداعية:');
+});
+
+it('group show: the Khotab items portlet shows the real empty-state text when the group has no items', function () {
+    DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Author']);
+    DB::connection('main')->table('nuke_islamic_groups')->insert(['id' => 20, 'author_id' => 1, 'title' => 'Empty Group', 'vedio' => 1, 'hidden' => 0]);
+
+    $content = $this->get('/khotab-group-20.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('لا توجد مواد مطابقة بقاعدة بيانات الموقع');
+});
+
+it('group show: BOTH "الأكثر تحميلا" and "جديد المواد" show the download-count label, matching group.php\'s own confirmed mode=\'hits\' call for both — not a date on the second box', function () {
+    DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Author']);
+    DB::connection('main')->table('nuke_islamic_groups')->insert(['id' => 20, 'author_id' => 1, 'title' => 'Group', 'vedio' => 1, 'hidden' => 0]);
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        ['id' => 1, 'author' => 1, 'title' => 'Most Downloaded Item', 'vedio' => 1, 'hidden' => 0, 'hits' => 500, 'time' => time()],
+        ['id' => 2, 'author' => 1, 'title' => 'Newest Item', 'vedio' => 1, 'hidden' => 0, 'hits' => 42, 'time' => time()],
+    ]);
+
+    $content = $this->get('/khotab-group-20.htm')->assertOk()->getContent();
+
+    // Both fixture items qualify for both LIMIT-5 boxes (only 2 rows
+    // exist), so the label appears once per item per box (4 total) —
+    // the real point of this test is that NEITHER box ever shows a date.
+    expect(substr_count($content, 'عدد مرات التحميل:'))->toBe(4);
+    expect($content)->not->toContain('بتاريخ:');
+});
+
+it('group show: registers the DataTables assets (core + bootstrap plugin + khotab_tables.js), matching this page\'s own confirmed live asset profile', function () {
+    seedKhotabGroupParityFixture();
+
+    $content = $this->get('/khotab-group-20.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('datatables.min.css')
+        ->toContain('datatables.bootstrap-rtl.css')
+        ->toContain('datatables.min.js')
+        ->toContain('datatables.bootstrap.js')
+        ->toContain('/scripts/khotab_tables.js')
+        // Title/DataTables Gap Closure (2026-08-22): assets/global/scripts/
+        // datatable.js investigated and confirmed CONFIGURED_BUT_INERT —
+        // khotab_tables.js is fully self-contained and never references
+        // the global Datatable wrapper class that file defines. Guards
+        // against it being silently re-added without re-verifying that.
+        ->not->toContain('global/scripts/datatable.js');
+});
+
+it('group show: the description portlet uses the real w2a_open_div() wrapper, not a bare <section>', function () {
+    seedKhotabGroupParityFixture();
+
+    $content = $this->get('/khotab-group-20.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('<p>Group notes</p>');
+});
+
 // ---- IF-016 + IF-022: day.php ----
 
-it('day: IF-016 fix — the page title reflects the browsed date, not a blank/undefined author', function () {
-    $response = $this->get('/khotab-video-today.htm');
+// ---- Title Gap Closure (2026-08-22): day.php's real $header['title'] is
+// the plain, date-independent 'المرئيات '/'الصوتيات ' string (day.php:10-19,
+// 24-25) — NOT the breadcrumb's date-label text, which IF-016's original
+// premise had wrongly conflated with the document title. The breadcrumb
+// text itself (asserted separately below) is unchanged by this fix. ----
 
-    $response->assertOk()->assertSee('المواد المنشورة بتاريخ');
+it('day: video-today document title is the plain "المرئيات ", not a date string', function () {
+    $content = $this->get('/khotab-video-today.htm')->assertOk()->getContent();
+
+    $titleTag = substr($content, (int) strpos($content, '<title>'), 60);
+    expect($titleTag)->toContain('<title>المرئيات  - ')
+        ->not->toContain('المواد المنشورة بتاريخ')
+        ->not->toContain(date('Y-m-d'));
+});
+
+it('day: audio-today document title is the plain "الصوتيات ", not a date string', function () {
+    $content = $this->get('/khotab-audio-today.htm')->assertOk()->getContent();
+
+    $titleTag = substr($content, (int) strpos($content, '<title>'), 60);
+    expect($titleTag)->toContain('<title>الصوتيات  - ')
+        ->not->toContain('المواد المنشورة بتاريخ');
+});
+
+it('day: explicit video/audio date routes use the same plain document title, independent of the date in the URL', function () {
+    $video = $this->get('/khotab-videodate-15-1-2020.htm')->assertOk()->getContent();
+    $audio = $this->get('/khotab-audiodate-15-1-2020.htm')->assertOk()->getContent();
+
+    expect(substr($video, (int) strpos($video, '<title>'), 60))->toContain('<title>المرئيات  - ');
+    expect(substr($audio, (int) strpos($audio, '<title>'), 60))->toContain('<title>الصوتيات  - ');
 });
 
 // ---- Shared Page Chrome Parity Audit: day.php:90-98's breadcrumb, heading deliberately omitted ----
@@ -166,8 +356,6 @@ it('day: renders no <h3 class="page-title"> at all — LEGACY_BUG_NOT_FOR_REPROD
     $content = $this->get('/khotab-video-today.htm')->assertOk()->getContent();
 
     expect($content)->not->toContain('page-title');
-    // IF-016's own document-<title> decision must stay untouched by this batch.
-    expect($content)->toContain('<title>المواد المنشورة بتاريخ '.date('Y-m-d').' - ');
 });
 
 it('day: breadcrumb chain — المرئيات (linked) → تقسيم المواد بالتاريخ (plain) → current date label (empty-href, "اليوم - " prefixed)', function () {

@@ -19,10 +19,10 @@ use Illuminate\Support\Facades\DB;
  * docs/reviews/gap-closure-action-plan.md item 4).
  *
  * This directory's OTHER capability — the live voice-chat room
- * (`chat_room/chat_rooms.php`, `chat_room/room.php`, `chat_room/rules.php`,
- * `chat_room/alhedaya_room.php`, `chat_room/table.php`) — is NOT covered
- * here. It stays Roadmap task 6.5, gated on Business Confirmation #4. Do not
- * add live-room routes/controllers to this class.
+ * (`chat_room/room.php`, `chat_room/rules.php`, `chat_room/alhedaya_room.php`,
+ * `chat_room/table.php`) — is NOT covered here. It stays Roadmap task 6.5,
+ * gated on Business Confirmation #4. Do not add live-room routes/controllers
+ * to this class.
  *
  * `chat_room/table.php`'s weekly-lesson-schedule feature
  * (`get_lessons_table()`/`list_today_lessons()`, `nuke_hedaya_lessons`) was
@@ -31,6 +31,17 @@ use Illuminate\Support\Facades\DB;
  * attendance at the LIVE voice rooms (joins `$chatdb`'s `room` table, links
  * to `chat_{room_id}.htm`), not recorded content. Re-scoped to task 6.5;
  * NOT built here. See IF-033 for the full correction.
+ *
+ * OWNER_DECISION (`chat_room.htm` Owner-Approved Partial Reconstruction):
+ * following the decomposition audit's corrected business-confirmation
+ * record — "FlashChat / Live Voice Chat Rooms = NO. Zoom = ALSO NO...
+ * the entire live-room/chat-room feature family is retired, with no
+ * replacement of any kind" (decision-log #14) — `index()` below now
+ * implements `chat_room/chat_rooms.php`'s two still-active sections
+ * (`list_most_chat_room_authors()`, `most_viewed_chat_lessons()`/
+ * `most_recent_chat_lessons()`, this class's own domain already). Its
+ * two retired sections (`list_chat_rooms()`, `list_today_lessons()`) are
+ * intentionally omitted — not rendered empty, not replaced with a notice.
  *
  * Reuses `KhotabItem`/`Mirror`/`Author` directly (Wave 4) — these are the
  * exact same rows khotab's own pages serve, just filtered to
@@ -45,6 +56,29 @@ use Illuminate\Support\Facades\DB;
 class ChatRoomLessonController
 {
     private const LOCATION_ID = 10;
+
+    /**
+     * `chat_room/chat_rooms.php` — the `chat_room.htm` listing page.
+     * OWNER_DECISION: live FlashChat rooms and the weekly live-lesson
+     * schedule are retired and intentionally omitted here; recorded-lesson
+     * discovery (most active authors, most viewed/recent recorded lessons)
+     * remains active — see this class's own docblock. Author image uses
+     * `Author::fallbackImageUrl()`, not `displayImageUrl()` — legacy's
+     * `list_most_chat_room_authors()` calls `get_author_img_src()`
+     * directly (`chat_room/functions.php:575-586`), which never checks the
+     * `author_image` column override, unlike `get_author_img()` (the
+     * function `displayImageUrl()` is based on, used by this class's own
+     * `chat-room.author` view for a different call site).
+     */
+    public function index(ContentListingService $listing, ContentSidebarWidget $sidebar): View
+    {
+        $mostActiveAuthors = $listing->mostActiveAuthorsAtLocation(self::LOCATION_ID);
+        $authorImages = Author::whereIn('id', $mostActiveAuthors->pluck('id'))->get()->keyBy('id');
+        $mostViewed = $sidebar->chatRoomMostViewedLessons();
+        $mostRecent = $sidebar->chatRoomMostRecentLessons();
+
+        return view('chat-room.index', compact('mostActiveAuthors', 'authorImages', 'mostViewed', 'mostRecent'));
+    }
 
     /**
      * `chat_room/author.php`. `list_author_chat_lessons()` is dead code in

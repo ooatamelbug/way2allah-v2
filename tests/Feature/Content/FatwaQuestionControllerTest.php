@@ -75,6 +75,239 @@ it('showAll: 404s for a nonexistent general question', function () {
     $this->get('/fatawa-all-999.htm')->assertNotFound();
 });
 
+// ---- fatawa-all-{id}.htm owner-approved answer2.php reconstruction ----
+// DISPATCH_ORIGIN_UNKNOWN (modules.php missing — see the reconstruction
+// report); answer2.php is the OWNER-APPROVED presentation reference, not
+// a proven historic handler. These assert the DOM contract that
+// distinguishes answer2.php from answer.php, not just text presence.
+// beforeEach() above already sets up nuke_w2a_cat/nuke_fatwa_topics/
+// nuke_fatwa_general_questions/nuke_fatwa_questions/nuke_islamic_authors/
+// nuke_sat_channels — no separate schema setup needed here.
+
+function seedFatwaAllParityFixture(): void
+{
+    $db = DB::connection('main');
+    $db->table('nuke_w2a_cat')->insert([
+        ['id' => 1, 'title' => 'Root Category', 'main_cat' => 0],
+        ['id' => 2, 'title' => 'Sub Category', 'main_cat' => 1],
+    ]);
+    $db->table('nuke_fatwa_topics')->insert([
+        'id' => 10, 'topic_name' => 'Zakat Topic', 'parent_id' => 2,
+    ]);
+    $db->table('nuke_fatwa_general_questions')->insert([
+        'id' => 100, 'question_text' => 'Shared question', 'description' => 'Extra general notes',
+        'topic_id' => '|10|', 'num_view' => 5,
+    ]);
+    $db->table('nuke_sat_channels')->insert(['id' => 7, 'title' => 'Iqraa Channel']);
+    $db->table('nuke_islamic_authors')->insert([
+        ['id' => 1, 'name' => 'First Shaikh', 'prename' => 'Dr.'],
+        ['id' => 2, 'name' => 'Second Shaikh', 'prename' => 'Sheikh'],
+    ]);
+    $db->table('nuke_fatwa_questions')->insert([
+        [
+            'id' => 1, 'general_question_id' => '|100|', 'topic_id' => 10, 'auther_id' => 1, 'channel_id' => 7,
+            'question_text' => 'Individual question one', 'answer_text' => 'Answer one',
+            'date_of_fatwa' => '2020-05-10', 'db_insertion_date' => 1690000000,
+            'media_size' => 12, 'num_download' => 3,
+        ],
+        [
+            'id' => 2, 'general_question_id' => '|100|', 'topic_id' => 10, 'auther_id' => 2, 'channel_id' => 0,
+            'question_text' => 'Individual question two', 'answer_text' => '.',
+            'date_of_fatwa' => '0000-00-00', 'db_insertion_date' => 0,
+            'media_size' => 0, 'num_download' => 0,
+        ],
+    ]);
+}
+
+it('showAll: document title is "سؤال | {question}", answer2.php\'s own header() title', function () {
+    seedFatwaAllParityFixture();
+
+    $response = $this->get('/fatawa-all-100.htm');
+
+    $response->assertOk()->assertSee('<title>سؤال | Shared question', false);
+});
+
+it('showAll: renders page_bar()\'s own empty <h1 style=""> chrome and breadcrumb, not <x-page-chrome>', function () {
+    seedFatwaAllParityFixture();
+
+    $content = $this->get('/fatawa-all-100.htm')->getContent();
+
+    expect($content)->toContain('<h1 style=""></h1>');
+    expect($content)->toContain('<div class="page-bar">');
+    expect($content)->toContain('<a href="/fatawa.htm">الفتاوى المرئية </a>');
+    // Category ancestor chain, root-first: Root Category then Sub Category.
+    expect(strpos($content, 'Root Category'))->toBeLessThan(strpos($content, 'Sub Category'));
+    expect($content)->toContain('موضوع Zakat Topic');
+    // Self-link breadcrumb item — page_bar()'s own confirmed self-reference.
+    expect($content)->toContain('<a href="/fatawa-all-100.htm">Shared question </a>');
+});
+
+it('showAll: reproduces answer2.php\'s two-column table row (not answer.php\'s stacked colspan row)', function () {
+    seedFatwaAllParityFixture();
+
+    $content = $this->get('/fatawa-all-100.htm')->getContent();
+
+    expect($content)->toContain('<th width="25%" class="w20" style="border-top:0;">السؤال </th>');
+    expect($content)->not->toContain('colspan="2"');
+});
+
+it('showAll: uses answer2.php\'s own answer-p class (not answer.php\'s answer-pXX answer)', function () {
+    seedFatwaAllParityFixture();
+
+    $content = $this->get('/fatawa-all-100.htm')->getContent();
+
+    expect($content)->toContain('class="answer-p"');
+    expect($content)->not->toContain('answer-pXX');
+});
+
+it('showAll: the icon/action row appears AFTER the details table, answer2.php\'s own ordering (not answer.php\'s before-table ordering)', function () {
+    seedFatwaAllParityFixture();
+
+    $content = $this->get('/fatawa-all-100.htm')->getContent();
+
+    $tablePos = strpos($content, '</table>');
+    $iconRowPos = strpos($content, 'jumbotron-icon');
+
+    expect($tablePos)->not->toBeFalse();
+    expect($iconRowPos)->toBeGreaterThan($tablePos);
+});
+
+it('showAll: skips the answer row entirely when answer_text is empty or the literal "." placeholder', function () {
+    seedFatwaAllParityFixture();
+
+    $content = $this->get('/fatawa-all-100.htm')->getContent();
+
+    expect($content)->toContain('Answer one');
+    expect(substr_count($content, 'class="answer-p"'))->toBe(1);
+});
+
+it('showAll: renders the real channel title as "مكان إصدار الفتوي" when a channel exists, falling back to "بدون قناه" when it does not', function () {
+    seedFatwaAllParityFixture();
+
+    $content = $this->get('/fatawa-all-100.htm')->getContent();
+
+    expect($content)->toContain('<a href="/fatawa-channel-7.htm">Iqraa Channel</a>');
+    expect($content)->toContain('<a href="/fatawa-channel-0.htm"> بدون قناه </a>');
+});
+
+it('showAll: date_of_fatwa "0000-00-00" renders as "غير معلوم", a real date renders via ArabicDateConverter', function () {
+    seedFatwaAllParityFixture();
+
+    $content = $this->get('/fatawa-all-100.htm')->getContent();
+
+    expect($content)->toContain('غير معلوم');
+    expect($content)->toContain('مايو'); // 2020-05-10 -> May
+});
+
+it('showAll: "عدد الزيارات" renders the shared general question\'s num_view on every row, not each answer\'s own uncounted column', function () {
+    seedFatwaAllParityFixture();
+
+    $content = $this->get('/fatawa-all-100.htm')->getContent();
+
+    // num_view was seeded at 5. recordView() dispatches an atomic
+    // query-builder increment (RecordsView listener) that updates the DB
+    // row directly without refreshing $generalQuestionModel's in-memory
+    // attribute — the same "stale by one" display legacy itself has
+    // (answer2.php's $allquestions is fetched once, before its own
+    // UPDATE runs, and never re-fetched before rendering). Both answer
+    // rows show the same shared pre-increment value: real parity, not a
+    // bug — confirmed separately against the DB's actual post-increment
+    // value in the "view-count behavior" test below.
+    expect(substr_count($content, '5 زيارة'))->toBe(2);
+});
+
+it('showAll: "مشاهدة المادة" is wired to /media-player addressed by the answer\'s real id, not a page-ordinal counter', function () {
+    seedFatwaAllParityFixture();
+
+    $content = $this->get('/fatawa-all-100.htm')->getContent();
+
+    expect($content)->toContain("w2a_play(1, 'fatawa')");
+    expect($content)->toContain("w2a_play(2, 'fatawa')");
+});
+
+it('showAll: "حفظ المادة" links to the already-existing download route for each answer', function () {
+    seedFatwaAllParityFixture();
+
+    $content = $this->get('/fatawa-all-100.htm')->getContent();
+
+    expect($content)->toContain('href="/fatawa-download-1.htm"');
+    expect($content)->toContain('href="/fatawa-download-2.htm"');
+});
+
+it('showAll: the send-friend modal posts to the real, already-tested sendToFriend route for each answer', function () {
+    seedFatwaAllParityFixture();
+
+    $content = $this->get('/fatawa-all-100.htm')->getContent();
+
+    expect($content)->toContain('fatawa-friend-sendemail-1.htm" method="post"');
+    expect($content)->toContain('fatawa-friend-sendemail-2.htm" method="post"');
+});
+
+it('showAll: renders the general question\'s own description block when present', function () {
+    seedFatwaAllParityFixture();
+
+    $this->get('/fatawa-all-100.htm')->assertSee('Extra general notes');
+});
+
+it('showAll: omits the description portlet entirely when the general question has none', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_fatwa_general_questions')->insert(['id' => 200, 'question_text' => 'No description here', 'num_view' => 0]);
+    $db->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Shaikh', 'prename' => 'Dr.']);
+    $db->table('nuke_fatwa_questions')->insert([
+        'id' => 5, 'general_question_id' => '|200|', 'auther_id' => 1, 'answer_text' => 'An answer',
+    ]);
+
+    $this->get('/fatawa-all-200.htm')->assertDontSee('<p></p>', false);
+});
+
+it('showAll: renders the category-scoped "الأكثر تحميلا"/"جديد المواد" sidebar when a category resolves', function () {
+    seedFatwaAllParityFixture();
+    $db = DB::connection('main');
+    $db->table('nuke_fatwa_questions')->insert([
+        'id' => 9, 'topic_id' => 10, 'general_question_id' => '|900|',
+        'question_text' => 'Most downloaded sidebar item', 'num_download' => 99,
+    ]);
+
+    $content = $this->get('/fatawa-all-100.htm')->getContent();
+
+    expect($content)->toContain('الأكثر تحميلا');
+    expect($content)->toContain('جديد المواد');
+    expect($content)->toContain('Most downloaded sidebar item');
+    expect($content)->toContain('href="/fatawa-all-900.htm#9"');
+});
+
+it('showAll: omits the sidebar entirely when the general question\'s topic never resolves to a category', function () {
+    $db = DB::connection('main');
+    // topic_id resolves to 0 -> no topic row -> categoryId stays 0.
+    $db->table('nuke_fatwa_general_questions')->insert(['id' => 300, 'question_text' => 'No topic', 'num_view' => 0]);
+    $db->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Shaikh', 'prename' => 'Dr.']);
+    $db->table('nuke_fatwa_questions')->insert([
+        'id' => 6, 'general_question_id' => '|300|', 'auther_id' => 1, 'answer_text' => 'An answer',
+    ]);
+
+    $content = $this->get('/fatawa-all-300.htm')->getContent();
+
+    expect($content)->not->toContain('الأكثر تحميلا');
+    expect($content)->not->toContain('aria-label="الشريط الجانبي"');
+});
+
+it('showAll: admin controls (adminAnswerControls/adminAnswerMoreControls) are never rendered — ADMIN_ONLY, no migrated admin panel exists', function () {
+    seedFatwaAllParityFixture();
+
+    $content = $this->get('/fatawa-all-100.htm')->getContent();
+
+    expect($content)->not->toContain('admin_control_box');
+    expect($content)->not->toContain('inlineAdminUrl');
+});
+
+it('showAll: view-count behavior is unaffected by the presentation reconstruction — still atomic, still exactly +1', function () {
+    seedFatwaAllParityFixture();
+
+    $this->get('/fatawa-all-100.htm')->assertOk();
+
+    expect(DB::connection('main')->table('nuke_fatwa_general_questions')->find(100)->num_view)->toBe(6);
+});
+
 it('download: atomically increments num_download and redirects to media_link', function () {
     $db = DB::connection('main');
     $db->table('nuke_fatwa_questions')->insert([

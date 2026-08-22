@@ -11,6 +11,13 @@ use Illuminate\Database\Eloquent\Model;
  * read anywhere in the 4 live-stream files this port is grounded in
  * (`live-stream/functions.php:80`, `live_channel_details()`), but the full
  * confirmed column set is mapped for the same reason Channel's is.
+ *
+ * @property int $id
+ * @property string|null $title
+ * @property string|null $des
+ * @property string|null $pos
+ * @property int|null $channels
+ * @property int|null $time
  */
 class Satellite extends Model
 {

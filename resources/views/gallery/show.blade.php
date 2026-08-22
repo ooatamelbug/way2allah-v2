@@ -1,48 +1,106 @@
 @extends('layouts.app')
 
-@section('title', 'التصميمات الدعوية - ' . $albumModel->title)
-
 {{--
-    G-03 (Migration Gap Register): `gallery/item.php:62-63`'s two
-    thumbnails.php URL shapes (grid thumb 150x166, lightbox target
-    w=500 only — no h, no zc, matching legacy's own proportional-scale
-    call exactly) plus the legacy lightbox viewer
-    (`jquery.lightbox-0.4.js` + blockUI), previously non-functional in
-    this port (no JS was ever loaded for it). Assets reachable via the
-    new public/gallery/lightbox symlink (mirrors the existing
-    public/assets -> legacy-project/assets pattern). Page-scoped here,
-    not in the shared layout — same "no @stack, load inline" approach
-    as G-02's carouFredSel wiring.
---}}
-@section('content')
-    <link href="/gallery/lightbox/jquery.lightbox-0.4.css" rel="stylesheet" type="text/css">
-    <section aria-label="ألبوم الصور">
-        <h1>ألبوم : {{ $albumModel->title }}</h1>
+    `gallery-{id}.htm` Full Design Parity Pass. `gallery/item.php` re-read
+    in full: shared title()/breadcrumb() chrome (previously a bare <h1>,
+    no breadcrumb at all), the real w2a_open_div() portlet + extra outer
+    <div class="row"> (item.php:56-57, same shape as gallery.htm's own),
+    and a per-image card whose exact structure was simplified: missing
+    the `.album-item.albumpic`/`.center-block.album-img` wrappers, the
+    `w2a_singl_img` class on the lightbox link, and the entire
+    `w2a_gal_sav` save-image link's real classes/onclick/icon. The G-03
+    thumbnail-URL shapes, lightbox CSS/JS + init call, and the
+    per-image download route were already correct — untouched.
 
-        @if($images->isEmpty())
-            <p>عفوا! لا يوجد صور مضافة في هذا الالبوم بعد.</p>
-        @else
-            <div class="row">
-                @foreach ($images as $image)
-                    @php
-                        $thumbUrl = '/thumbnails.php?h=150&w=166&src='.$image->url;
-                        $fullUrl = '/thumbnails.php?w=500&src='.$image->url;
-                    @endphp
-                    <div class="col-lg-3 col-md-3 col-sm-4 col-xs-6">
-                        <a href="{{ $fullUrl }}" class="lightbox" rel="album{{ $albumModel->album_id }}">
-                            <img src="{{ $thumbUrl }}" alt="{{ $albumModel->title }}" class="img-responsive pwimages">
-                        </a>
-                        <a href="/albumimg-download-{{ $image->image_id }}.htm">حفظ الصورة</a>
+    `alt="{{ $albumModel->title }}"` on every image is legacy's own real
+    behavior (item.php:69's `alt="<?php echo $album->title;?>"` — the
+    ALBUM's title, not a per-image caption; no per-image title/description
+    field is ever rendered anywhere in item.php, confirmed by the full
+    source read) — not "fixed" to something more descriptive.
+
+    `onclick="loadImg(...)"` (item.php:72) calls a JS function that is
+    NOT defined anywhere in this codebase (confirmed: zero matches for
+    `function loadImg` in the entire legacy tree) — DEAD_LEGACY, but
+    harmless (a normal `<a href>` still navigates on click; the
+    onclick simply throws silently first) and reproduced as literal,
+    present, source-proven markup, not omitted.
+--}}
+@section('title', 'التصميمات الدعوية - '.$albumModel->title.' - '.config('app.name'))
+
+@push('styles')
+    <link href="/gallery/lightbox/jquery.lightbox-0.4.css" rel="stylesheet" type="text/css">
+    {{--
+        item.php:35-40's literal inline <style> — targets fancybox's own
+        classes, but this page uses jquery.lightbox, not fancybox
+        (fancybox is never initialized here). A real, confirmed,
+        functionally-inert rule in source — reproduced as found, same
+        standard already applied to other confirmed-harmless legacy
+        artifacts throughout this migration.
+    --}}
+    <style type="text/css">
+        .fancybox-next span,
+        .fancybox-prev span {
+            visibility: visible;
+        }
+    </style>
+@endpush
+
+@section('content')
+    <x-page-chrome
+        heading="التصميمات الدعوية - {{ $albumModel->title }}"
+        :breadcrumb="[['title' => 'التصميمات الدعوية', 'url' => '/gallery.htm'], ['title' => $albumModel->title]]"
+    />
+
+    <div class="row service-box margin-bottom-40">
+        <div class="col-xs-12 col-sm-12 col-md-12">
+            {{--
+                item.php:46,56-57,79-86: the whole block — including the
+                extra outer .row and the portlet wrapper — only renders
+                when !empty($album_images); otherwise the real
+                .alert.alert-info empty-state message renders instead
+                (previously a bare <p>, no portlet at all either way).
+            --}}
+            @if ($images->isNotEmpty())
+                <div class="row">
+                    <div id="" class="col-md-12 col-sm-12">
+                        <div class="portlet box blue">
+                            <div class="portlet-title">
+                                <div class="caption"><i class="fa fa-picture-o"></i> ألبوم : {{ $albumModel->title }}</div>
+                            </div>
+                            <div class="portlet-body ">
+                                <div class="row albums_list row-fluid">
+                                    @foreach ($images as $image)
+                                        @php($thumbUrl = '/thumbnails.php?h=150&w=166&src='.$image->url)
+                                        @php($fullUrl = '/thumbnails.php?w=500&src='.$image->url)
+                                        <div class="col-lg-3 col-md-3 col-sm-4 col-xs-6">
+                                            <div class="album-item albumpic">
+                                                <div class="center-block album-img">
+                                                    <a href="{{ $fullUrl }}" class="lightbox w2a_singl_img" rel="album{{ $albumModel->album_id }}">
+                                                        <img src="{{ $thumbUrl }}" alt="{{ $albumModel->title }}" class="img-responsive pwimages">
+                                                    </a>
+                                                </div>
+                                                <a onclick="loadImg('http://way2allah.com/{{ $image->url }}')" href="/albumimg-download-{{ $image->image_id }}.htm" class="w2a_gal_sav"> <i></i> حفظ الصورة </a>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                @endforeach
-            </div>
-        @endif
-    </section>
-    <script src="/gallery/lightbox/jquery.blockUI-1.33.pack.js"></script>
-    <script src="/gallery/lightbox/jquery.lightbox-0.4.pack.js"></script>
-    <script>
-        $(document).ready(function () {
-            $('a.lightbox').lightBox();
-        });
-    </script>
+                </div>
+            @else
+                <div class="alert alert-info" role="alert"> <strong>عفوا!</strong> لا يوجد صور مضافة في هذا الالبوم بعد. </div>
+            @endif
+        </div>
+    </div>
+
+    @push('scripts')
+        <script src="/gallery/lightbox/jquery.blockUI-1.33.pack.js"></script>
+        <script src="/gallery/lightbox/jquery.lightbox-0.4.pack.js"></script>
+        <script>
+            $(document).ready(function () {
+                $('a.lightbox').lightBox();
+            });
+        </script>
+    @endpush
 @endsection

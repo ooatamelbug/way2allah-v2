@@ -229,24 +229,47 @@ class ContentSidebarWidget
             ->get(['id', 'title']);
     }
 
+    /**
+     * `channel.php:100`'s `topitems('hits', "channel_id='X' and vedio='1'",
+     * "hits DESC", 5)` — WHERE/ORDER/LIMIT already matched; presentation
+     * fields (`author`/`frame` for the thumbnail, `hits`/`time` for the
+     * metadata line) were missing from the SELECT — added, additive only.
+     * Reuses the already-established, already-verified `topitemsThumb()`
+     * helper (G-13-01) rather than re-deriving thumbnail logic — this is
+     * the same underlying legacy `topitems()` function every other
+     * `topitemsThumb()` consumer in this file also reproduces.
+     */
     public function channelMostDownloadedKhotabItems(int $channelId): Collection
     {
         return DB::connection('main')->table('nuke_islamic_khotab')
             ->where('channel_id', $channelId)
             ->where('vedio', 1)
+            ->select(['id', 'title', 'author', 'frame', 'hits', 'time'])
             ->orderByDesc('hits')
             ->limit(5)
-            ->get(['id', 'title']);
+            ->get()
+            ->map(function ($item) {
+                $item->thumb = $this->topitemsThumb((int) $item->frame, (int) $item->id);
+
+                return $item;
+            });
     }
 
+    /** "Newest" counterpart to `channelMostDownloadedKhotabItems()` above — `topitems('time', ..., "time DESC", 5)`, mode='time' confirmed directly from `channel.php:110` (not assumed from a sibling page's own mode). */
     public function channelMostRecentKhotabItems(int $channelId): Collection
     {
         return DB::connection('main')->table('nuke_islamic_khotab')
             ->where('channel_id', $channelId)
             ->where('vedio', 1)
+            ->select(['id', 'title', 'author', 'frame', 'hits', 'time'])
             ->orderByDesc('time')
             ->limit(5)
-            ->get(['id', 'title']);
+            ->get()
+            ->map(function ($item) {
+                $item->thumb = $this->topitemsThumb((int) $item->frame, (int) $item->id);
+
+                return $item;
+            });
     }
 
     // ---- Wave 4: khotab/functions.php's topitems()-based sidebar pairs ----
@@ -403,10 +426,25 @@ class ContentSidebarWidget
             ->select(['kh.id', 'kh.title', 'kh.author', 'kh.frame', 'kh.hits', 'kh.downcount', 'kh.time'])
             ->orderByDesc('kh.hits')
             ->limit(5)
-            ->get();
+            ->get()
+            ->map(function ($item) {
+                $item->thumb = $this->topitemsThumb((int) $item->frame, (int) $item->id);
+
+                return $item;
+            });
     }
 
-    /** "Newest" counterpart to `khotabMostDownloadedByCategory()` above. */
+    /**
+     * "Newest" counterpart to `khotabMostDownloadedByCategory()` above.
+     *
+     * `category-{id}.htm` Full Design Parity Pass: both this method and
+     * the one above now append `->thumb` via the already-established
+     * `topitemsThumb()` helper (G-13-01) — this JOIN-based query can't
+     * reuse the private generic `topitems()` filter helper those other
+     * `topitemsThumb()` consumers share, but the thumbnail resolution
+     * itself is identical, so the same private method is called directly
+     * rather than duplicating its logic.
+     */
     public function khotabMostRecentByCategory(int $categoryId): Collection
     {
         return DB::connection('main')->table('nuke_islamic_khotab as kh')
@@ -418,7 +456,12 @@ class ContentSidebarWidget
             ->select(['kh.id', 'kh.title', 'kh.author', 'kh.frame', 'kh.hits', 'kh.downcount', 'kh.time'])
             ->orderByDesc('kh.time')
             ->limit(5)
-            ->get();
+            ->get()
+            ->map(function ($item) {
+                $item->thumb = $this->topitemsThumb((int) $item->frame, (int) $item->id);
+
+                return $item;
+            });
     }
 
     /**

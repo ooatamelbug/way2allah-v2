@@ -138,6 +138,11 @@ class MainSchema
             $table->string('cat')->nullable();
             $table->unsignedInteger('channel_id')->nullable();
             $table->string('title')->nullable();
+            // Full Design Parity Pass (khotab-group-{id}.htm) addition —
+            // group.php:70's real, already-documented KhotabGroup column
+            // (`@property string|null $description`), not previously
+            // needed by any fixture-consuming test.
+            $table->text('description')->nullable();
             $table->unsignedInteger('time')->nullable();
             $table->unsignedInteger('count')->default(0);
             $table->unsignedTinyInteger('vedio')->default(0);
@@ -230,6 +235,11 @@ class MainSchema
             // fixture-consuming test.
             $table->unsignedInteger('video_count')->default(0);
             $table->unsignedInteger('anasheed_count')->default(0);
+            // Full Design Parity Pass (fatawa-topics-{category}-{page}.htm) —
+            // under_this_tasnif()'s real `ORDER BY level DESC, id DESC`
+            // (net `level ASC, id ASC` after legacy's own krsort()), a real
+            // Category model column not previously needed by any fixture.
+            $table->unsignedInteger('level')->default(0);
         };
     }
 

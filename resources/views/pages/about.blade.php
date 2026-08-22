@@ -7,11 +7,33 @@
      redesign): inline styles are not a functional bug, so they are not
      "fixed" as a side effect of migrating the page. A content redesign is
      a future, explicit business decision, not something to do silently
-     while porting. --}}
+     while porting.
+
+     Chrome/Portlet Gap Closure (2026-08-22): this view also serves
+     /landing_page.htm (routes/pages.php, same AboutController) — this
+     restoration applies to both routes identically, matching legacy's own
+     single `help/about.php` source. about.php:6-18 uses the shared
+     `title()`/`breadcrumb()` mechanism (functions.php:453-543), a single
+     breadcrumb item (`['title'=>'من نحن','url'=>'']` — present-but-empty
+     url, renders `<a href="">`, not plain text), reproduced via the
+     already-existing <x-page-chrome> component whose DOM was directly
+     re-verified against functions.php this task, not assumed. about.php:22-27's
+     `w2a_open_div(['title'=>'من نحن','width'=>'12','icon'=>'fa-child'])`
+     wraps this page's own already-correct content in a real portlet —
+     the content itself (below) is untouched. --}}
 
 @section('title', 'من نحن')
 
 @section('content')
+    <x-page-chrome heading="من نحن" :breadcrumb="[['title' => 'من نحن', 'url' => '']]" />
+
+    <div class="row service-box margin-bottom-40">
+        <div id="" class="col-md-12 col-sm-12">
+            <div class="portlet box blue">
+                <div class="portlet-title">
+                    <div class="caption"><i class="fa fa-child"></i> من نحن</div>
+                </div>
+                <div class="portlet-body ">
     <div dir="rtl">
         <p class="MsoNormal" dir="RTL"><b><u><span lang="AR-EG" style="font-size:18pt;font-family:'Traditional Arabic',serif;color:red">الرؤية :</span></u></b><b><u><span dir="LTR" style="font-size:18pt;font-family:'Traditional Arabic',serif;color:red"></span></u></b></p>
         <p class="MsoNormal" dir="RTL" style="text-align:justify"><b><span lang="AR-EG" style="font-size:14pt;font-family:'Traditional Arabic',serif;color:rgb(0,32,96)">رؤيتنا دلالة الخلق كل الخلق على الله مسلمين وغير مسلمين ناطقين
@@ -48,6 +70,10 @@
 المجالات الدعوية المختلفة.&nbsp;</span></b>
         <div class="yj6qo"></div>
         <div class="adL"><br>
+        </div>
+    </div>
+                </div>
+            </div>
         </div>
     </div>
 @endsection

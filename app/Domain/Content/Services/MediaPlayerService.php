@@ -4,6 +4,7 @@ namespace App\Domain\Content\Services;
 
 use App\Domain\Content\Models\AnasheedItem;
 use App\Domain\Content\Models\AnasheedMirror;
+use App\Domain\Content\Models\FatwaQuestion;
 use App\Domain\Content\Models\KhotabItem;
 use App\Domain\Content\Models\Mirror;
 
@@ -12,11 +13,31 @@ use App\Domain\Content\Models\Mirror;
  * (:794-855) — the shared, cross-module AJAX in-page player backing
  * `w2a_play()`/`get-mada-player.htm`. Confirmed shared infrastructure
  * (khotab-item-298784.htm Batch 4 investigation): also called by anasheed,
- * telawah, fatawa, and chat_room. `khotab`/`khotab_mirror` (Batch 4) and
- * `anasheed`/`anasheed_mirror` (var-item-{id}.htm parity batch) are
- * implemented; `telawat`/`fatawa` are deliberately NOT added yet (out of
- * approved scope so far), matching the same `resolveMedia()` branch shape
- * they'd extend later without restructuring this class.
+ * telawah, fatawa, and chat_room. `khotab`/`khotab_mirror` (Batch 4),
+ * `anasheed`/`anasheed_mirror` (var-item-{id}.htm parity batch), and now
+ * `fatawa` (`fatawa-all-{id}.htm` owner-approved `answer2.php`
+ * reconstruction) are implemented; `telawat` remains deliberately NOT
+ * added yet (out of approved scope so far), matching the same
+ * `resolveMedia()` branch shape it would extend later without
+ * restructuring this class.
+ *
+ * **`fatawa` is NOT a straight port of `get_w2a_mada()`'s branch list**
+ * (`functions.php:856-869` has no `'fatawa'` case at all — that type is
+ * unhandled there). The real behavior lives one level up, in
+ * `get_w2a_mada_player()` (`functions.php:870-896`): its own
+ * `if($type=='fatawa')` branch (:881-888) bypasses `get_w2a_mada()`
+ * entirely and plays whatever `$title`/`$link` the client already POSTed
+ * (`answer2.php`'s inline `w2a_play()` reads them from the hidden
+ * `<video><source>` tag it already rendered server-side from
+ * `$question->media_link`) — and, because both arms of its
+ * `$_mada->media_type=='video'` if/else call the exact same
+ * `w2a_mada_play($title,$link,"video")`, the type is unconditionally
+ * "video" regardless of the row's actual `media_type` column (a real,
+ * confirmed no-op branch, not reproduced as a branch here). Resolving
+ * server-side by `id` (`fromFatwaQuestion()` below) rather than trusting
+ * a client-POSTed link is the same parameterized-lookup hardening already
+ * applied to every other branch in this class (see this class's own
+ * "Security, not a behavior change" note below) — not a new exception.
  *
  * **Security, not a behavior change:** `get_w2a_mada()` builds its SQL by
  * concatenating `$id` (raw `$_POST`/`$_GET` input) directly into the query
@@ -55,8 +76,9 @@ class MediaPlayerService
 
     /**
      * `get_w2a_mada($id, $type)`'s `khotab`/`khotab_mirror` (`functions.php:861-864`)
-     * and `anasheed`/`anasheed_mirror` (`:865-868`) branches — `telawat`/`fatawa`
-     * remain deliberately unimplemented.
+     * and `anasheed`/`anasheed_mirror` (`:865-868`) branches, plus `fatawa`
+     * (this class's own `get_w2a_mada_player()`-level reconstruction, see
+     * class docblock) — `telawat` remains deliberately unimplemented.
      *
      * @return object{title: string, link: string, video: bool}|null
      */
@@ -78,7 +100,7 @@ class MediaPlayerService
         // also handles 'anasheed'/'anasheed_mirror' — confirmed both are
         // genuinely reachable (real w2a_play(id,'anasheed')/w2a_play(id,
         // 'anasheed_mirror') calls in anasheed_details()/list_anasheed_mirrors()),
-        // not deferred like 'telawat'/'fatawa'. Same shape as khotab's two
+        // not deferred like 'telawat'. Same shape as khotab's two
         // branches above — purely additive, khotab/khotab_mirror unchanged.
         if ($type === 'anasheed') {
             return $this->fromAnasheedItem($id);
@@ -86,6 +108,10 @@ class MediaPlayerService
 
         if ($type === 'anasheed_mirror') {
             return $this->fromAnasheedMirror($id);
+        }
+
+        if ($type === 'fatawa') {
+            return $this->fromFatwaQuestion($id);
         }
 
         return null;
@@ -150,6 +176,30 @@ class MediaPlayerService
             'title' => (string) $mirror->title,
             'link' => (string) $mirror->link,
             'video' => (bool) $mirror->vedio,
+        ];
+    }
+
+    /**
+     * `get_w2a_mada_player()`'s `type=='fatawa'` branch — see this class's
+     * docblock for why `video` is unconditionally `true` (the row's own
+     * `media_type` column is never actually consulted in legacy, both
+     * arms of that dead if/else call the same thing) rather than reading
+     * `FatwaQuestion::media_type`. No `hidden` column exists on this table
+     * (confirmed absent from `FatwaQuestion`'s own column list) — no
+     * filter to apply here, unlike the other `from*()` methods.
+     */
+    private function fromFatwaQuestion(int $id): ?object
+    {
+        $question = FatwaQuestion::find($id);
+
+        if ($question === null) {
+            return null;
+        }
+
+        return (object) [
+            'title' => (string) $question->question_text,
+            'link' => (string) $question->media_link,
+            'video' => true,
         ];
     }
 

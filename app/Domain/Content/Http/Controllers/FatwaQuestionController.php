@@ -4,13 +4,16 @@ namespace App\Domain\Content\Http\Controllers;
 
 use App\Domain\Content\Mail\FatwaFriendMail;
 use App\Domain\Content\Models\Category;
+use App\Domain\Content\Models\Channel;
 use App\Domain\Content\Models\FatwaGeneralQuestion;
 use App\Domain\Content\Models\FatwaQuestion;
 use App\Domain\Content\Models\FatwaTopic;
 use App\Domain\Content\Services\ContentListingService;
+use App\Domain\Content\Services\ContentSidebarWidget;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Mail;
 
 /**
@@ -62,22 +65,106 @@ class FatwaQuestionController
      * modernized here to `RecordsView`'s atomic increment (decision-log
      * #9 precedent: not an observable behavior change).
      *
-     * **Layout deliberately left unresolved** (per the approved technical
-     * plan, §3.4/§7): `answer.php` and `answer2.php` differ only in
-     * markup/CSS/element ordering, and which of the two the business
-     * wants has not been decided. The view backing this action
-     * (`fatawa.question-all`) renders the same data neutrally — using
-     * neither file's specific CSS class scheme nor its specific
-     * action-icon/table ordering — rather than silently picking one.
+     * **OWNER-APPROVED CANONICAL PRESENTATION: `answer2.php`.** The prior
+     * investigation ("`fatawa-all-{id}.htm` Reconstruction Report")
+     * established `DISPATCH_ORIGIN_UNKNOWN` — `.htaccess:295` targets
+     * `modules.php?op=all_questions`, and that dispatcher does not exist
+     * anywhere in this legacy snapshot, so no source proves which of
+     * `answer.php`/`answer2.php` legacy actually served at this URL. The
+     * business owner explicitly selected `answer2.php`'s markup as the
+     * migration's presentation reference (owner decision, not a
+     * rediscovered historical fact — do not read this docblock as
+     * `HISTORIC_HANDLER_PROVEN`). `fatawa.question-all` now reproduces
+     * `answer2.php`'s DOM structure specifically.
+     *
+     * `page_bar($cat_id, $id, $q)` (`fatawa/functions.php:239-292`) is the
+     * only chrome branch reachable through this route/controller contract
+     * — `answer2.php`'s `auther_id`/`channel` GET-param branches
+     * (`page_bar_auther()`/`page_bar_channels()`) have no equivalent
+     * route parameter here and are UNREACHABLE_IN_CURRENT_MIGRATION, not
+     * implemented. `$topicId`/`$categoryId` below replicate exactly what
+     * `answer2.php:20-32` resolves from `$_GET['q']` before calling
+     * `page_bar()` — same pattern `show()` already uses for `single.php`,
+     * applied here to the *general* question's own `topic_id` instead of
+     * one scholar answer's.
      */
-    public function showAll(int $generalQuestion, ContentListingService $listing): View
+    public function showAll(int $generalQuestion, ContentListingService $listing, ContentSidebarWidget $sidebar): View
     {
         $generalQuestionModel = FatwaGeneralQuestion::findOrFail($generalQuestion);
         $answers = $listing->fatwaQuestionsForGeneralQuestion($generalQuestion);
 
         $generalQuestionModel->recordView();
 
-        return view('fatawa.question-all', compact('generalQuestionModel', 'answers'));
+        $topicId = (int) str_replace('|', '', (string) $generalQuestionModel->topic_id);
+        $topicModel = $topicId > 0 ? FatwaTopic::find($topicId) : null;
+        $categoryId = $topicModel->parent_id ?? 0;
+        $categoryChain = $categoryId > 0 ? $this->pageBarCategoryChain($categoryId) : collect();
+
+        // answer2.php:100-103 — per-answer channel lookup for "مكان إصدار
+        // الفتوى" ($place_of_fataw). ContentListingService::fatwaQuestionsForGeneralQuestion()
+        // deliberately doesn't join this (shared by show() too, unchanged
+        // here) — fetched once here as a small, page-specific, keyed
+        // lookup rather than N+1 queries in the view or a service change.
+        $channels = Channel::whereIn('id', $answers->pluck('channel_id')->filter()->unique())
+            ->get()
+            ->keyBy('id');
+
+        $mostDownloaded = $categoryId > 0 ? $sidebar->fatwaMostDownloadedByCategory($categoryId) : collect();
+        $mostRecent = $categoryId > 0 ? $sidebar->fatwaMostRecentByCategory($categoryId) : collect();
+
+        return view('fatawa.question-all', compact(
+            'generalQuestionModel', 'answers', 'topicModel', 'categoryId', 'categoryChain',
+            'channels', 'mostDownloaded', 'mostRecent',
+        ));
+    }
+
+    /**
+     * `page_bar()`'s own bounded category-ancestor walk
+     * (`fatawa/functions.php:250-261`) — a DIFFERENT, narrower mechanism
+     * from `Category::breadcrumbTrail()` (the unbounded `main_cat` walk
+     * backing the unrelated, shared `title()`/`breadcrumb()`/
+     * `<x-page-chrome>` mechanism, deliberately NOT used on this page).
+     * Ported literally rather than simplified: the starting category is
+     * always included if it exists (title not required); up to 4 more
+     * iterations walk `main_cat`, each appending only when the
+     * newly-fetched row's title is non-empty (a title-less intermediate
+     * is skipped from display but the walk still continues past it) — a
+     * genuine legacy quirk (a deeply-nested category can silently lose
+     * its top-most ancestors from this one breadcrumb), reproduced as
+     * found. `krsort()` on legacy's sequentially-keyed array reverses
+     * insertion order; `->reverse()` here is the same operation.
+     *
+     * @return Collection<int, Category>
+     */
+    private function pageBarCategoryChain(int $categoryId): Collection
+    {
+        $chain = collect();
+
+        $current = Category::find($categoryId);
+        if ($current === null) {
+            return $chain;
+        }
+
+        $chain->push($current);
+
+        for ($i = 0; $i < 4; $i++) {
+            if ($current->main_cat == 0) {
+                continue;
+            }
+
+            $next = Category::find($current->main_cat);
+            if ($next === null) {
+                break;
+            }
+
+            if ($next->title !== null && $next->title !== '') {
+                $chain->push($next);
+            }
+
+            $current = $next;
+        }
+
+        return $chain->reverse()->values();
     }
 
     /**
