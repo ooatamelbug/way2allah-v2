@@ -37,12 +37,28 @@ use Spatie\Permission\Traits\HasRoles;
  *
  * @property int $userid
  * @property string $password
+ * @property string|null $username
+ * @property string|null $email
+ * @property int $posts
+ * @property int|null $avatarid
+ * @property string|null $membergroupids
+ * @property int|null $usergroupid
+ * @property int|null $joindate
+ * @property int|null $lastactivity
+ * @property int|null $lastpost
+ * @property string|null $usertitle
  *
- * Only the two columns VbulletinSessionGuard actually reads are declared —
- * unlike Channel's full confirmed column list, vBulletin's `user` table
- * schema beyond these two hasn't been read/confirmed by this migration
+ * The original two columns were declared because VbulletinSessionGuard
+ * reads them; the rest were added for `PermissionController::edit()`'s
+ * profile/stats portlets (AdminCP Final Page-Level Visual-Parity Closure,
+ * 2026-08-22) — confirmed by legacy `authors/edit_author.php` reading
+ * these exact column names unconditionally (no fallback/isset guards),
+ * and already independently modeled in `tests/Support/Fixtures/
+ * VbulletinSchema::user()` before this change. Beyond this set, vBulletin's
+ * `user` table schema still hasn't been read/confirmed by this migration
  * (ADR-0002: vendor internals are documented at integration-surface depth
- * only). Do not add more @property entries without that same evidence bar.
+ * only) — do not add further @property entries without that same
+ * evidence bar.
  */
 class VbUser extends Model implements AuthenticatableContract, AuthorizableContract
 {

@@ -34,6 +34,36 @@ it('lists staff', function () {
     $this->get(route('admin.staff.index'))->assertOk()->assertSee('colleague');
 });
 
+it('AdminCP Final 12-Route Browser Visual Evidence (2026-08-23): renders each staff member\'s real avatar thumbnail inline with their name, matching authors/index.php:251', function () {
+    InMemoryConnection::setup('main', [
+        'nuke_authors' => function (\Illuminate\Database\Schema\Blueprint $table) {
+            (MainSchema::nukeAuthors())($table);
+            $table->string('thumb')->nullable();
+        },
+    ]);
+    $admin = AdminUser::on('main')->create(['aid' => 'me', 'password' => 'x']);
+    $admin->givePermissionTo(Permission::firstOrCreate(['name' => 'authors.liststuff', 'guard_name' => 'admin']));
+    $this->actingAs($admin, 'admin');
+    AdminUser::on('main')->create(['aid' => 'colleague', 'password' => 'x'])->forceFill(['thumb' => '/images/avatars/colleague.png'])->save();
+
+    $content = $this->get(route('admin.staff.index'))->assertOk()->getContent();
+
+    expect($content)->toContain('<img class="user-pic" src="/images/avatars/colleague.png">');
+});
+
+// ---- Global Authenticated Design/CSS Parity (2026-08-23) ----
+
+it('the create page uses real Metronic form-control/btn classes, matching authors/index.php\'s real add-staff form', function () {
+    $admin = AdminUser::on('main')->create(['aid' => 'me', 'password' => 'x']);
+    $admin->givePermissionTo(Permission::firstOrCreate(['name' => 'authors.addstuff', 'guard_name' => 'admin']));
+    $this->actingAs($admin, 'admin');
+
+    $content = $this->get(route('admin.staff.create'))->assertOk()->getContent();
+
+    expect($content)->toContain('name="vbuid" required class="form-control"')
+        ->toContain('class="btn green"');
+});
+
 it('a regression test proving the new add-flow actually persists an AdminUser — proving the fix, not authors/index.php\'s die(\'hhhh\')', function () {
     $admin = AdminUser::on('main')->create(['aid' => 'me', 'password' => 'x']);
     $admin->givePermissionTo(Permission::firstOrCreate(['name' => 'authors.addstuff', 'guard_name' => 'admin']));

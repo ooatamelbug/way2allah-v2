@@ -149,7 +149,14 @@ class SurveyController
     {
         $answers = $survey->answers()->orderBy('id')->get();
 
-        return view('admin.survey.stats', compact('survey', 'answers'));
+        // `stats.php:117-121` — `LEFT JOIN users ON users.user_id = ans.user_id`
+        // (same `main` connection, real column, not a vbulletin lookup) to show
+        // the respondent's real forum username instead of a bare id.
+        $usernames = DB::connection('main')->table('users')
+            ->whereIn('user_id', $answers->pluck('user_id')->filter()->all())
+            ->pluck('user_name', 'user_id');
+
+        return view('admin.survey.stats', compact('survey', 'answers', 'usernames'));
     }
 
     /** `survey/answer.php` — one respondent's full question/answer breakdown. */
@@ -159,7 +166,12 @@ class SurveyController
 
         $questions = $survey->questionsRelation()->get();
 
-        return view('admin.survey.answer', compact('survey', 'answer', 'questions'));
+        // `answer.php:34-35` — same `LEFT JOIN users` used by `stats.php`, so the
+        // portlet caption shows the real forum username, not a bare id.
+        $username = $answer->isGuest() ? null : DB::connection('main')->table('users')
+            ->where('user_id', $answer->user_id)->value('user_name');
+
+        return view('admin.survey.answer', compact('survey', 'answer', 'questions', 'username'));
     }
 
     /**

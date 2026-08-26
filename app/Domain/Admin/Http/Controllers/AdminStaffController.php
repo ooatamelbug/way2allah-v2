@@ -37,7 +37,12 @@ class AdminStaffController
 {
     public function index(): View
     {
-        $staff = AdminUser::on('main')->orderByDesc('radminsuper')->orderBy('aid')->get(['id', 'uid', 'aid', 'email', 'radminsuper']);
+        // `thumb` added — AdminCP Final 12-Route Browser Visual Evidence
+        // (2026-08-23): authors/index.php:251's real name column always
+        // includes the staff member's `<img class="user-pic">` avatar
+        // inline with their name; display-only, not a permission/logic
+        // change.
+        $staff = AdminUser::on('main')->orderByDesc('radminsuper')->orderBy('aid')->get(['id', 'uid', 'aid', 'email', 'radminsuper', 'thumb']);
 
         return view('admin.staff.index', compact('staff'));
     }

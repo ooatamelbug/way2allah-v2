@@ -3,6 +3,7 @@
 namespace App\Domain\Admin\Http\Controllers;
 
 use App\Domain\Admin\Models\AdminUser;
+use App\Domain\Identity\Models\VbUser;
 use App\Support\Permission\Permission;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -30,6 +31,18 @@ use Illuminate\Support\Facades\Hash;
  * (`admincp.md` §8) — meaning no admin account could ever legitimately
  * receive a bcrypt hash through the legacy UI itself. Fixed here per
  * Blueprint §16 item 4/ADR-0010, not reproduced.
+ *
+ * `vbUser` (AdminCP Final Page-Level Visual-Parity Closure, 2026-08-22):
+ * legacy `edit_author.php` also renders 2 real, DB-backed portlets this
+ * class previously omitted — a profile-sidebar (avatar/name/vBulletin
+ * rank) and a profile-content member-stats block (post count, post rate,
+ * last activity/post, join date), both sourced from a single read-only
+ * `SELECT * FROM user WHERE userid = {uid}` against vBulletin's own
+ * database. Reconstructed here via the existing, already-real-only
+ * `VbUser` model (`connection = 'vbulletin'`) — no new database
+ * connection, no write access, no permission/auth semantics touched.
+ * Legacy's "حذف كمشرف" button in the same sidebar is a plain `<button>`
+ * with no handler/action anywhere — confirmed dead, not reproduced.
  */
 class PermissionController
 {
@@ -41,7 +54,9 @@ class PermissionController
 
         $assigned = $admin->getPermissionNames();
 
-        return view('admin.permissions.edit', compact('admin', 'permissionsByModule', 'assigned'));
+        $vbUser = $admin->uid ? VbUser::find($admin->uid) : null;
+
+        return view('admin.permissions.edit', compact('admin', 'permissionsByModule', 'assigned', 'vbUser'));
     }
 
     public function update(Request $request, AdminUser $admin): RedirectResponse

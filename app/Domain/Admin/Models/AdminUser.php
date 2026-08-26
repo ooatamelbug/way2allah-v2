@@ -31,8 +31,32 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string|null $thumb
  * @property string|null $admlanguage
  * @property bool $radminsuper
- * @property string|null $permissions
  * @property string|null $API
+ *
+ * `permissions` is deliberately NOT listed as an `@property` above, even
+ * though `nuke_authors.permissions` is a real, always-selected column
+ * (the legacy serialized-permissions blob `backupCategoryPermissions()`
+ * and the old admin sidebar read). It shares its name with Spatie's own
+ * `permissions()` `BelongsToMany` relation (`HasPermissions` trait), and
+ * Eloquent's attribute resolution checks loaded column attributes BEFORE
+ * relation methods — so on any row where this column is actually
+ * populated (every real row; only this project's own deliberately-trimmed
+ * `MainSchema::nukeAuthors()` test fixture omits it), `$this->permissions`
+ * silently returned the raw legacy string instead of Spatie's permission
+ * Collection. Several Spatie methods access the relation this exact
+ * property-style way internally (`getPermissionNames()`,
+ * `getAllPermissions()`, `givePermissionTo()`, `getDirectPermissions()`)
+ * — all of them broke on real data (`AdminCP Permissions Crash` finding,
+ * reproduced via `tinker` before this fix, not guessed). `getAttribute()`
+ * below is overridden for this one key only, forcing property-style
+ * access to always resolve the real Spatie relation — the same outcome
+ * `$this->permissions()` (method call) already gave safely. This does
+ * NOT touch the database, the column, or Spatie's own vendor code — the
+ * raw legacy blob is still fully present in storage and still readable
+ * via `getRawOriginal('permissions')` (used nowhere in current Laravel
+ * code — grepped fresh; `PermissionController` is the one real,
+ * Spatie-backed replacement for all 5 legacy permission-editor copies,
+ * per its own docblock, and no other current code reads this column).
  */
 class AdminUser extends Model implements AuthenticatableContract
 {
@@ -67,5 +91,19 @@ class AdminUser extends Model implements AuthenticatableContract
     public function currentStoredPassword(): string
     {
         return (string) ($this->getAttribute('password') ?: $this->getAttribute('pwd') ?: '');
+    }
+
+    /**
+     * `permissions` attribute/relationship collision fix — see the class
+     * docblock. Every OTHER attribute keeps Eloquent's normal resolution
+     * order; only this one key is redirected to the relation.
+     */
+    public function getAttribute($key)
+    {
+        if ($key === 'permissions') {
+            return $this->getRelationValue('permissions');
+        }
+
+        return parent::getAttribute($key);
     }
 }

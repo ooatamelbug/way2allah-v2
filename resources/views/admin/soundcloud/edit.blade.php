@@ -3,9 +3,11 @@
 @section('title', 'ساوندكلاود الرئيسية')
 
 @section('content')
-    <form method="post" action="{{ route('admin.soundcloud.update') }}">
-        @csrf
-        <label>رقم المقطع بالساوندكلاود <input type="text" name="soundcloud" value="{{ $trackId }}"></label>
-        <button type="submit">تحديث</button>
-    </form>
+    <x-admin-portlet title="مقطع الساوندكلاود">
+        <form method="post" action="{{ route('admin.soundcloud.update') }}">
+            @csrf
+            <label>رقم المقطع بالساوندكلاود <input type="text" name="soundcloud" value="{{ $trackId }}" class="form-control"></label>
+            <button type="submit" class="btn green">تحديث</button>
+        </form>
+    </x-admin-portlet>
 @endsection

@@ -7,6 +7,7 @@ use App\Domain\Admin\Models\SurveyQuestion;
 use App\Support\Permission\Permission;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\Fixtures\MainSchema;
+use Tests\Support\Fixtures\VbulletinSchema;
 use Tests\Support\InMemoryConnection;
 
 uses(RefreshDatabase::class);
@@ -133,4 +134,93 @@ it('admincp.md §5 fix: all_stats aggregates every respondent, not just the last
     $response = $this->get(route('admin.survey.all-stats', $survey));
 
     $response->assertOk()->assertSee('Red: 2')->assertSee('Blue: 1');
+});
+
+// ---- Survey Subpages Final Visual-Parity Closure (2026-08-23) ----
+
+it('the create page loads the real daterangepicker plugin (the only actually-effective date/time widget on this page) and renders #reportrange, not a bare native date input', function () {
+    InMemoryConnection::setup('vbulletin', ['usergroup' => VbulletinSchema::usergroup()]);
+    actingAsAdminWithSurveyPermission();
+
+    $content = $this->get(route('admin.survey.create'))->assertOk()->getContent();
+
+    expect($content)->toContain('bootstrap-daterangepicker/daterangepicker-bs3.css')
+        ->toContain('bootstrap-daterangepicker/moment.min.js')
+        ->toContain('bootstrap-daterangepicker/daterangepicker.js')
+        ->toContain('id="reportrange"')
+        ->toContain('id="start_date"')
+        ->not->toContain('type="date" name="start_date"');
+});
+
+it('the create page does NOT load datepicker/timepicker/datetimepicker CSS — confirmed CONFIGURED_BUT_INERT, no matching selector exists on this page', function () {
+    InMemoryConnection::setup('vbulletin', ['usergroup' => VbulletinSchema::usergroup()]);
+    actingAsAdminWithSurveyPermission();
+
+    $content = $this->get(route('admin.survey.create'))->assertOk()->getContent();
+
+    expect($content)->not->toContain('bootstrap-datepicker')
+        ->not->toContain('bootstrap-timepicker')
+        ->not->toContain('bootstrap-datetimepicker');
+});
+
+it('the questions/reorder page loads the real jquery-nestable plugin and renders a real .dd/.dd-item drag list, not a static <ol>', function () {
+    actingAsAdminWithSurveyPermission();
+    $survey = Survey::create(['title' => 'T']);
+    SurveyQuestion::create(['title' => 'Q1', 'survey_id' => $survey->id, 'question_type' => 1, 'weight' => 1]);
+    SurveyQuestion::create(['title' => 'Q2', 'survey_id' => $survey->id, 'question_type' => 1, 'weight' => 2]);
+
+    $content = $this->get(route('admin.survey.questions.index', $survey))->assertOk()->getContent();
+
+    expect($content)->toContain('jquery-nestable/jquery.nestable.css')
+        ->toContain('jquery-nestable/jquery.nestable-rtl.js')
+        ->toContain('id="nestable_list_1"')
+        ->toContain('class="dd-item"')
+        ->toContain('class="dd-handle"');
+});
+
+it('the all-stats page loads no page-specific plugin CSS/JS at all — confirmed zero effective widget usage anywhere in its real legacy markup', function () {
+    actingAsAdminWithSurveyPermission();
+    $survey = Survey::create(['title' => 'T']);
+
+    $content = $this->get(route('admin.survey.all-stats', $survey))->assertOk()->getContent();
+
+    expect($content)->not->toContain('bootstrap-datepicker')
+        ->not->toContain('bootstrap-timepicker')
+        ->not->toContain('bootstrap-daterangepicker')
+        ->not->toContain('bootstrap-datetimepicker')
+        ->not->toContain('jquery-nestable');
+});
+
+it('survey-specific page assets do not leak onto the survey index or the dashboard', function () {
+    actingAsAdminWithSurveyPermission();
+
+    $indexContent = $this->get(route('admin.survey.index'))->assertOk()->getContent();
+
+    expect($indexContent)->not->toContain('daterangepicker')
+        ->not->toContain('jquery-nestable');
+});
+
+// ---- Global Authenticated Design/CSS Parity (2026-08-23) ----
+
+it('the create page\'s title/openning/finish fields use real Metronic form-control classes, matching add_survey.php', function () {
+    InMemoryConnection::setup('vbulletin', ['usergroup' => VbulletinSchema::usergroup()]);
+    actingAsAdminWithSurveyPermission();
+
+    $content = $this->get(route('admin.survey.create'))->assertOk()->getContent();
+
+    expect($content)->toContain('name="title" required class="form-control"')
+        ->toContain('name="openning" class="form-control"')
+        ->toContain('name="finish" class="form-control"');
+});
+
+it('the add-question form fields use real Metronic form-control classes, matching add_question.php', function () {
+    actingAsAdminWithSurveyPermission();
+    $survey = Survey::create(['title' => 'T']);
+
+    $content = $this->get(route('admin.survey.questions.index', $survey))->assertOk()->getContent();
+
+    expect($content)->toContain('name="title" required class="form-control"')
+        ->toContain('name="des" class="form-control"')
+        ->toContain('name="required" class="form-control"')
+        ->toContain('name="question_type" required class="form-control"');
 });

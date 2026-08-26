@@ -40,6 +40,18 @@ beforeEach(function () {
     useInMemoryConnectionForLinkQuality();
 });
 
+// ---- Global Authenticated Design/CSS Parity (2026-08-23) ----
+
+it('the mirror/khotab/telawah pages use a real Metronic btn class on the recompute button', function () {
+    actingAsAdminWithRepairPermission('khotab.repair');
+
+    $mirrorContent = $this->get(route('admin.link-quality.mirror.index'))->assertOk()->getContent();
+    $khotabContent = $this->get(route('admin.link-quality.khotab.index'))->assertOk()->getContent();
+
+    expect($mirrorContent)->toContain('class="btn green">تحديث النسب')
+        ->and($khotabContent)->toContain('class="btn green">تحديث النسب');
+});
+
 it('mirror: lists only rows whose percent is mismatched, excluding youtube/soundcloud links', function () {
     actingAsAdminWithRepairPermission('khotab.repair');
     Mirror::create(['khid' => 1, 'link' => 'https://example.com/a.mp4', 'linksize' => 1000, 'online' => 500, 'percent' => 50, 'time' => 100]);

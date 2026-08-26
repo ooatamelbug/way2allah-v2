@@ -1,8 +1,8 @@
 <?php
 
+use App\Domain\Admin\Http\Controllers\AdminAuthController;
 use App\Domain\Admin\Http\Controllers\BroadcastingController;
 use App\Domain\Admin\Http\Controllers\AdminStaffController;
-use App\Domain\Admin\Http\Controllers\ChatRoomAdminController;
 use App\Domain\Admin\Http\Controllers\LinkQualityStatsController;
 use App\Domain\Admin\Http\Controllers\UploaderController;
 use App\Domain\Admin\Http\Controllers\LocationsController;
@@ -18,17 +18,32 @@ use Illuminate\Support\Facades\Route;
 | Admin Routes (Blueprint v1.0 §7, Roadmap task 1.6, Wave 5)
 |--------------------------------------------------------------------------
 |
-| Every route requires 'admin.role' (any authenticated admin — a super-admin
-| always passes, per AdminGuard/RoleSeeder). Feature-specific actions also
-| require 'admin.permission:{module}.{key}', matching the legacy
-| $authorization[$module] key from that feature's own menu.php exactly
-| (decision-log #9) — a plain admin without that specific permission gets
-| a real 403 here. This is stricter than legacy ever was, deliberately:
-| sidebar.php's own use of this same data only ever hid the nav link,
-| never blocked the page itself (decision-log #10 — a ratified hardening,
-| not a port of existing legacy access control).
+| Every FEATURE route below requires 'admin.role' (any authenticated admin
+| — a super-admin always passes, per AdminGuard/RoleSeeder). Feature-specific
+| actions also require 'admin.permission:{module}.{key}', matching the
+| legacy $authorization[$module] key from that feature's own menu.php
+| exactly (decision-log #9) — a plain admin without that specific
+| permission gets a real 403 here. This is stricter than legacy ever was,
+| deliberately: sidebar.php's own use of this same data only ever hid the
+| nav link, never blocked the page itself (decision-log #10 — a ratified
+| hardening, not a port of existing legacy access control).
+|
+| The 3 entry-point routes just below (`/admincp/` GET/login POST/logout
+| POST) are deliberately OUTSIDE the 'admin.role' group — they ARE the
+| unauthenticated surface, per the owner decision superseding Wave 5's
+| "no login/dashboard UI" exclusion (decision-log entry, `/admincp/`
+| Login + Dashboard Completion). `AdminAuthController::entry()` still
+| internally requires a real AdminGuard session to render the dashboard
+| half of its own single-route branch — this is not a weakening of the
+| feature routes' own authorization below, which is unchanged.
 |
 */
+
+Route::prefix('admincp')->name('admin.')->group(function () {
+    Route::get('/', [AdminAuthController::class, 'entry'])->name('entry');
+    Route::post('/login', [AdminAuthController::class, 'login'])->name('login');
+    Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
+});
 
 Route::middleware(['admin.role'])->prefix('admincp')->name('admin.')->group(function () {
 
@@ -101,31 +116,33 @@ Route::middleware(['admin.role'])->prefix('admincp')->name('admin.')->group(func
         Route::get('/{response}', [QuestionnaireController::class, 'show'])->name('show');
     });
 
-    // Roadmap task 5.10 — broadcasting/'s working half.
+    // Roadmap task 5.10 — broadcasting/'s working half. `index` added in the
+    // Admin Broadcasting Final Closure task (2026-08-22) — reconstructs
+    // legacy `index.php?op=editstream`'s real channel-list branch, source-
+    // confirmed functional though never linked from legacy's own sidebar
+    // (menu.php hardcoded a direct link to a single channel, id=51,
+    // bypassing the list entirely). Same permission key as `edit`/`update`
+    // — legacy's own `$authorization['broadcasting']['editstream']` gated
+    // this exact operation, no new key introduced.
     Route::middleware(['admin.permission:broadcasting.editstream'])->prefix('broadcasting')->name('broadcasting.')->group(function () {
+        Route::get('/', [BroadcastingController::class, 'index'])->name('index');
         Route::get('/{channel}', [BroadcastingController::class, 'edit'])->name('edit');
         Route::put('/{channel}', [BroadcastingController::class, 'update'])->name('update');
     });
 
-    // Roadmap task 5.5 — chat/'s working half. listrooms gates the
-    // directory + view; editroom gates the real (rebuilt, IF-034 — this
-    // comment previously misnumbered it IF-036) edit capability — matching
-    // the legacy key split even though the legacy edit form itself never
-    // actually enforced it (no backend existed). View routes accept either
-    // permission — an admin holding only editroom still needs to reach the
-    // edit form to submit a change (wave-5-verification-review.md Finding
-    // 2, decision-log #10).
-    Route::prefix('chat')->name('chat.')->group(function () {
-        Route::middleware(['admin.permission:chat.listrooms,chat.editroom'])->group(function () {
-            Route::get('/', [ChatRoomAdminController::class, 'index'])->name('index');
-            Route::get('/{room}', [ChatRoomAdminController::class, 'edit'])->name('edit');
-        });
-        Route::middleware(['admin.permission:chat.editroom'])->group(function () {
-            Route::put('/{room}', [ChatRoomAdminController::class, 'update'])->name('update');
-            Route::delete('/{room}/owner/{username}', [ChatRoomAdminController::class, 'removeOwner'])->name('owner.destroy');
-            Route::delete('/{room}/speaker/{username}', [ChatRoomAdminController::class, 'removeSpeaker'])->name('speaker.destroy');
-        });
-    });
+    // Roadmap task 5.5's `admin.chat.*` routes (FlashChat live voice-room
+    // administration) were removed here — Final Migration Owner-Decision
+    // Closure (2026-08-23, decision-log): the live-room feature itself is
+    // retired with no replacement (Business Confirmation #4), and the
+    // owner decided `CHAT_ROOM_ADMIN = REMOVE` rather than keep admin
+    // tooling for a feature that no longer exists. The `chat.listrooms`/
+    // `chat.editroom` Spatie permission definitions are left seeded
+    // (harmless, real legacy key names, matching the already-established
+    // `EXPECTED_LEGACY_PERMISSION_METADATA` precedent) — not removed here.
+    // `App\Domain\Content\Http\Controllers\ChatRoomLessonController`'s
+    // recorded-lesson-browsing routes (chat_room.htm, chat_author_{id}.htm,
+    // chat_lesson_{id}.htm, lesson-download-{id}.htm, in routes/content.php)
+    // are a completely separate, unrelated, active capability — untouched.
 
     // Roadmap task 5.9 — khotab/uploader(s).php. The add-uploader form is
     // deliberately not routed at all (UploaderController's own docblock).

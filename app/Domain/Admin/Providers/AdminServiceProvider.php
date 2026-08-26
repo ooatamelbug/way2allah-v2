@@ -4,8 +4,13 @@ namespace App\Domain\Admin\Providers;
 
 use App\Domain\Admin\Http\Middleware\EnsureAdminHasPermission;
 use App\Domain\Admin\Http\Middleware\EnsureAdminHasRole;
+use App\Domain\Admin\Models\AdminUser;
+use App\Domain\Admin\Support\AdminDashboardModules;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\View\View as ViewInstance;
 
 /**
  * Registers the Admin domain's route file and its permission-middleware
@@ -29,5 +34,21 @@ class AdminServiceProvider extends ServiceProvider
         // to store the logged-in admin's id (found by actually running the
         // route through a test request, not by inspection).
         Route::middleware('web')->group(base_path('routes/admin.php'));
+
+        // AdminCP Full Visual/Layout Parity Reconstruction (2026-08-22):
+        // every one of the ~15 feature controllers renders a view that
+        // `@extends('layouts.admin')` for its shell/sidebar/header — a view
+        // composer here is the one place that supplies the authenticated
+        // admin + permission-filtered sidebar module list, instead of every
+        // controller repeating `Auth::guard('admin')->user()` +
+        // `AdminDashboardModules::visibleFor()` in its own action.
+        View::composer('layouts.admin', function (ViewInstance $view) {
+            $admin = Auth::guard('admin')->user();
+
+            $view->with('adminUser', $admin);
+            $view->with('sidebarModules', $admin instanceof AdminUser
+                ? app(AdminDashboardModules::class)->visibleFor($admin)
+                : []);
+        });
     }
 }

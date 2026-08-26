@@ -10,8 +10,7 @@ use Illuminate\Support\Facades\DB;
  * `uid`/`username` for every uploader row still at `uid=0` by matching
  * email against the vBulletin `user` table. One query per unresolved
  * uploader, matching the legacy loop shape exactly (small, bounded list —
- * not the kind of N+1 worth batching for, same reasoning already applied
- * to `ChatRoomAdminController::resolveVbulletinUsers()`).
+ * not the kind of N+1 worth batching for a small, bounded list).
  */
 class BackfillUploaderVbulletinIdentityAction
 {

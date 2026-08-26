@@ -42,6 +42,16 @@ it('lists uploaders', function () {
     $this->get(route('admin.uploaders.index'))->assertOk()->assertSee('ahmed');
 });
 
+// ---- Global Authenticated Design/CSS Parity (2026-08-23) ----
+
+it('the index page uses real Metronic btn-success classes, matching khotab/uploaders.php\'s real <a class="btn btn-success"> controls', function () {
+    actingAsAdminWithUploadersPermission();
+
+    $content = $this->get(route('admin.uploaders.index'))->assertOk()->getContent();
+
+    expect(substr_count($content, 'class="btn btn-success"'))->toBe(2);
+});
+
 it('recomputes counter/last_upload from nuke_islamic_khotab, matching uploader.php:12-20', function () {
     actingAsAdminWithUploadersPermission();
     $uploader = Uploader::create(['uid' => 1, 'username' => 'ahmed', 'email' => 'ahmed@example.com', 'counter' => 0]);
