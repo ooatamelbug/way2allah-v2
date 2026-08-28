@@ -244,6 +244,22 @@ it('showAll: renders page_bar()\'s own empty <h1 style=""> chrome and breadcrumb
     expect($content)->toContain('<a href="/fatawa-all-100.htm">Shared question </a>');
 });
 
+it('showAll: category breadcrumb links include the required {page} segment (Repair Batch 1, decision-log #52) — the old 1-segment URL is no longer generated', function () {
+    seedFatwaAllParityFixture();
+
+    $content = $this->get('/fatawa-all-100.htm')->getContent();
+
+    expect($content)
+        ->toContain('/fatawa-topics-1-1.htm')
+        ->toContain('/fatawa-topics-2-1.htm')
+        ->not->toContain('href="/fatawa-topics-1.htm"')
+        ->not->toContain('href="/fatawa-topics-2.htm"');
+
+    // The corrected URL must actually resolve, not just look plausible.
+    $this->get('/fatawa-topics-1-1.htm')->assertOk();
+    $this->get('/fatawa-topics-2-1.htm')->assertOk();
+});
+
 it('showAll: reproduces answer2.php\'s two-column table row (not answer.php\'s stacked colspan row)', function () {
     seedFatwaAllParityFixture();
 

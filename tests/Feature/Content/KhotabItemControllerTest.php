@@ -53,16 +53,120 @@ it('show: 404s for a hidden item', function () {
     $this->get('/khotab-item-1.htm')->assertNotFound();
 });
 
-it('show: 404s when the item belongs to a hidden series', function () {
+// ---- Missing-series repair (decision-log #55), MIGRATION_STRICTNESS_DEFECT,
+// owner-approved, explicitly NOT legacy parity — see class docblock. ----
+
+it('show: renders normally, without a series breadcrumb crumb, when ser_id references a series row that does not exist at all', function () {
+    insertKhotabAuthor();
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 1, 'ser_id' => 999999, 'title' => 'Orphan Series Item',
+        'description' => 'A real description', 'vedio' => 1, 'hidden' => 0, 'hits' => 5, 'downcount' => 2,
+    ]);
+
+    $response = $this->get('/khotab-item-1.htm');
+    $content = $response->assertOk()->getContent();
+
+    expect($content)->toContain('Orphan Series Item')
+        ->and($content)->toContain('A real description')
+        ->and($content)->not->toContain('/khotab-series-999999.htm')
+        ->and($content)->not->toContain('سلسلة Orphan'); // no "series {title}" breadcrumb text emitted
+});
+
+it('show: an orphan-series item still renders download/PDF actions, mirrors, and comments — series absence only omits the breadcrumb crumb', function () {
+    insertKhotabAuthor();
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 1, 'ser_id' => 999999, 'title' => 'Item', 'vedio' => 1, 'hidden' => 0,
+        'pdf' => 1, 'comments' => 1,
+    ]);
+    DB::connection('main')->table('nuke_islamic_mirror')->insert([
+        'id' => 1, 'khid' => 1, 'comment' => 'HD quality', 'link' => '/tmp/x.mp4', 'linksize' => 100, 'hits' => 3,
+    ]);
+    DB::connection('main')->table('nuke_islamic_comments')->insert([
+        'id' => 1, 'khid' => 1, 'uname' => 'A commenter', 'comment' => 'A real comment', 'view' => 1, 'mytime' => 100,
+    ]);
+
+    $content = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('/khotab-download-1.htm')
+        ->and($content)->toContain('/khotab-item-pdf-1.htm')
+        ->and($content)->toContain('HD quality')
+        ->and($content)->toContain('A real comment');
+});
+
+it('show: ser_id=0 items are unaffected by the missing-series repair — no series lookup is attempted, no breadcrumb crumb, unchanged from before', function () {
+    insertKhotabAuthor();
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 1, 'ser_id' => 0, 'title' => 'Plain Item', 'vedio' => 1, 'hidden' => 0,
+    ]);
+
+    $content = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
+    $breadcrumb = substr($content, (int) strpos($content, 'page-breadcrumb'), 800);
+
+    expect($content)->toContain('Plain Item')
+        ->and($breadcrumb)->not->toContain('khotab-series-');
+});
+
+it('show: a valid, visible series still renders the series breadcrumb crumb exactly as before — regression guard for the missing-series repair', function () {
     insertKhotabAuthor();
     DB::connection('main')->table('nuke_islamic_series')->insert([
-        'id' => 10, 'author_id' => 1, 'title' => 'Series', 'vedio' => 1, 'hidden' => 1,
+        'id' => 10, 'author_id' => 1, 'title' => 'My Series', 'vedio' => 1, 'hidden' => 0,
+    ]);
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 1, 'ser_id' => 10, 'title' => 'Series Item', 'vedio' => 1, 'hidden' => 0,
+    ]);
+
+    $content = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('<li><a href="/khotab-series-10.htm">سلسلة My Series</a><i class="fa fa-angle-right"></i></li>');
+});
+
+// ---- Hidden-series repair (decision-log #56), owner-approved as
+// ITEM_VISIBILITY_IS_INDEPENDENT (candidate B), explicitly NOT legacy
+// parity — see class docblock. Merged into the same null-series branch as
+// the missing-series repair above; KhotabSeriesController deliberately
+// untouched (see KhotabSeriesControllerTest for its own 404 regression). ----
+
+it('show: renders normally, without a series breadcrumb crumb, when ser_id references a series that exists but is hidden', function () {
+    insertKhotabAuthor();
+    DB::connection('main')->table('nuke_islamic_series')->insert([
+        'id' => 10, 'author_id' => 1, 'title' => 'Hidden Series', 'vedio' => 1, 'hidden' => 1,
+    ]);
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 1, 'ser_id' => 10, 'title' => 'Hidden-Series Item',
+        'description' => 'A real description', 'vedio' => 1, 'hidden' => 0,
+    ]);
+
+    $content = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
+    $breadcrumb = substr($content, (int) strpos($content, 'page-breadcrumb'), 800);
+
+    expect($content)->toContain('Hidden-Series Item')
+        ->and($content)->toContain('A real description')
+        ->and($breadcrumb)->not->toContain('khotab-series-')
+        ->and($content)->not->toContain('Hidden Series'); // the hidden series' own title never appears anywhere
+});
+
+it('show: a hidden-series item still renders download/PDF actions, mirrors, and comments — matching the missing-series repair\'s own content-independence guarantee', function () {
+    insertKhotabAuthor();
+    DB::connection('main')->table('nuke_islamic_series')->insert([
+        'id' => 10, 'author_id' => 1, 'title' => 'Hidden Series', 'vedio' => 1, 'hidden' => 1,
     ]);
     DB::connection('main')->table('nuke_islamic_khotab')->insert([
         'id' => 1, 'author' => 1, 'ser_id' => 10, 'title' => 'Item', 'vedio' => 1, 'hidden' => 0,
+        'pdf' => 1, 'comments' => 1,
+    ]);
+    DB::connection('main')->table('nuke_islamic_mirror')->insert([
+        'id' => 1, 'khid' => 1, 'comment' => 'HD quality', 'link' => '/tmp/x.mp4', 'linksize' => 100, 'hits' => 3,
+    ]);
+    DB::connection('main')->table('nuke_islamic_comments')->insert([
+        'id' => 1, 'khid' => 1, 'uname' => 'A commenter', 'comment' => 'A real comment', 'view' => 1, 'mytime' => 100,
     ]);
 
-    $this->get('/khotab-item-1.htm')->assertNotFound();
+    $content = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('/khotab-download-1.htm')
+        ->and($content)->toContain('/khotab-item-pdf-1.htm')
+        ->and($content)->toContain('HD quality')
+        ->and($content)->toContain('A real comment');
 });
 
 it('show: 404s when the item belongs to a hidden group', function () {

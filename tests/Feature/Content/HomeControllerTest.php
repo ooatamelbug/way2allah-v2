@@ -43,6 +43,10 @@ it('/: renders 200 even with every table completely empty (no fatal on any secti
     $response->assertOk();
 });
 
+it('/: still generates the real /recite-news.htm link (Repair Batch 1, decision-log #52) — this task did not touch home.blade.php\'s own widget/query', function () {
+    $this->get('/')->assertOk()->assertSee('href="/recite-news.htm"', false);
+});
+
 it('/: replaces the stock Laravel welcome page', function () {
     $content = $this->get('/')->assertOk()->getContent();
 
@@ -370,4 +374,17 @@ it('/: renders no slider markup or slider-specific assets when there are no acti
     expect($content)->not->toContain('page-slider')
         ->and($content)->not->toContain('revolution-slider/rs-plugin')
         ->and($content)->not->toContain('revo-slider-init.js');
+});
+
+// ---- Shared-nav relative-href repair (decision-log #57), sitewide audit
+// finding #3 — regression guard on a flat root page. See
+// W2acdControllerTest for the actual nested-path bug this repairs. ----
+
+it('/: the shared navigation renders root-relative hrefs, unchanged in destination from before this repair — no regression on a flat root page', function () {
+    $content = $this->get('/')->assertOk()->getContent();
+
+    expect($content)->not->toMatch('/href="[a-zA-Z][a-zA-Z0-9_.\-]*\.htm"/')
+        ->and($content)->toContain('href="/categories.htm"')
+        ->and($content)->toContain('href="/cds-main.htm"')
+        ->and($content)->toContain('action="/search.htm"');
 });

@@ -1,18 +1,32 @@
 {{--
     Global Chrome step — ported verbatim from legacy header.php:246-525's
     `.header-navigation` block. Every menu link below is legacy's own
-    hardcoded, DB-free href, kept exactly as written there (relative, no
-    leading slash — legacy's pretty URLs are all root-level, same as
-    Laravel's routes here, so relative hrefs resolve identically). Links
-    to not-yet-migrated pages are kept as-is and will 404 until those
-    routes exist — out of scope for this global-chrome-only step, not a
-    bug introduced here. `categories.htm`/`fatawa-categories.htm` (closed
-    in later waves) and `video-advanced-search.htm` (G-09-01, Phase 1
-    audit — routed to the existing `KhotabSearchController`) are no longer
-    in that category; this comment is not otherwise updated per link.
+    hardcoded, DB-free href. Links to not-yet-migrated pages are kept
+    as-is and will 404 until those routes exist — out of scope for this
+    global-chrome-only step, not a bug introduced here. `categories.htm`/
+    `fatawa-categories.htm` (closed in later waves) and
+    `video-advanced-search.htm` (G-09-01, Phase 1 audit — routed to the
+    existing `KhotabSearchController`) are no longer in that category;
+    this comment is not otherwise updated per link.
 
     Not reproduced: the commented-out "Mega Menu" block (header.php:353-408
     — legacy's own dead code, still commented out in the source).
+
+    **w2acd relative-nav repair (decision-log #57), `BUSINESS_REPAIR_LOW_RISK`,
+    explicitly NOT legacy parity.** Every `.htm` href/`search.htm` form
+    action below was, until this repair, written bare-relative (no
+    leading `/`) — byte-faithful to legacy's own `header.php`. Legacy's
+    own pretty URLs are all root-level, so a bare-relative href resolves
+    identically to a root-relative one from any FLAT page — but this
+    partial is also rendered on several genuinely nested-path pages
+    (`/w2acd/cds.php`, `/w2acd/item.php`, and others), where the browser
+    resolves the same bare href against the current nested directory
+    instead (e.g. `categories.htm` → `/w2acd/categories.htm`, a 404).
+    Every link below is now root-relative (a leading `/`) — a verified
+    no-op on every flat page (root-relative and bare-relative resolve
+    identically there) and the actual fix for every nested one. No link
+    target, route, or URL shape changed — only how the browser resolves
+    the existing target.
 --}}
 <ul>
     <li>
@@ -22,46 +36,46 @@
     <li class="dropdown">
         <a class="dropdown-toggle" data-toggle="dropdown" data-target="#" href="#">المرئيات</a>
         <ul class="dropdown-menu">
-            <li><a href="categories.htm">حسب التصنيف الموضوعي</a></li>
-            <li><a href="khotab-video.htm">حسب أسماء الشيوخ</a></li>
-            <li><a href="channels.htm">حسب القنوات</a></li>
-            <li><a href="khotab-video-today.htm">حسب تاريخ الإضافة</a></li>
-            <li><a href="video-advanced-search.htm">بحث فى المرئيات</a></li>
+            <li><a href="/categories.htm">حسب التصنيف الموضوعي</a></li>
+            <li><a href="/khotab-video.htm">حسب أسماء الشيوخ</a></li>
+            <li><a href="/channels.htm">حسب القنوات</a></li>
+            <li><a href="/khotab-video-today.htm">حسب تاريخ الإضافة</a></li>
+            <li><a href="/video-advanced-search.htm">بحث فى المرئيات</a></li>
         </ul>
     </li>
 
     <li class="dropdown">
         <a class="dropdown-toggle" data-toggle="dropdown" data-target="#" href="#">صوتيات</a>
         <ul class="dropdown-menu">
-            <li><a href="khotab-audio.htm">دروس ومحاضرات</a></li>
-            <li><a href="recite.htm">تلاوات قرآنية</a></li>
+            <li><a href="/khotab-audio.htm">دروس ومحاضرات</a></li>
+            <li><a href="/recite.htm">تلاوات قرآنية</a></li>
         </ul>
     </li>
 
     <li class="dropdown">
         <a class="dropdown-toggle" data-toggle="dropdown" data-target="#" href="#">الفتاوى</a>
         <ul class="dropdown-menu">
-            <li><a href="fatawa-categories.htm">حسب التصنيف الموضوعي</a></li>
-            <li><a href="fatawa-authors.htm">حسب أسماء الشيوخ</a></li>
-            <li><a href="fatawa-channels.htm">حسب القنوات</a></li>
-            <li><a href="fatawa-today.htm">حسب تاريخ الإضافة</a></li>
+            <li><a href="/fatawa-categories.htm">حسب التصنيف الموضوعي</a></li>
+            <li><a href="/fatawa-authors.htm">حسب أسماء الشيوخ</a></li>
+            <li><a href="/fatawa-channels.htm">حسب القنوات</a></li>
+            <li><a href="/fatawa-today.htm">حسب تاريخ الإضافة</a></li>
         </ul>
     </li>
 
     <li class="dropdown">
         <a class="dropdown-toggle" data-toggle="dropdown" data-target="#" href="#">منوعات</a>
         <ul class="dropdown-menu">
-            <li><a href="var-group-98.htm">أناشيد اسلامية</a></li>
-            <li><a href="var-group-16.htm">مقاطع مؤثرة</a></li>
-            <li><a href="var-group-57.htm">كرتون أطفال</a></li>
-            <li><a href="var-group-12.htm">أفلام وثائقية</a></li>
+            <li><a href="/var-group-98.htm">أناشيد اسلامية</a></li>
+            <li><a href="/var-group-16.htm">مقاطع مؤثرة</a></li>
+            <li><a href="/var-group-57.htm">كرتون أطفال</a></li>
+            <li><a href="/var-group-12.htm">أفلام وثائقية</a></li>
         </ul>
     </li>
 
     <li class="dropdown">
         <a class="dropdown-toggle" data-toggle="dropdown" data-target="#" href="#">البث المباشر</a>
         <ul class="dropdown-menu">
-            <li><a href="radio.htm">راديو الطريق إلى الله</a></li>
+            <li><a href="/radio.htm">راديو الطريق إلى الله</a></li>
             <li><a target="_blank" href="https://www.facebook.com/Way2Allah.Fb/">البث المباشر</a></li>
         </ul>
     </li>
@@ -69,11 +83,11 @@
     <li class="dropdown">
         <a class="dropdown-toggle" data-toggle="dropdown" data-target="#" href="#">إصدارات الموقع</a>
         <ul class="dropdown-menu">
-            <li><a href="var-group-158.htm">مقاطع مرئية</a></li>
-            <li><a href="khotab-pdf.htm">المواد المفرغة</a></li>
-            <li><a href="gallery.htm">تصميمات دعوية</a></li>
-            <li><a href="cds-main.htm">إسطوانات دعوية</a></li>
-            <li><a href="category-487.htm">برامج حصرية لشبكة الطريق إلى الله</a></li>
+            <li><a href="/var-group-158.htm">مقاطع مرئية</a></li>
+            <li><a href="/khotab-pdf.htm">المواد المفرغة</a></li>
+            <li><a href="/gallery.htm">تصميمات دعوية</a></li>
+            <li><a href="/cds-main.htm">إسطوانات دعوية</a></li>
+            <li><a href="/category-487.htm">برامج حصرية لشبكة الطريق إلى الله</a></li>
         </ul>
     </li>
 
@@ -81,33 +95,33 @@
         <a class="dropdown-toggle" data-toggle="dropdown" data-target="#" href="#">أقسام خاصة</a>
         <ul class="dropdown-menu">
             <li><a href="https://way2allah.com/eye/">حملة عينك أمانة</a></li>
-            <li><a href="khotab-series-638.htm">على فين ياشباب</a></li>
-            <li><a href="khotab-series-867.htm">أنا لازم اتغير</a></li>
-            <li><a href="khotab-group-6.htm">الطريق الى الله</a></li>
-            <li><a href="khotab-series-510.htm">ابدأ من جديد</a></li>
-            <li><a href="khotab-series-893.htm">لكِ .. يا أختاه</a></li>
-            <li><a href="khotab-series-568.htm">الشباب والزواج</a></li>
-            <li><a href="khotab-series-105.htm">الطريق الى القرآن</a></li>
-            <li><a href="khotab-video-95.htm">الأكاديمية الإسلامية</a></li>
-            <li><a href="category-397.htm">الأكاديمية الإسلامية 1433-2012</a></li>
+            <li><a href="/khotab-series-638.htm">على فين ياشباب</a></li>
+            <li><a href="/khotab-series-867.htm">أنا لازم اتغير</a></li>
+            <li><a href="/khotab-group-6.htm">الطريق الى الله</a></li>
+            <li><a href="/khotab-series-510.htm">ابدأ من جديد</a></li>
+            <li><a href="/khotab-series-893.htm">لكِ .. يا أختاه</a></li>
+            <li><a href="/khotab-series-568.htm">الشباب والزواج</a></li>
+            <li><a href="/khotab-series-105.htm">الطريق الى القرآن</a></li>
+            <li><a href="/khotab-video-95.htm">الأكاديمية الإسلامية</a></li>
+            <li><a href="/category-397.htm">الأكاديمية الإسلامية 1433-2012</a></li>
         </ul>
     </li>
 
     <li>
-        <a class="dropdown-toggle" data-target="#" href="chat_room.htm">غرفة الهداية</a>
+        <a class="dropdown-toggle" data-target="#" href="/chat_room.htm">غرفة الهداية</a>
     </li>
 
     <li>
-        <a class="dropdown-toggle" data-target="#" href="social.htm">تابعنا</a>
+        <a class="dropdown-toggle" data-target="#" href="/social.htm">تابعنا</a>
     </li>
 
     <li class="dropdown">
         <a class="dropdown-toggle" data-toggle="dropdown" data-target="#" href="#">اتصل بنا</a>
         <ul class="dropdown-menu">
-            <li><a href="landing_page.htm">من نحن</a></li>
-            <li><a href="social.htm">تابعنا</a></li>
+            <li><a href="/landing_page.htm">من نحن</a></li>
+            <li><a href="/social.htm">تابعنا</a></li>
             <li><a href="https://m.me/Way2allahCom" target="_blank">راسلنا</a></li>
-            <li><a href="share.htm">إنشر الموقع</a></li>
+            <li><a href="/share.htm">إنشر الموقع</a></li>
         </ul>
     </li>
 
@@ -151,7 +165,7 @@
                     @endforeach
                 }
             </script>
-            <form class="form-horizontal w2a_advanced_search" name="w2a_search_form" id="w2a_search_form" method="post" action="search.htm">
+            <form class="form-horizontal w2a_advanced_search" name="w2a_search_form" id="w2a_search_form" method="post" action="/search.htm">
                 @csrf
                 <div class="form-group">
                     <label for="w2a_kh_title" class="col-sm-4 control-label">اسم السلسلة أو المادة :</label>

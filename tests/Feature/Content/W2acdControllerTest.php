@@ -350,3 +350,40 @@ it('show: sidebar portlets use the blue top_side color variant, matching most_do
 
     expect(substr_count($content, 'class="portlet box blue top_side"'))->toBe(2);
 });
+
+// ---- Shared-nav relative-href repair (decision-log #57), sitewide audit
+// finding #3, BUSINESS_REPAIR_LOW_RISK, explicitly NOT legacy parity — the
+// shared nav (layouts/partials/navigation.blade.php) is rendered on this
+// module's own genuinely nested-path pages (/w2acd/cds.php, /w2acd/item.php),
+// where a bare-relative href resolves against /w2acd/ instead of the site
+// root. See that partial's own docblock for the full evidence trail. ----
+
+it('cds.php: the shared navigation renders no bare-relative .htm hrefs or form action — the exact defect that broke on this nested path', function () {
+    $content = $this->get('/w2acd/cds.php')->assertOk()->getContent();
+
+    // A bare-relative internal nav href would appear as `href="word.htm"`
+    // with no leading `/` — every real nav target is now root-relative.
+    expect($content)->not->toMatch('/href="[a-zA-Z][a-zA-Z0-9_.\-]*\.htm"/')
+        ->and($content)->toContain('href="/categories.htm"')
+        ->and($content)->toContain('href="/cds-main.htm"')
+        ->and($content)->toContain('action="/search.htm"');
+});
+
+it('item.php (khid): the shared navigation is also root-relative on this second nested w2acd page', function () {
+    DB::connection('main')->table('nuke_w2acd_w2acd')->insert(['id' => 1, 'title' => 'A CD', 'link' => 'https://example.com/a.mp3', 'cd' => 'Only']);
+
+    $content = $this->get('/w2acd/item.php?khid=1')->assertOk()->getContent();
+
+    expect($content)->not->toMatch('/href="[a-zA-Z][a-zA-Z0-9_.\-]*\.htm"/')
+        ->and($content)->toContain('href="/khotab-video.htm"');
+});
+
+it('cds.php: pagination links stay intentionally local to /w2acd/ — not touched by the shared-nav repair (Class B, correctly excluded)', function () {
+    DB::connection('main')->table('nuke_w2acd_w2acd')->insert(
+        collect(range(1, 30))->map(fn ($i) => ['id' => $i, 'title' => "Item $i", 'group_id' => 0])->all()
+    );
+
+    $content = $this->get('/w2acd/cds.php')->assertOk()->getContent();
+
+    expect($content)->toContain('w2acd/cds.php?page=2');
+});

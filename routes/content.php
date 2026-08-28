@@ -33,6 +33,7 @@ use App\Domain\Content\Http\Controllers\SearchController;
 use App\Domain\Content\Http\Controllers\TelawahAuthorController;
 use App\Domain\Content\Http\Controllers\TelawahGroupController;
 use App\Domain\Content\Http\Controllers\TelawahItemController;
+use App\Domain\Content\Http\Controllers\TelawahLatestController;
 use App\Domain\Content\Http\Controllers\ThumbnailController;
 use App\Domain\Content\Http\Controllers\W2acdController;
 use Illuminate\Support\Facades\Route;
@@ -383,6 +384,16 @@ Route::get('/recite-item-{telawah}.htm', [TelawahItemController::class, 'show'])
 Route::get('/recite-download-{telawah}.htm', [TelawahItemController::class, 'download'])
     ->whereNumber('telawah')
     ->name('telawah.item.download');
+
+// recite-news.htm — Repair Batch 1 (decision-log #52, Sitewide Internal
+// 404 Audit finding #1, MISSING_MIGRATION_ROUTE). The homepage's own
+// "latest telawahs" widget ("المزيد .." link, home_functions.php:282)
+// generates this exact URL; .htaccess:332 routes it through the missing
+// new_modules.php dispatcher (op=MoreTelawah), but the real target file
+// (telawah/more.php) is fully present and readable — same recoverable
+// shape as more-fatawa.htm/FatwaLatestController.
+Route::get('/recite-news.htm', [TelawahLatestController::class, 'index'])
+    ->name('telawah.latest');
 
 // radio — Roadmap task 4.10 (added post-Wave-4, see
 // docs/reviews/gap-closure-action-plan.md item 2). radio.htm /

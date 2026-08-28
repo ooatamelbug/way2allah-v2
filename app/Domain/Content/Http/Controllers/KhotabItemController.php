@@ -34,6 +34,39 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * (an email-sending side feature, independent of the core detail/download/
  * comment behavior) — tracked as deferred scope in the Wave 4 report, not
  * a silent gap.
+ *
+ * **Missing-series repair (decision-log #55), `MIGRATION_STRICTNESS_DEFECT`,
+ * owner-approved, explicitly NOT legacy parity.** `show()`'s series lookup
+ * previously `abort_if($series === null, 404)` whenever `ser_id > 0`
+ * resolved to no row (or a hidden one) — a real DB investigation found
+ * 1,349 visible items across 91 distinct genuinely-missing series ids,
+ * whose item content (title, author, description, media/download links,
+ * mirrors, comments, all sidebar widgets) is entirely independent of the
+ * series — `khotab.item.blade.php` reads `$series` in exactly one place
+ * (the optional breadcrumb crumb, already `@if ($series)`-guarded).
+ * Legacy's own real behavior for this exact condition is not a 404 either
+ * — `item.php:62-68` prints the page header/chrome then `return`s,
+ * producing a broken, un-footered `200` with an empty content area — not
+ * a standard worth reproducing. Repaired to distinguish the 2 conditions
+ * a single `->where('hidden', 0)->first()` call could not tell apart: a
+ * genuinely nonexistent series row now renders the item normally with
+ * `$series = null`; a series row that exists but is hidden was, at the
+ * time, deliberately left 404ing pending its own separate owner review.
+ *
+ * **Hidden-series repair (decision-log #56), `BUSINESS_CONFIRMATION_REQUIRED`
+ * → owner-approved as `ITEM_VISIBILITY_IS_INDEPENDENT` (candidate B),
+ * explicitly NOT legacy parity.** A dedicated investigation found 834
+ * visible items referencing 61 hidden series — 97.3% of all children of
+ * hidden series remain `item.hidden = 0`; nothing in legacy ever cascaded
+ * `series.hidden` into child `hidden` values; legacy's own public
+ * generators (`ListPDF()`/its Laravel port `khotabPdfItemsByAuthor()`)
+ * already list these items regardless of parent visibility. Owner decided
+ * `item.hidden` is the authoritative item-level visibility signal: a
+ * hidden series now resolves to `$series = null` exactly like a
+ * nonexistent one (merged into the same branch above). `KhotabSeriesController`
+ * is deliberately untouched — a hidden series' own `/khotab-series-{id}.htm`
+ * page still 404s; these 2 semantics are kept separate on purpose, per
+ * explicit instruction.
  */
 class KhotabItemController
 {
@@ -54,8 +87,21 @@ class KhotabItemController
 
         $series = null;
         if ($khotabItem->ser_id > 0) {
-            $series = Series::where('id', $khotabItem->ser_id)->where('hidden', 0)->first();
-            abort_if($series === null, 404);
+            $seriesRow = Series::find($khotabItem->ser_id);
+
+            // decision-log #56: owner-approved — a hidden series resolves
+            // to null exactly like a nonexistent one (item.hidden is the
+            // authoritative item-level visibility flag; series.hidden
+            // never cascaded to child items in legacy either). The view's
+            // own `@if ($series)` guard already omits just the series
+            // breadcrumb crumb — no hidden series title/id is exposed
+            // anywhere. `KhotabSeriesController` is deliberately untouched:
+            // the hidden series' own `/khotab-series-{id}.htm` page stays
+            // 404, per explicit instruction to keep these 2 semantics
+            // separate.
+            if ($seriesRow !== null && (int) $seriesRow->hidden === 0) {
+                $series = $seriesRow;
+            }
         }
 
         $group = null;

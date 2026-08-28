@@ -116,9 +116,22 @@
                 <a href="/fatawa.htm">الفتاوى المرئية </a>
                 <i class="fa fa-angle-right"></i>
             </li>
+            {{--
+                Repair Batch 1 (decision-log #52, Sitewide Internal 404
+                Audit finding #4): this link was missing the required
+                {page} segment — the only registered route for this
+                family is /fatawa-topics-{category}-{page}.htm
+                (routes/content.php, 'fatawa.topics.show', no 1-segment
+                variant exists). Resolved via the named route rather than
+                a hardcoded string, matching this project's own
+                established preference (FatwaDayController's pageUrl
+                closures) — stays correct if the route's own URI ever
+                changes. page=1 matches .htaccess:301-302's own "page
+                defaults to 1 in the 2-parameter form" note.
+            --}}
             @foreach ($categoryChain as $category)
                 <li>
-                    <a href="/fatawa-topics-{{ $category->id }}.htm">{{ $category->title }} </a>
+                    <a href="{{ route('fatawa.topics.show', ['category' => $category->id, 'page' => 1]) }}">{{ $category->title }} </a>
                     @if (!$loop->last)
                         <i class="fa fa-angle-right"></i>
                     @endif

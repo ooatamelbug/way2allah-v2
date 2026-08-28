@@ -1735,14 +1735,25 @@ class ContentListingService
             ->get();
     }
 
-    /** `home_functions.php:259-284`'s `list_latest_telawahs()`. Not cached — legacy doesn't cache this one. */
+    /**
+     * `home_functions.php:259-284`'s `list_latest_telawahs()`. Not cached
+     * — legacy doesn't cache this one.
+     *
+     * Repair Batch 1 (decision-log #52, `/recite-news.htm`): also reused
+     * for `telawah/more.php` (`TelawahLatestController`), which needs the
+     * same query at `LIMIT 24` instead of the homepage widget's 7, plus 2
+     * extra columns (`hits`, the group's own `id`) legacy's `more.php`
+     * renders per row that the homepage widget never needed. Adding them
+     * here does not change `home.blade.php`'s existing output — it never
+     * reads either column, confirmed by grep before this change.
+     */
     public function homeLatestTelawahs(int $limit = 7): Collection
     {
         return DB::connection('main')->table('nuke_telawah_telawah as t')
             ->leftJoin('nuke_telawah_groups as g', 't.group_id', '=', 'g.id')
             ->orderByDesc('t.id')
             ->limit($limit)
-            ->select(['t.id', 't.title', 'g.title as group_title'])
+            ->select(['t.id', 't.title', 't.hits', 'g.id as auth_id', 'g.title as group_title'])
             ->get();
     }
 
