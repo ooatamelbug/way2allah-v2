@@ -15,6 +15,16 @@
 // routes/content.php's own docblock and FatwaTopicControllerTest's
 // "category:" tests. No longer a dead route.
 
+// fatwa-date-{d}-{m}-{y}-{page}.htm moved OUT of this file (2026-08-28,
+// decision-log #44, owner-clarified): unlike the 4 routes below, this one
+// does NOT belong under "confirmed-dead" — a real .htaccess rule exists
+// (`.htaccess:285`) and `fatwa-today.php` is a real, live, fully-migrated
+// file; only the specific d/m/y-parameter shape (and the calendar widget
+// that would generate links to it) is unbuilt. Owner instruction: keep it
+// explicitly OUT OF SCOPE, not classified as permanently dead — moved to
+// FatwaDayControllerTest.php, where it's tested alongside the route it's
+// actually a variant of.
+
 it('fatawa-play-{id}.htm stays 404 — no file implements op=play', function () {
     $this->get('/fatawa-play-1.htm')->assertNotFound();
 });
@@ -29,8 +39,4 @@ it('fatawa-friend-{id}.htm stays 404 — no file implements the op=friend displa
 
 it('auther-all-fatawa-{id}-{id2}.htm stays 404 — no file implements op=all_fatawa_for_auther', function () {
     $this->get('/auther-all-fatawa-1-1.htm')->assertNotFound();
-});
-
-it('fatwa-date-{d}-{m}-{y}-{page}.htm stays 404 — fatwa-today.php never reads separate d/m/y parameters', function () {
-    $this->get('/fatwa-date-1-1-2020-1.htm')->assertNotFound();
 });

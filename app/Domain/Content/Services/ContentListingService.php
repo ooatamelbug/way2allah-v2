@@ -974,13 +974,29 @@ class ContentListingService
      * does this via `date('Y-m-d', strtotime($date))` before calling this
      * function, `fatwa-today.php:16` — reproduced the same way in
      * `FatwaDayController`, not inside this method).
+     *
+     * Fatwa Today Visual Parity Pass: `fatwa-today.php`'s per-row markup
+     * (`fatawa/functions.php:454-522`'s `get_all_questions_date()`) shows
+     * a "مكان إصدار الفتوى" (place of fatwa) block that depends on whether
+     * `channel_id` resolves to a REAL row in `nuke_sat_channels` — legacy
+     * runs a second query per row (`SELECT id,title FROM sat_channels
+     * WHERE id=$channel_id`) and only renders the channel icon/link
+     * `if($channel[0])`, falling back to "بدون قناه" otherwise. A bare
+     * `channel_id != 0` truthiness check would silently diverge from this
+     * for a `channel_id` pointing at a deleted/nonexistent channel row.
+     * The `LEFT JOIN` below reproduces the exact same existence check in
+     * one query instead of N+1 — `channel_exists_id` is null exactly when
+     * legacy's `$channel[0]` would be falsy. `channel.title` is fetched by
+     * legacy too but never actually used in this row's own output (only
+     * `$channel[0]->id` is), so it isn't selected here.
      */
     public function fatwaQuestionsByDate(string $date, int $page = 1): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
         return DB::connection('main')->table('nuke_fatwa_questions as q')
             ->join('nuke_islamic_authors as auth', 'q.auther_id', '=', 'auth.id')
+            ->leftJoin('nuke_sat_channels as channel', 'q.channel_id', '=', 'channel.id')
             ->where('q.db_insertion_date', $date)
-            ->select(['q.*', 'auth.id as auth_id', 'auth.prename as auth_prename', 'auth.name as auth_name'])
+            ->select(['q.*', 'auth.id as auth_id', 'auth.prename as auth_prename', 'auth.name as auth_name', 'channel.id as channel_exists_id'])
             ->paginate(25, ['*'], 'page', $page);
     }
 

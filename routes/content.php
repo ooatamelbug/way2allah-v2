@@ -575,18 +575,34 @@ Route::get('/fatawa-by-authers.htm', [FatwaByAuthorsController::class, 'index'])
     ->name('fatawa.by-authors.index');
 
 // fatawa, increment 3 — day-based browse and send-to-friend.
-// fatwa-date-{d}-{m}-{y}-{page}.htm (.htaccess:285) is deliberately NOT
-// registered — re-read of fatwa-today.php confirms it never reads
-// $_GET['d']/['m']/['y'], only a single $_GET['date'] string that neither
-// confirmed route below actually supplies. Same "real rule, no confirmed
-// implementing code" category as fatawa-play-*/fatawa-brokenlink-*/
-// auther-all-fatawa-* — see FatwaDayController's docblock.
 Route::get('/fatwa-today.htm', [FatwaDayController::class, 'index'])
     ->defaults('page', 1)
     ->name('fatawa.day.today');
 Route::get('/fatwa-today-{page}.htm', [FatwaDayController::class, 'index'])
     ->whereNumber('page')
     ->name('fatawa.day.today.paged');
+
+// fatwa-date-{d}-{m}-{y}-{page}.htm (.htaccess:285) — decision-log #46,
+// Fatwa Date Route Completion: now implemented. See FatwaDayController's
+// own docblock for the full evidence trail (same op=day operation as the
+// 2 routes above; the calendar widget's own real generated links prove
+// the day/month/year/page mapping; the shared, now-missing dispatcher
+// explains why no individual fatawa/ file reads d/m/y directly).
+Route::get('/fatwa-date-{day}-{month}-{year}-{page}.htm', [FatwaDayController::class, 'date'])
+    ->whereNumber(['day', 'month', 'year', 'page'])
+    ->name('fatawa.day.date');
+
+// fatawa-today.htm (extra "a") — decision-log #43/IF-054: header.php's own
+// shared nav ("الفتاوى" dropdown, 4th item) generates exactly this string,
+// but .htaccess only ever wired up the "fatwa-today.htm" spelling above —
+// a legacy typo, confirmed still live/404 on real production. Owner
+// decision: redirect the typo to the real, canonical route rather than
+// reproduce the 404, since the intended target is unambiguous (same nav
+// position/label as khotab-video-today.htm, which does have a matching
+// rule). fatwa-today.htm remains canonical; this is a compatibility
+// redirect only, not a second implementation.
+Route::redirect('/fatawa-today.htm', '/fatwa-today.htm')
+    ->name('fatawa.day.today.legacy-typo-redirect');
 
 // fatawa-friend-{id}.htm (.htaccess:307, op=friend — presumably a form
 // display step) is NOT registered — no file among the 16 implements
