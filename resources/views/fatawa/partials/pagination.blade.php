@@ -1,13 +1,18 @@
 {{--
-    Fatwa Date Route Completion (decision-log #46). Reproduces
-    `fatawa/functions.php:708-751`'s real `pagination()` markup/windowing
-    exactly — including its own `$num = intval($count/$perpage)+1` (a
+    Fatwa Date Route Completion (decision-log #46), renamed from
+    `day-pagination.blade.php` in decision-log #50 once a second real
+    caller (`fatawa/author-show.blade.php`) confirmed it isn't
+    day-page-specific. Reproduces `fatawa/functions.php:708-751`'s real
+    `pagination()` markup/windowing exactly — the SAME function every
+    page that calls `pagination($count)` in legacy uses, `auther_profile.php`
+    included — including its own `$num = intval($count/$perpage)+1` (a
     genuine legacy off-by-one: always one page higher than the true last
     page, even when $count divides evenly by $perpage; preserved, not
     "fixed") — but generates URLs via the `$pageUrl` closure (route()-based,
     matching the real pretty-URL contract for whichever context this
-    partial is included from — `/fatwa-today.htm`/`/fatwa-today-{page}.htm`
-    or `/fatwa-date-{d}-{m}-{y}-{page}.htm`) instead of legacy's own
+    partial is included from — `/fatwa-today.htm`/`/fatwa-today-{page}.htm`,
+    `/fatwa-date-{d}-{m}-{y}-{page}.htm`, or `/auther-questions-{author}.htm`/
+    `/auther-questions-{author}-{page}.htm`) instead of legacy's own
     REQUEST_URI string-splicing, which only worked because it operated on
     the current request's own URL — not portable to a reusable partial.
 

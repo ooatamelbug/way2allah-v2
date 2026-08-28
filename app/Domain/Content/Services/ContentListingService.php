@@ -927,12 +927,22 @@ class ContentListingService
      * behind both `single.php`'s one-answer view and `answer.php`/`answer2.php`'s
      * all-answers view — the two legacy files differ only in markup, not
      * in this query (`fatawa.md` §5), so one service method serves both.
+     *
+     * `auther-all-fatawa-{author}-{generalQuestion}.htm` (decision-log #51,
+     * `BUSINESS_REPAIR`, NOT recovered legacy behavior — legacy's own
+     * `op=all_fatawa_for_auther` was never implemented anywhere, see
+     * `FatwaQuestionController::showAllForAuthor()`'s docblock): `$autherId`
+     * is an OPTIONAL additional filter, defaulting to `null` — every
+     * existing caller (unscoped `fatawa-all-{id}.htm`) is completely
+     * unaffected; passing it does not change the unscoped query shape at
+     * all, only adds one extra `WHERE`.
      */
-    public function fatwaQuestionsForGeneralQuestion(int $generalQuestionId): Collection
+    public function fatwaQuestionsForGeneralQuestion(int $generalQuestionId, ?int $autherId = null): Collection
     {
         return DB::connection('main')->table('nuke_fatwa_questions as q')
             ->join('nuke_islamic_authors as auth', 'auth.id', '=', 'q.auther_id')
             ->where('q.general_question_id', "|{$generalQuestionId}|")
+            ->when($autherId !== null, fn ($query) => $query->where('q.auther_id', $autherId))
             ->select(['q.*', 'auth.name as author_name', 'auth.prename as author_prename'])
             ->get();
     }

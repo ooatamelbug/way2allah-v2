@@ -25,6 +25,18 @@
 // FatwaDayControllerTest.php, where it's tested alongside the route it's
 // actually a variant of.
 
+// auther-all-fatawa-{id}-{id2}.htm moved OUT of this file (2026-08-28,
+// decision-log #51): its evidence trail (real .htaccess rule, real live
+// generator, no implementation anywhere) genuinely earned "confirmed-dead"
+// at the time — classified LEGACY_BROKEN_LINK, not SOURCE_UNRECOVERABLE
+// (see FatwaAuthorController's docblock history), which IS a legitimate
+// "no implementation exists" state. What changed since then isn't the
+// legacy history (unrevised) but the owner's decision to REPAIR it —
+// BUSINESS_REPAIR, explicitly not legacy parity: reuses showAll()'s exact
+// presentation, additionally scoped to one author. No longer a dead route
+// — moved to FatwaQuestionControllerTest.php, alongside fatawa-all-*,
+// which it shares its rendering path with.
+
 it('fatawa-play-{id}.htm stays 404 — no file implements op=play', function () {
     $this->get('/fatawa-play-1.htm')->assertNotFound();
 });
@@ -35,8 +47,4 @@ it('fatawa-brokenlink-{id}.htm stays 404 — no file implements op=brokenlink', 
 
 it('fatawa-friend-{id}.htm stays 404 — no file implements the op=friend display step (only op=sendemail is built)', function () {
     $this->get('/fatawa-friend-1.htm')->assertNotFound();
-});
-
-it('auther-all-fatawa-{id}-{id2}.htm stays 404 — no file implements op=all_fatawa_for_auther', function () {
-    $this->get('/auther-all-fatawa-1-1.htm')->assertNotFound();
 });

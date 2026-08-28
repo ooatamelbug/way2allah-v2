@@ -75,6 +75,108 @@ it('showAll: 404s for a nonexistent general question', function () {
     $this->get('/fatawa-all-999.htm')->assertNotFound();
 });
 
+// ---- auther-all-fatawa-{author}-{generalQuestion}.htm — BUSINESS_REPAIR
+// (decision-log #51). Reuses showAll()'s exact rendering path, filtered by
+// author — not a separate design, not recovered legacy behavior. ----
+
+it('showAllForAuthor: renders only the requested author\'s answer, excluding other scholars\' answers to the same general question (the critical multi-author proof)', function () {
+    // Deliberately fictional author names (not real production scholar
+    // names like الحنبلي/السرساوى) — the shared layout's sitewide
+    // w2a_autocomplete/authors.txt include contains real production author
+    // names regardless of test DB fixtures, which would make an
+    // assertDontSee() on a REAL name a false-negative-proof (it can appear
+    // in that unrelated sitewide data even when correctly excluded from
+    // this page's own $answers). Fictional names avoid that collision.
+    $db = DB::connection('main');
+    $db->table('nuke_islamic_authors')->insert([
+        ['id' => 79, 'name' => 'TestScholarSeventyNine', 'prename' => 'Sheikh'],
+        ['id' => 225, 'name' => 'TestScholarTwoTwentyFive', 'prename' => 'Sheikh'],
+    ]);
+    $db->table('nuke_fatwa_general_questions')->insert([
+        'id' => 10007, 'question_text' => 'Photography (multi-scholar example)', 'topic_id' => '|10|', 'num_view' => 0,
+    ]);
+    $db->table('nuke_fatwa_questions')->insert([
+        ['id' => 1, 'general_question_id' => '|10007|', 'auther_id' => 79, 'answer_text' => 'Answer by author 79'],
+        ['id' => 2, 'general_question_id' => '|10007|', 'auther_id' => 225, 'answer_text' => 'Answer by author 225'],
+    ]);
+
+    // The author-scoped route: only author 79's own answer, and no other
+    // scholar's answer to the SAME general question.
+    $scoped = $this->get('/auther-all-fatawa-79-10007.htm');
+    $scoped->assertOk()
+        ->assertSee('Answer by author 79')
+        ->assertSee('TestScholarSeventyNine')
+        ->assertDontSee('Answer by author 225')
+        ->assertDontSee('TestScholarTwoTwentyFive');
+
+    // The pre-existing unscoped route must remain completely unaffected —
+    // both answers, both authors, still visible.
+    $unscoped = $this->get('/fatawa-all-10007.htm');
+    $unscoped->assertOk()
+        ->assertSee('Answer by author 79')
+        ->assertSee('Answer by author 225')
+        ->assertSee('TestScholarSeventyNine')
+        ->assertSee('TestScholarTwoTwentyFive');
+});
+
+it('showAllForAuthor: 17/1924 and 17/3710 — the exact pairs from the original investigation — both resolve, both correctly scoped', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_islamic_authors')->insert(['id' => 17, 'name' => 'الحويني', 'prename' => 'الشيخ']);
+    $db->table('nuke_fatwa_general_questions')->insert([
+        ['id' => 1924, 'question_text' => 'Question 1924', 'topic_id' => '|10|'],
+        ['id' => 3710, 'question_text' => 'Question 3710', 'topic_id' => '|10|'],
+    ]);
+    $db->table('nuke_fatwa_questions')->insert([
+        ['id' => 1, 'general_question_id' => '|1924|', 'auther_id' => 17, 'answer_text' => 'Answer 1924'],
+        ['id' => 2, 'general_question_id' => '|3710|', 'auther_id' => 17, 'answer_text' => 'Answer 3710'],
+    ]);
+
+    $this->get('/auther-all-fatawa-17-1924.htm')->assertOk()->assertSee('Answer 1924');
+    $this->get('/auther-all-fatawa-17-3710.htm')->assertOk()->assertSee('Answer 3710');
+});
+
+it('showAllForAuthor: 404s for a nonexistent author', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_fatwa_general_questions')->insert(['id' => 100, 'question_text' => 'Q', 'topic_id' => '|10|']);
+
+    $this->get('/auther-all-fatawa-999-100.htm')->assertNotFound();
+});
+
+it('showAllForAuthor: 404s for a nonexistent general question', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_islamic_authors')->insert(['id' => 17, 'name' => 'الحويني']);
+
+    $this->get('/auther-all-fatawa-17-999999.htm')->assertNotFound();
+});
+
+it('showAllForAuthor: valid author + valid general question with no relationship renders an empty answers area, not a 404 or invented fallback content', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_islamic_authors')->insert([
+        ['id' => 17, 'name' => 'الحويني'],
+        ['id' => 79, 'name' => 'الحنبلي'],
+    ]);
+    $db->table('nuke_fatwa_general_questions')->insert(['id' => 500, 'question_text' => 'Someone else\'s question', 'topic_id' => '|10|']);
+    // Only author 79 answered this general question — author 17 never did.
+    $db->table('nuke_fatwa_questions')->insert([
+        'id' => 1, 'general_question_id' => '|500|', 'auther_id' => 79, 'answer_text' => 'Answer by 79',
+    ]);
+
+    $response = $this->get('/auther-all-fatawa-17-500.htm');
+
+    $response->assertOk()->assertDontSee('Answer by 79');
+});
+
+it('auther-questions-{author}.htm still generates the historical auther-all-fatawa link, unaffected by this repair', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_islamic_authors')->insert(['id' => 17, 'name' => 'الحويني', 'prename' => 'الشيخ']);
+    $db->table('nuke_fatwa_general_questions')->insert(['id' => 1924, 'question_text' => 'Question 1924']);
+    $db->table('nuke_fatwa_questions')->insert(['id' => 1, 'auther_id' => 17, 'general_question_id' => '|1924|']);
+
+    $this->get('/auther-questions-17.htm')
+        ->assertOk()
+        ->assertSee('/auther-all-fatawa-17-1924.htm', false);
+});
+
 // ---- fatawa-all-{id}.htm owner-approved answer2.php reconstruction ----
 // DISPATCH_ORIGIN_UNKNOWN (modules.php missing — see the reconstruction
 // report); answer2.php is the OWNER-APPROVED presentation reference, not

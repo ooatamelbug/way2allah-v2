@@ -88,6 +88,36 @@ it('series show: audio op uses الصوتيات/khotab-audio.htm throughout, and
         ->not->toContain('مجموعة');
 });
 
+// ---- khotab-fatwa-{id}.htm Author Route Reconciliation (decision-log
+// #48): authors.php:80's per-author `<a>` uses `$op` uniformly across all
+// 4 ops (video/audio/pdf/fatwa) to build `khotab-{op}-{id}.htm` — the
+// Laravel reproduction below is byte-faithful to that real legacy line.
+// See KhotabDeadRoutesTest.php for why the resulting `khotab-fatwa-*`
+// link is real-but-terminal (SOURCE_UNRECOVERABLE), not a migration bug. ----
+
+it('fatawa-authors.htm (op=fatwa) generates real khotab-fatwa-{id}.htm links, byte-faithful to authors.php:80 — not a migration typo/bug', function () {
+    DB::connection('main')->table('nuke_islamic_authors')->insert([
+        'id' => 17, 'name' => 'الحويني', 'prename' => 'الشيخ', 'fatwa' => 12, 'hidden' => 0,
+    ]);
+
+    $content = $this->get('/fatawa-authors.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('<a href="/khotab-fatwa-17.htm">الحويني</a>')
+        ->toContain('12 فتوى');
+});
+
+it('fatawa-authors.htm only lists authors with fatwa > 0, matching authors.php:24\'s real WHERE clause', function () {
+    DB::connection('main')->table('nuke_islamic_authors')->insert([
+        ['id' => 1, 'name' => 'Has Fatwa', 'fatwa' => 5, 'hidden' => 0],
+        ['id' => 2, 'name' => 'No Fatwa', 'fatwa' => 0, 'hidden' => 0],
+    ]);
+
+    $content = $this->get('/fatawa-authors.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('Has Fatwa')->not->toContain('No Fatwa');
+});
+
 // ---- group.php (no bug — sanity check it still renders) ----
 
 it('group show: renders series and items scoped to the group', function () {

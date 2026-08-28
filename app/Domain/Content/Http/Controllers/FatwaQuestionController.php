@@ -3,6 +3,7 @@
 namespace App\Domain\Content\Http\Controllers;
 
 use App\Domain\Content\Mail\FatwaFriendMail;
+use App\Domain\Content\Models\Author;
 use App\Domain\Content\Models\Category;
 use App\Domain\Content\Models\Channel;
 use App\Domain\Content\Models\FatwaGeneralQuestion;
@@ -93,6 +94,61 @@ class FatwaQuestionController
         $generalQuestionModel = FatwaGeneralQuestion::findOrFail($generalQuestion);
         $answers = $listing->fatwaQuestionsForGeneralQuestion($generalQuestion);
 
+        return $this->renderAllAnswers($generalQuestionModel, $answers, $sidebar);
+    }
+
+    /**
+     * `auther-all-fatawa-{author}-{generalQuestion}.htm` — `BUSINESS_REPAIR`
+     * (decision-log #51), explicitly NOT recovered legacy behavior.
+     *
+     * Full evidence trail (preserved, not rewritten — see decision-log
+     * #48/#50/#51 for the complete history): `.htaccess:298` has a real
+     * rule (`op=all_fatawa_for_auther`); `get_all_auther_questions()`
+     * (`fatawa/functions.php:647`) is a real, live, currently-executing
+     * generator of this exact URL; but no file among the 16 `fatawa/`
+     * files ever reads `$_GET['g_q_id']`, and `modules.php` (the
+     * dispatcher this op would have routed through) doesn't exist
+     * anywhere, including on real production — classified
+     * `LEGACY_BROKEN_LINK`. A follow-up data audit found ~7.5% of real
+     * general questions have answers from more than one scholar (a
+     * concrete example: general question 10007, "التصوير", has answers
+     * from 9+ distinct scholars) — redirecting unconditionally to
+     * `fatawa-all-{generalQuestion}.htm` would discard the author context
+     * and show other scholars' answers in those cases. **Owner explicitly
+     * selected author-scoped semantics**: same page, same presentation,
+     * same everything `showAll()` above already does — the only
+     * difference is `$answers` is additionally filtered to this author's
+     * own rows via `ContentListingService::fatwaQuestionsForGeneralQuestion()`'s
+     * new optional `$autherId` parameter (not a duplicated query).
+     *
+     * Invalid author or invalid general question: normal `findOrFail()`
+     * 404s, same as `showAll()`. A valid author + valid general question
+     * with no relationship between them (author never answered this
+     * question) is NOT a 404 — both parent resources genuinely exist; the
+     * page renders with an empty answers area, matching this project's
+     * own established precedent (`get_all_auther_questions()` itself has
+     * no invented "no results" message for an analogous empty case,
+     * `auther-questions-*`'s own view) rather than fabricating fallback
+     * content or a misleading 404.
+     */
+    public function showAllForAuthor(int $author, int $generalQuestion, ContentListingService $listing, ContentSidebarWidget $sidebar): View
+    {
+        Author::findOrFail($author);
+        $generalQuestionModel = FatwaGeneralQuestion::findOrFail($generalQuestion);
+        $answers = $listing->fatwaQuestionsForGeneralQuestion($generalQuestion, $author);
+
+        return $this->renderAllAnswers($generalQuestionModel, $answers, $sidebar);
+    }
+
+    /**
+     * Shared rendering path for `showAll()`/`showAllForAuthor()` — the
+     * only difference between the two callers is whether `$answers` was
+     * filtered by author before reaching here; every other decision
+     * (view count, topic/category chain, channel lookup, sidebar) is
+     * identical, so it lives in exactly one place.
+     */
+    private function renderAllAnswers(FatwaGeneralQuestion $generalQuestionModel, Collection $answers, ContentSidebarWidget $sidebar): View
+    {
         $generalQuestionModel->recordView();
 
         $topicId = (int) str_replace('|', '', (string) $generalQuestionModel->topic_id);

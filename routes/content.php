@@ -532,6 +532,18 @@ Route::get('/fatawa-{question}.htm', [FatwaQuestionController::class, 'show'])
 Route::get('/fatawa-all-{generalQuestion}.htm', [FatwaQuestionController::class, 'showAll'])
     ->whereNumber('generalQuestion')
     ->name('fatawa.question.show-all');
+
+// auther-all-fatawa-{author}-{generalQuestion}.htm — decision-log #51,
+// BUSINESS_REPAIR (not recovered legacy behavior — see
+// FatwaQuestionController::showAllForAuthor()'s own docblock for the full
+// evidence trail). Historical spelling ("auther") preserved exactly, not
+// renamed. No collision risk with /fatawa-all-* above — "auther-all-fatawa-"
+// and "fatawa-all-" are different literal prefixes, so route registration
+// order here is for readability only, not required for correctness.
+Route::get('/auther-all-fatawa-{author}-{generalQuestion}.htm', [FatwaQuestionController::class, 'showAllForAuthor'])
+    ->whereNumber(['author', 'generalQuestion'])
+    ->name('fatawa.question.show-all-for-author');
+
 Route::get('/fatawa-download-{question}.htm', [FatwaQuestionController::class, 'download'])
     ->whereNumber('question')
     ->name('fatawa.question.download');
@@ -562,6 +574,20 @@ Route::get('/auther-questions-{author}.htm', [FatwaAuthorController::class, 'sho
 Route::get('/auther-questions-{author}-{page}.htm', [FatwaAuthorController::class, 'show'])
     ->whereNumber(['author', 'page'])
     ->name('fatawa.author.show.paged');
+
+// khotab-fatwa-{author}.htm — decision-log #48/#49, BUSINESS_REPAIR_LOW_RISK,
+// NOT legacy parity. khotab/authors.php:80 (op=fatwa branch, reached via
+// fatawa-authors.htm) really generates this exact URL for every author with
+// fatwa>0, but legacy never implemented a fatwa branch in khotab/author.php
+// (.htaccess has only khotab-video-*/khotab-audio-*/khotab-pdf-*) — a real,
+// live, currently-unfixed legacy authoring bug (IF-055's second
+// reconciliation note has the full trace). Repaired, not reconstructed:
+// redirects to the already-correct, already-proven canonical page for the
+// exact same "this author's fatwas" content — no second rendering path, no
+// duplicated query logic.
+Route::get('/khotab-fatwa-{author}.htm', [FatwaAuthorController::class, 'redirectFromKhotabFatwaUrl'])
+    ->whereNumber('author')
+    ->name('fatawa.author.khotab-fatwa-compat-redirect');
 
 Route::get('/more-fatawa.htm', [FatwaLatestController::class, 'index'])->name('fatawa.latest');
 

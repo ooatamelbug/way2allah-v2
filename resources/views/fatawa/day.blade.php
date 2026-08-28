@@ -11,7 +11,7 @@
     and the page-specific `<style>` block — all verbatim from source.
 
     Fatwa Date Route Completion (decision-log #46): pagination now uses
-    `fatawa.partials.day-pagination`, reproducing legacy's real
+    `fatawa.partials.pagination`, reproducing legacy's real
     `pagination()` markup/windowing (including its own off-by-one `$num`
     quirk) with correct pretty-URL-per-page generation via the `$pageUrl`
     closure the controller supplies — no longer Laravel's default
@@ -169,7 +169,7 @@
                         {{ $displayDate }}</div>
                 </div>
                 <div class="portlet-body">
-                    @include('fatawa.partials.day-pagination')
+                    @include('fatawa.partials.pagination')
                     <table class="table table-striped table-hover" id="sample_5">
                         <tbody>
                             @forelse ($questions as $question)
@@ -215,7 +215,7 @@
                             @endforelse
                         </tbody>
                     </table>
-                    @include('fatawa.partials.day-pagination')
+                    @include('fatawa.partials.pagination')
                 </div>
             </div>
         </div>
