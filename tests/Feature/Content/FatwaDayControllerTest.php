@@ -116,9 +116,17 @@ it('Fatwa Calendar Visual Dependency Audit (decision-log #45): loads the real fa
     // public/, bypassing routing entirely) — a real HTTP round trip was
     // already verified manually against the local dev server; this
     // asserts the filesystem contract the webserver relies on instead:
-    // the symlink exists, resolves, and the real calendar CSS is in it.
+    // the file is genuinely present and contains the real calendar CSS.
+    //
+    // `public/fatawa/css/new-style.css` was originally a symlink to the
+    // sibling `legacy-project` repository — unavailable in a CI checkout
+    // of this repository alone. Since it's a single small (13.8KB),
+    // stable, permanent site-chrome file (not bulk per-item media), it
+    // was committed directly into this repo instead (byte-identical to
+    // the legacy source), closing this gap in both local dev and CI
+    // rather than scoping the test to local-dev-only.
     $path = public_path('fatawa/css/new-style.css');
-    expect(is_link(public_path('fatawa/css')))->toBeTrue()
+    expect(is_file($path))->toBeTrue()
         ->and(is_readable($path))->toBeTrue()
         ->and(file_get_contents($path))->toContain('.calendar-ympicker')
         ->and(file_get_contents($path))->toContain('.calendar-body');

@@ -119,9 +119,31 @@ it('the full sequence is safe to re-run from scratch after being run once alread
 
     $this->post('/deploy/install', ['token' => 'the-real-secret'])->assertOk()->assertSee('اكتمل التثبيت بنجاح');
     Storage::disk('local')->delete('deployment-installed.lock'); // simulate "not yet locked" to re-test the sequence itself
-    // config:cache ran as part of the first pass — restore the runtime
-    // overrides it may have frozen before the second real HTTP round trip.
+
+    // The first pass's own `config:cache`/`route:cache`/`view:cache` steps
+    // each boot a fresh, throwaway Application instance internally
+    // (Illuminate\Foundation\Console\ConfigCacheCommand::getFreshConfiguration()
+    // et al. `require bootstrap/app.php` directly) — Laravel's container
+    // becomes the last one constructed, so every facade call for the rest
+    // of THIS PHP process silently resolves through that fresh instance
+    // instead of this test's original one, discarding every runtime
+    // `config()` override made before it (confirmed directly: `config(
+    // 'database.connections.main')` reverts to the real, blank-credential
+    // `config/database.php` definition, and the default `sqlite`
+    // connection's `database` path reverts to `.env`'s own value, not
+    // `$tempDb`). This has no real production consequence — a real
+    // browser-driven install request ends immediately after `install()`
+    // returns, so there is no "next request" reusing the same PHP
+    // process without a fresh bootstrap — it is purely an artifact of
+    // this ONE test method issuing 2 requests back to back against the
+    // same process. Both connection overrides (not just the 2
+    // `deploy.*` keys the app's own gate checks) must be re-established
+    // before the second request for it to be a genuine re-run against
+    // the SAME already-migrated database, not an accidental fresh one.
     config(['deploy.installer_enabled' => true, 'deploy.installer_token' => 'the-real-secret']);
+    config(['database.connections.sqlite.database' => $tempDb]);
+    DB::purge('sqlite');
+    useInMemoryMainConnectionForInstaller();
 
     $second = $this->post('/deploy/install', ['token' => 'the-real-secret']);
     $second->assertOk()->assertSee('اكتمل التثبيت بنجاح')->assertDontSee('❌');

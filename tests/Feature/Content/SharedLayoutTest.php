@@ -1,5 +1,8 @@
 <?php
 
+use Tests\Support\Fixtures\MainSchema;
+use Tests\Support\InMemoryConnection;
+
 /**
  * Visual/CSS parity phase — AddThis widget (`functions.php:749-757`'s
  * `share()` + `header.php:147-148`'s script), confirmed sitewide across 7
@@ -8,7 +11,42 @@
  * per-controller. Tested against two structurally unrelated pages (a
  * static page and a DB-backed listing page) to prove it's a shared-layout
  * concern, not something that needs asserting on every individual page.
+ *
+ * The homepage (`/`) queries the real `main` connection (latest videos/
+ * audios/fatawa/telawah/anasheed widgets, slider rows, etc.) — this file
+ * previously had no `InMemoryConnection::setup('main', ...)` of its own,
+ * so it silently depended on whatever the `main` connection happened to
+ * resolve to (a real local MySQL instance on a developer machine; nothing
+ * reachable in CI, where `.env`'s `DB_MAIN_*` values are intentionally
+ * blank) — same isolated in-memory fixture pattern already established in
+ * `HomeControllerTest`, reused here rather than redefined.
  */
+function useInMemoryMainConnectionForSharedLayout(): void
+{
+    InMemoryConnection::setup('main', [
+        'nuke_islamic_authors' => MainSchema::nukeIslamicAuthors(),
+        'nuke_islamic_khotab' => MainSchema::nukeIslamicKhotab(),
+        'nuke_w2a_cat' => MainSchema::nukeW2aCat(),
+        'nuke_fatwa_questions' => MainSchema::nukeFatwaQuestions(),
+        'nuke_anasheed_anasheed' => MainSchema::nukeAnasheedAnasheed(),
+        'nuke_anasheed_groups' => MainSchema::nukeAnasheedGroups(),
+        'nuke_anasheed_advanced' => MainSchema::nukeAnasheedAdvanced(),
+        'nuke_telawah_telawah' => MainSchema::nukeTelawahTelawah(),
+        'nuke_telawah_groups' => MainSchema::nukeTelawahGroups(),
+        'nuke_options' => MainSchema::nukeOptions(),
+        'nuke_albums_images' => MainSchema::nukeAlbumsImages(),
+        'nuke_ads' => MainSchema::nukeAds(),
+        'nuke_poll_desc' => MainSchema::nukePollDesc(),
+        'nuke_poll_data' => MainSchema::nukePollData(),
+        'nuke_pollcomments' => MainSchema::nukePollcomments(),
+        'nuke_7amalat' => MainSchema::nuke7amalat(),
+    ]);
+}
+
+beforeEach(function () {
+    useInMemoryMainConnectionForSharedLayout();
+});
+
 it('every page renders the AddThis script exactly once, sitewide, matching header.php\'s unconditional include', function () {
     $content = $this->get('/privacy')->assertOk()->getContent();
 

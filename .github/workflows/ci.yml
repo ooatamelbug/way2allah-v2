@@ -16,11 +16,48 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: mbstring, dom, fileinfo, mysql, sqlite3, pdo_sqlite
+          extensions: mbstring, dom, fileinfo, mysql, sqlite3, pdo_sqlite, gd
           coverage: none
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      # `public/images` and `public/media` are git-tracked symlinks to
+      # `../../legacy-project/{images,media}` — a real, separate,
+      # deliberately never-committed reference repository that only
+      # exists on a developer's own machine as a sibling checkout (real
+      # production media assets run into the hundreds of MB and don't
+      # belong in this repository's git history). A CI checkout of this
+      # repo alone always has these as dangling symlinks.
+      #
+      # These 2 specific roots are the ONLY ones any current test needs
+      # as a real writable directory — each creates and cleans up its
+      # own small, self-contained fixture file there (application logic
+      # under test — e.g. "does a bucketed frame path resolve when the
+      # file exists" — doesn't require real legacy byte content, only a
+      # real filesystem location; nested subdirectories like
+      # `images/cds_image2` are created by the tests themselves on
+      # demand, not prepared here). Deliberately NOT extended to every
+      # other dangling `public/` symlink (`assets`, `css`, `scripts`,
+      # `w2a_autocomplete`, `logo-light.png`) — nothing in the test suite
+      # needs those to resolve today, and leaving them dangling in CI is
+      # intentional: a future test/application code path that starts
+      # depending on one of them should fail loudly here, not be silently
+      # masked by a generic "make every dangling symlink resolve" step.
+      # No-op on a real developer machine, where the symlinks already
+      # resolve. Tests whose own actual purpose is asserting the real
+      # legacy-asset bridge works with real legacy byte content (not
+      # application logic) are correctly skipped in this environment
+      # instead — see StaticMediaAssetsTest's own explicit skip reason.
+      - name: Prepare writable public/images and public/media for test-owned fixtures
+        run: |
+          for dir in public/images public/media; do
+            if [ -L "$dir" ] && [ ! -e "$dir" ]; then
+              echo "Replacing dangling symlink with a real writable directory: $dir"
+              rm "$dir"
+              mkdir -p "$dir"
+            fi
+          done
 
       # No .env file is committed (Blueprint v1.0 §8 — never commit real or
       # placeholder-that-resembles-real credentials). .env.example has no
