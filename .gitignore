@@ -26,3 +26,9 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Temporary ignored files (they will be removed in the future)
+public/w2a_autocomplete
+public/scripts
+public/css
+public/assets
