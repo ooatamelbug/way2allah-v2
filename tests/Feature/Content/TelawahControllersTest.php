@@ -40,6 +40,10 @@ it('group show: renders sub-groups and sorah-ordered items', function () {
     $content = $this->get('/recite-group-1.htm')->assertOk()->assertSee('Sub Group')->getContent();
 
     expect(strpos($content, 'Al-Fatiha'))->toBeLessThan(strpos($content, 'Al-Baqarah'));
+    expect($content)
+        ->toContain('class="w2a-qualities-list"')
+        ->toContain("w2a_play(2, 'telawat')")
+        ->toContain('/recite-download-2.htm');
 });
 
 it('group show: 404s for a nonexistent group', function () {
@@ -117,6 +121,24 @@ it('item show: renders details WITHOUT incrementing hits — legacy never does e
     $this->get('/recite-item-1.htm')->assertOk()->assertSee('A Recitation');
 
     expect(DB::connection('main')->table('nuke_telawah_telawah')->find(1)->hits)->toBe(7);
+});
+
+it('item show: renders the premium details, player, and metadata sidebars', function () {
+    DB::connection('main')->table('nuke_telawah_telawah')->insert([
+        ['id' => 1, 'title' => 'A Recitation', 'link' => 'https://example.com/a.mp3', 'linksize' => 1024, 'hits' => 7, 'downcount' => 3, 'mytime' => 100],
+        ['id' => 2, 'title' => 'Popular Recitation', 'link' => '', 'linksize' => 0, 'hits' => 90, 'downcount' => 12, 'mytime' => 50],
+        ['id' => 3, 'title' => 'Recent Recitation', 'link' => '', 'linksize' => 0, 'hits' => 1, 'downcount' => 2, 'mytime' => 200],
+    ]);
+
+    $content = $this->get('/recite-item-1.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('class="w2a-item-details-card"')
+        ->toContain("w2a_play(1,'telawat')")
+        ->toContain('id="the_main_player"')
+        ->toContain('class="w2a-chat-sidebar-list"')
+        ->toContain('12 مرة')
+        ->toContain('function w2a_play(id, type)');
 });
 
 // ---- Shared Page Chrome Parity Audit: recite.htm's heading vs document <title> are genuinely different strings ----

@@ -214,12 +214,12 @@ class ContentSidebarWidget
 
     public function telawahMostDownloaded(): Collection
     {
-        return $this->query('nuke_telawah_telawah', ['id', 'title'], null, null, 'hits', 10);
+        return $this->query('nuke_telawah_telawah', ['id', 'title', 'downcount'], null, null, 'hits', 10);
     }
 
     public function telawahMostRecent(): Collection
     {
-        return $this->query('nuke_telawah_telawah', ['id', 'title'], null, null, 'mytime', 10);
+        return $this->query('nuke_telawah_telawah', ['id', 'title', 'mytime'], null, null, 'mytime', 10);
     }
 
     // ---- live-stream (queries khotab's own table; filters by channel, not group) ----

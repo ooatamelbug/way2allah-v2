@@ -103,7 +103,7 @@
                         <div class="caption"><i class="fa fa-child"></i> قائمة المواد</div>
                     </div>
                     <div class="portlet-body">
-                        <x-content.khotab-item-list :items="$items" :video="$op === 'video'" />
+                        <x-content.khotab-item-list :items="$items" :video="$op === 'video'" :pdf="$op === 'pdf'" />
                     </div>
                 </div>
             </div>

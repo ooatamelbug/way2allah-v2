@@ -92,7 +92,13 @@ it('show: IF-028 fix — comment flags render from images/flags/, not flags/', f
         'id' => 1, 'khid' => 1, 'uname' => 'Visitor', 'code' => 'eg', 'comment' => 'hello', 'view' => 1, 'mytime' => 100,
     ]);
 
-    $this->get('/var-item-1.htm')->assertOk()->assertSee('images/flags/eg.png', false);
+    $content = $this->get('/var-item-1.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('images/flags/eg.png')
+        ->toContain('class="w2a-comments-wrap"')
+        ->toContain('class="w2a-comment-card"')
+        ->toContain('class="w2a-comment-body"');
 });
 
 it('show: only renders comments with view=1', function () {

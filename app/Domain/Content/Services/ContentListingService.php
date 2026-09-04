@@ -328,7 +328,7 @@ class ContentListingService
             ->where('kh.pdf', '>', 0)
             ->orderByDesc('kh.weight')->orderByDesc('kh.pdf_time')
             ->select([
-                'kh.id', 'kh.channel_id', 'ch.title as channel', 'kh.title', 'kh.comments',
+                'kh.id', 'kh.author', 'kh.channel_id', 'ch.title as channel', 'kh.title', 'kh.comments',
                 'kh.pdf_time as time', 'kh.hits', 'kh.weight', 'ad.adur', 'ath.name', 'ath.prename',
             ]);
 

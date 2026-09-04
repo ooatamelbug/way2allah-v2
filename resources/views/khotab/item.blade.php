@@ -99,6 +99,7 @@
                 real legacy today; not "fixed" here.
             --}}
             <x-content.media-player-panel />
+            <x-content.media-player-script />
 
             {{--
                 Visual parity audit (khotab-item-298784.htm, 2026-08-18)
@@ -205,18 +206,7 @@
                         <div class="caption"><i class="fa fa-comments"></i> تعليقات الزوار على المادة</div>
                     </div>
                     <div class="portlet-body">
-                        <p>( عدد التعليقات : {{ $comments->total() }} تعليق )</p>
-                        <div class="anasheed_comments">
-                            @foreach($comments as $comment)
-                                <div class="comment-item">
-                                    <img src="/images/flags/{{ $comment->uid == 0 && $comment->uname === '' ? 'way2allah' : $comment->code }}.png" alt="{{ $comment->code }}">
-                                    <p>{{ $comment->comment }}</p>
-                                    <span>{{ $comment->uid == 0 && $comment->uname === '' ? 'مشرف التعليقات' : $comment->uname }}</span>
-                                    <span>{{ date('Y-m-d', $comment->mytime) }}</span>
-                                </div>
-                            @endforeach
-                        </div>
-                        {{ $comments->links() }}
+                        <x-content.visitor-comments :comments="$comments" />
                     </div>
                 </div>
             @endif
@@ -445,43 +435,5 @@
             });
         </script>
 
-        {{--
-            Batch 4 (media player, khotab-item-298784.htm investigation):
-            replaces scripts/w2a_play.js's w2a_play() + its close-button
-            handler, verbatim behavior — POST to /media-player (not
-            get-mada-player.htm — a Laravel-native route, same URL
-            adaptation already used for the comment/send-friend endpoints
-            above), inject the response into #w2a_main_player, fade in
-            #the_main_player. Close handler fades out and clears the
-            player's HTML (stopping playback by removing the DOM node —
-            same mechanism legacy relies on, no explicit media .pause()
-            needed). Same @push('scripts') stack, so this loads after
-            jquery.min.js too.
-        --}}
-        <script>
-            function w2a_play(id, type) {
-                $.ajax({
-                    url: '{{ route('media-player.show') }}',
-                    method: 'POST',
-                    data: {
-                        id: id,
-                        type: type,
-                        _token: $('meta[name="csrf-token"]').attr('content')
-                    },
-                    dataType: 'html',
-                    success: function (data) {
-                        $('#w2a_main_player').html(data);
-                        $('#the_main_player').fadeIn();
-                    }
-                });
-            }
-            $(document).ready(function () {
-                $('#the_main_player .clickable').click(function () {
-                    $('#the_main_player').fadeOut(350, function () {
-                        $('#w2a_main_player').html('');
-                    });
-                });
-            });
-        </script>
     @endpush
 @endsection

@@ -60,6 +60,10 @@ it('author: renders groups, series, and top-level items scoped to this author + 
         ->assertSee('Group One')
         ->assertSee('Series One')
         ->assertSee('Top Level Lesson');
+
+    expect($response->getContent())
+        ->toContain('class="w2a-items-list-wrap"')
+        ->toContain('class="w2a-item-card-row"');
 });
 
 it('author: a group/series/item from a DIFFERENT location is excluded', function () {
@@ -115,7 +119,12 @@ it('show: renders previous/next lesson navigation ordered by weight', function (
 
     $content = $this->get('/chat_lesson_2.htm')->assertOk()->getContent();
 
-    expect($content)->toContain('Lesson A')->toContain('Lesson C');
+    expect($content)
+        ->toContain('Lesson A')
+        ->toContain('Lesson C')
+        ->toContain('class="w2a-nav-prev-next"')
+        ->toContain('المادة السابقة')
+        ->toContain('المادة التالية');
 });
 
 it('show: mirrors are listed, linking to the already-built khotab-mirror route, not the dead lesson-mirror-download route', function () {

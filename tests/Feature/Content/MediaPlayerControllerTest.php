@@ -13,8 +13,8 @@ use Tests\Support\InMemoryConnection;
  * `khotab`/`khotab_mirror` (Batch 4), `anasheed`/`anasheed_mirror`
  * (var-item-{id}.htm parity batch), and now `fatawa`
  * (`fatawa-all-{id}.htm` owner-approved `answer2.php` reconstruction) are
- * wired; telawah/chat_room remain unwired, per each batch's own approved
- * scope.
+ * wired. Telawah now uses the same endpoint; chat-room lessons reuse the
+ * existing `khotab` type because they are rows from that table.
  */
 function useInMemoryMainConnectionForMediaPlayer(): void
 {
@@ -24,6 +24,7 @@ function useInMemoryMainConnectionForMediaPlayer(): void
         'nuke_anasheed_anasheed' => MainSchema::nukeAnasheedAnasheed(),
         'nuke_anasheed_mirror' => MainSchema::nukeAnasheedMirror(),
         'nuke_fatwa_questions' => MainSchema::nukeFatwaQuestions(),
+        'nuke_telawah_telawah' => MainSchema::nukeTelawahTelawah(),
     ]);
 }
 
@@ -253,6 +254,19 @@ it('MediaPlayerService::play(): returns null for the confirmed-material-but-deli
 
 it('the legacy literal get-mada-player.htm path remains unrouted', function () {
     $this->post('/get-mada-player.htm', ['id' => 1, 'type' => 'khotab'])->assertNotFound();
+});
+
+it('POST /media-player: telawat type resolves a visible recitation as audio', function () {
+    DB::connection('main')->table('nuke_telawah_telawah')->insert([
+        'id' => 71,
+        'title' => 'Recitation title',
+        'link' => 'https://cdn.example.com/recitation.mp3',
+    ]);
+
+    $response = $this->post('/media-player', ['id' => 71, 'type' => 'telawat']);
+
+    $response->assertOk();
+    expectModernAudioPlayer($response->getContent(), 'https://cdn.example.com/recitation.mp3', 'Recitation title');
 });
 
 // ---- fatawa-all-{id}.htm owner-approved answer2.php reconstruction: MediaPlayerService::fromFatwaQuestion() ----

@@ -68,20 +68,57 @@
                                 <div class="caption"><i class="fa fa-picture-o"></i> ألبوم : {{ $albumModel->title }}</div>
                             </div>
                             <div class="portlet-body ">
-                                <div class="row albums_list row-fluid">
+                                <div class="w2a-gallery-album-header">
+                                    <div class="w2a-gallery-album-info">
+                                        <h2 class="w2a-gallery-album-title">{{ $albumModel->title }}</h2>
+                                        @if (! empty($albumModel->des))
+                                            <p class="w2a-gallery-album-desc">{{ $albumModel->des }}</p>
+                                        @endif
+                                        <div class="w2a-gallery-album-stats">
+                                            <span><i class="fa fa-picture-o" aria-hidden="true"></i> {{ number_format($images->count()) }} صورة</span>
+                                            <span><i class="fa fa-eye" aria-hidden="true"></i> {{ number_format((int) $albumModel->hits) }} مشاهدة</span>
+                                            @if (! empty($albumModel->last_update))
+                                                <span><i class="fa fa-calendar" aria-hidden="true"></i> {{ \App\Domain\Content\Support\LegacyShortDateFormatter::format((int) $albumModel->last_update) }}</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    @if ((int) $albumModel->is_compressed === 1)
+                                        <button type="button" onclick="downlaod_gellery_images({{ $albumModel->album_id }})" class="w2a-gallery-download-zip-btn">
+                                            <i class="fa fa-file-archive-o" aria-hidden="true"></i> تحميل الألبوم بالكامل (ZIP)
+                                        </button>
+                                    @endif
+                                </div>
+
+                                <div class="w2a-gallery-grid">
                                     @foreach ($images as $image)
-                                        @php($thumbUrl = '/thumbnails.php?h=150&w=166&src='.$image->url)
-                                        @php($fullUrl = '/thumbnails.php?w=500&src='.$image->url)
-                                        <div class="col-lg-3 col-md-3 col-sm-4 col-xs-6">
-                                            <div class="album-item albumpic">
-                                                <div class="center-block album-img">
-                                                    <a href="{{ $fullUrl }}" class="lightbox w2a_singl_img" rel="album{{ $albumModel->album_id }}">
-                                                        <img src="{{ $thumbUrl }}" alt="{{ $albumModel->title }}" class="img-responsive pwimages">
+                                        @php($thumbUrl = '/thumbnails.php?h=260&w=340&src='.$image->url)
+                                        @php($fullUrl = '/thumbnails.php?w=1000&src='.$image->url)
+                                        <article class="w2a-gallery-item-card">
+                                            <div class="w2a-gallery-thumb-wrap">
+                                                <img
+                                                    src="{{ $thumbUrl }}"
+                                                    alt="{{ $albumModel->title }} - صورة {{ $loop->iteration }}"
+                                                    class="w2a-gallery-img"
+                                                    width="340"
+                                                    height="260"
+                                                    loading="lazy"
+                                                >
+                                                <div class="w2a-gallery-overlay">
+                                                    <a href="{{ $fullUrl }}" class="lightbox w2a-gallery-action-btn" rel="album{{ $albumModel->album_id }}" title="{{ $albumModel->title }} - صورة {{ $loop->iteration }}">
+                                                        <i class="fa fa-search-plus" aria-hidden="true"></i> تكبير
+                                                    </a>
+                                                    <a href="/albumimg-download-{{ $image->image_id }}.htm" class="w2a-gallery-action-btn w2a-download">
+                                                        <i class="fa fa-download" aria-hidden="true"></i> حفظ
                                                     </a>
                                                 </div>
-                                                <a onclick="loadImg('http://way2allah.com/{{ $image->url }}')" href="/albumimg-download-{{ $image->image_id }}.htm" class="w2a_gal_sav"> <i></i> حفظ الصورة </a>
                                             </div>
-                                        </div>
+                                            <footer class="w2a-gallery-card-footer">
+                                                <span class="w2a-gallery-photo-num">صورة #{{ $loop->iteration }}</span>
+                                                <a href="/albumimg-download-{{ $image->image_id }}.htm" class="w2a-gallery-quick-down">
+                                                    <i class="fa fa-download" aria-hidden="true"></i> تحميل
+                                                </a>
+                                            </footer>
+                                        </article>
                                     @endforeach
                                 </div>
                             </div>
@@ -101,6 +138,12 @@
             $(document).ready(function () {
                 $('a.lightbox').lightBox();
             });
+
+            function downlaod_gellery_images(id) {
+                $.get('download-album-' + id + '.htm', function (downloadUrl) {
+                    window.location.assign(downloadUrl);
+                });
+            }
         </script>
     @endpush
 @endsection

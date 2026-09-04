@@ -96,7 +96,9 @@ it('show: an orphan-series item still renders download/PDF actions, mirrors, and
     expect($content)->toContain('/khotab-download-1.htm')
         ->and($content)->toContain('/khotab-item-pdf-1.htm')
         ->and($content)->toContain('HD quality')
-        ->and($content)->toContain('A real comment');
+        ->and($content)->toContain('A real comment')
+        ->and($content)->toContain('class="w2a-comments-wrap"')
+        ->and($content)->toContain('class="w2a-comment-card"');
 });
 
 it('show: ser_id=0 items are unaffected by the missing-series repair — no series lookup is attempted, no breadcrumb crumb, unchanged from before', function () {

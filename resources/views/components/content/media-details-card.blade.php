@@ -7,10 +7,15 @@
     'pdfUrl' => null,
     'pdfCount' => null,
     'notes' => null,
+    'isVideo' => null,
+    'badge' => null,
+    'speaker' => null,
+    'showCommentAction' => true,
+    'showShareAction' => true,
 ])
 
 @php
-    $isVideo = (bool) $item->vedio;
+    $isVideo = $isVideo ?? (bool) ($item->vedio ?? false);
     $playLabel = $isVideo ? 'مشاهدة المادة' : 'استماع المادة';
 @endphp
 
@@ -21,6 +26,12 @@
         </span>
         <h2 class="w2a-item-header-title">{{ $item->title }}</h2>
     </div>
+
+    @if ($badge)
+        <span class="w2a-item-speaker-badge"><i class="fa fa-book" aria-hidden="true"></i> {{ $badge }}</span>
+    @elseif ($speaker)
+        <span class="w2a-item-speaker-badge"><i class="fa fa-user-circle" aria-hidden="true"></i> {{ $speaker }}</span>
+    @endif
 
     @if (! empty($item->description))
         <div class="w2a-item-desc-box">{{ $item->description }}</div>
@@ -69,11 +80,15 @@
                 <i class="fa fa-file-pdf-o" aria-hidden="true"></i><span>ملف تفريغ</span>
             </a>
         @endif
-        <button type="button" data-toggle="modal" data-target="#commentsModal" class="w2a-action-btn w2a-action-comment send-comment-btn">
-            <i class="fa fa-commenting" aria-hidden="true"></i><span>اضف تعليقك</span>
-        </button>
-        <button type="button" data-toggle="modal" data-target="#sendFriendModal" class="w2a-action-btn w2a-action-share send-friend-btn">
-            <i class="fa fa-paper-plane" aria-hidden="true"></i><span>أرسل لصديق</span>
-        </button>
+        @if ($showCommentAction)
+            <button type="button" data-toggle="modal" data-target="#commentsModal" class="w2a-action-btn w2a-action-comment send-comment-btn">
+                <i class="fa fa-commenting" aria-hidden="true"></i><span>اضف تعليقك</span>
+            </button>
+        @endif
+        @if ($showShareAction)
+            <button type="button" data-toggle="modal" data-target="#sendFriendModal" class="w2a-action-btn w2a-action-share send-friend-btn">
+                <i class="fa fa-paper-plane" aria-hidden="true"></i><span>أرسل لصديق</span>
+            </button>
+        @endif
     </div>
 </div>

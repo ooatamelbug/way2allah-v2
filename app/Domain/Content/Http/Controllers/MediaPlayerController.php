@@ -11,9 +11,9 @@ use Illuminate\Http\Request;
  * w2a_play.js`) posts to. One endpoint for every content type
  * `MediaPlayerService` supports, matching legacy's own single dispatcher
  * — "do not create separate duplicated endpoints for Khotab and Khotab
- * mirrors" (Batch 4 instructions). Only wired into khotab's own frontend
- * this batch; the route/controller/service are reusable as-is once
- * anasheed/telawah/fatawa/chat_room are each separately approved.
+ * mirrors" (Batch 4 instructions). It now serves khotab, anasheed,
+ * telawah, fatawa, and recorded chat-room lessons through their supported
+ * service types.
  *
  * Public, unauthenticated — matches legacy's own `get_w2a_mada_player()`
  * exactly (no session/login/admin check there either). Missing/invalid

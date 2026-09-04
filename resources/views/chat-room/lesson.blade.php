@@ -14,20 +14,38 @@
 
     <div class="row service-box sh-w2a-block">
         <div class="col-xs-12 col-sm-12 col-md-9 telawah-item-content">
-            <section class="mada-details" aria-label="تفاصيل المادة">
-                <h1>{{ $khotabItem->title }}</h1>
-                <p>{{ $authorModel->prename }} {{ $authorModel->name }}</p>
-                <p>عدد الزيارات: {{ $khotabItem->hits }}</p>
-                <p>عدد مرات الحفظ: {{ $khotabItem->downcount }}</p>
-                <a href="/khotab-download-{{ $khotabItem->id }}.htm">حفظ المادة</a>
+            <section class="portlet box blue" aria-label="تفاصيل المادة">
+                <div class="portlet-title">
+                    <div class="caption"><i class="fa {{ $khotabItem->vedio ? 'fa-video-camera' : 'fa-microphone' }}"></i> {{ $khotabItem->title }}</div>
+                </div>
+                <div class="portlet-body">
+                    <x-content.media-details-card
+                        :item="$khotabItem"
+                        module="khotab"
+                        :date="$khotabItem->time ? \App\Domain\Content\Support\LegacyShortDateFormatter::format((int) $khotabItem->time) : ''"
+                        :size="\App\Domain\Content\Support\LegacyFileSizeFormatter::format((int) ($khotabItem->linksize ?? 0))"
+                        :download-url="'/khotab-download-'.$khotabItem->id.'.htm'"
+                        :speaker="trim(($authorModel->prename ?? '').' '.($authorModel->name ?? ''))"
+                        :show-comment-action="false"
+                        :show-share-action="false"
+                    />
+                </div>
             </section>
 
-            <nav aria-label="التنقل بين الدروس" class="w2a_next_previous_mada">
+            <x-content.media-player-panel />
+
+            <nav aria-label="التنقل بين الدروس" class="w2a-nav-prev-next">
                 @if ($previousLesson)
-                    <a href="/chat_lesson_{{ $previousLesson->id }}.htm">{{ $previousLesson->title }}</a>
+                    <a href="/chat_lesson_{{ $previousLesson->id }}.htm" class="w2a-nav-item w2a-nav-prev">
+                        <i class="fa fa-arrow-right" aria-hidden="true"></i>
+                        <span class="w2a-nav-text"><span class="w2a-nav-label">المادة السابقة</span><span class="w2a-nav-title">{{ $previousLesson->title }}</span></span>
+                    </a>
                 @endif
                 @if ($nextLesson)
-                    <a href="/chat_lesson_{{ $nextLesson->id }}.htm">{{ $nextLesson->title }}</a>
+                    <a href="/chat_lesson_{{ $nextLesson->id }}.htm" class="w2a-nav-item w2a-nav-next">
+                        <span class="w2a-nav-text"><span class="w2a-nav-label">المادة التالية</span><span class="w2a-nav-title">{{ $nextLesson->title }}</span></span>
+                        <i class="fa fa-arrow-left" aria-hidden="true"></i>
+                    </a>
                 @endif
             </nav>
 
@@ -43,14 +61,7 @@
             @if ($relatedLessons->isNotEmpty())
                 <section aria-label="روابط ذات صلة">
                     <h3>روابط ذات صلة</h3>
-                    <ul>
-                        @foreach ($relatedLessons as $related)
-                            <li>
-                                <a href="/chat_lesson_{{ $related->id }}.htm">{{ $related->title }}</a>
-                                — <a href="/chat_author_{{ $related->author_id }}.htm">{{ $related->prename }} {{ $related->name }}</a>
-                            </li>
-                        @endforeach
-                    </ul>
+                    <x-content.chat-item-list :items="$relatedLessons" related />
                 </section>
             @endif
         </div>
@@ -67,4 +78,6 @@
             <x-content.chat-lesson-list :items="$mostRecent" />
         </aside>
     </div>
+
+    <x-content.media-player-script />
 @endsection

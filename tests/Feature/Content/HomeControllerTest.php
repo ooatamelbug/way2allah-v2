@@ -103,7 +103,8 @@ it('/: scopes the equal-width presentation-card layout to the introductory secti
     $content = $this->get('/')->assertOk()->getContent();
 
     expect($content)->toContain('<div class="row service-box top-section-card">')
-        ->not->toContain('<div class="row service-box margin-bottom-40">');
+        ->not->toContain('<div class="row service-box margin-bottom-40">')
+        ->and(substr_count($content, '<div class="row service-box w2a-equal-height-row">'))->toBe(3);
 });
 
 it('/: exposes keyboard-accessible global navigation and advanced search controls', function () {

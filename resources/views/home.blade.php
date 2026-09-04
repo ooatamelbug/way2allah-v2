@@ -96,7 +96,7 @@
     </div>
     {{-- END BLOCKQUOTE BLOCK --}}
 
-    <div class="row service-box">
+    <div class="row service-box w2a-equal-height-row">
         {{-- Section 3: أحدث المرئيات على مدار الساعة --}}
         <x-home.section-card title="أحدث المرئيات على مدار الساعة" icon="fa-video-camera" color="blue home" width="4" width-sm="6">
             <ul class="vars">
@@ -201,7 +201,7 @@
         </x-home.section-card>
     </div>
 
-    <div class="row service-box">
+    <div class="row service-box w2a-equal-height-row">
         {{-- Section 9: جديد التلاوات --}}
         <x-home.section-card title="جديد التلاوات" icon="fa-quran" color="blue home" width="4" width-sm="6">
             <ul class="homecss">
@@ -257,7 +257,7 @@
         </x-home.section-card>
     </div>
 
-    <div class="row service-box">
+    <div class="row service-box w2a-equal-height-row">
         {{-- جديد الكارتون (parent=57) --}}
         <x-home.section-card title="جديد الكارتون" icon="fa-child" color="blue home" width="4" width-sm="6">
             <ul class="vars">

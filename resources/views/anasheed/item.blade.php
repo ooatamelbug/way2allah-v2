@@ -89,6 +89,7 @@
 
             {{-- Shared player chrome; w2a_play() injects the selected media response into #w2a_main_player. --}}
             <x-content.media-player-panel />
+            <x-content.media-player-script />
 
             {{-- item.php:86 post_comment_modal() (functions.php:504-536) — the modal itself, previously entirely absent. --}}
             <div class="modal fade" id="commentsModal" tabindex="-1" role="dialog" aria-labelledby="commentsModalLabel">
@@ -186,19 +187,7 @@
                         <div class="caption"><i class="fa fa-comments"></i> تعليقات الزوار على المادة</div>
                     </div>
                     <div class="portlet-body">
-                        <p>( عدد التعليقات : {{ $comments->total() }} تعليق )</p>
-                        <div class="anasheed_comments">
-                            @foreach($comments as $comment)
-                                <div class="comment-item">
-                                    <img src="/images/flags/{{ $comment->uid == 0 && $comment->uname === '' ? 'way2allah' : $comment->code }}.png" alt="{{ $comment->code }}">
-                                    <p>{{ $comment->comment }}</p>
-                                    <span>{{ $comment->uid == 0 && $comment->uname === '' ? 'مشرف التعليقات' : $comment->uname }}</span>
-                                    {{-- var-item-17350.htm parity: list_anasheed_comments() (functions.php:815) uses CoolShortDate(), not tinydate()'s plain Y-m-d. --}}
-                                    <span>{{ \App\Domain\Content\Support\LegacyShortDateFormatter::format((int) $comment->mytime) }}</span>
-                                </div>
-                            @endforeach
-                        </div>
-                        {{ $comments->links() }}
+                        <x-content.visitor-comments :comments="$comments" />
                     </div>
                 </div>
             @endif
