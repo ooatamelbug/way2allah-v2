@@ -65,7 +65,7 @@ it('group show: G-13-07 — sub-group rows show the hardcoded telawah.gif too', 
 
 // ---- recite.htm parity: one outer portlet containing a flat card grid, not one portlet per reader ----
 
-it('authors index: renders exactly ONE portlet (list_telawat_groups() wraps all readers in a single portlet, not one each)', function () {
+it('authors index: renders exactly one portlet with a searchable premium reciter grid', function () {
     DB::connection('main')->table('nuke_telawah_groups')->insert([
         ['id' => 1, 'title' => 'Reader One', 'parent_id' => 0, 'hits' => 5, 'child' => 2, 'telawah' => 10],
         ['id' => 2, 'title' => 'Reader Two', 'parent_id' => 0, 'hits' => 7, 'child' => 0, 'telawah' => 3],
@@ -74,11 +74,13 @@ it('authors index: renders exactly ONE portlet (list_telawat_groups() wraps all 
     $content = $this->get('/recite.htm')->assertOk()->getContent();
 
     expect(substr_count($content, 'portlet-title'))->toBe(1)
-        ->and(substr_count($content, 'telawah-author'))->toBe(2)
+        ->and(substr_count($content, 'class="w2a-reciter-card"'))->toBe(2)
+        ->and($content)->toContain('w2a_reciter_search_input')
+        ->and($content)->toContain('2 قارئ')
         ->and($content)->toContain('fa-users');
 });
 
-it('authors index: card metadata matches list_telawat_groups() exactly — counts, comment fallback/truncation, and the untruncated tooltip', function () {
+it('authors index: premium card metadata includes counts, the new fallback description, and truncation', function () {
     DB::connection('main')->table('nuke_telawah_groups')->insert([
         ['id' => 1, 'title' => 'No Comment Reader', 'parent_id' => 0, 'hits' => 100, 'child' => 3, 'telawah' => 25, 'des' => ''],
         ['id' => 2, 'title' => 'Long Comment Reader', 'parent_id' => 0, 'hits' => 1, 'child' => 0, 'telawah' => 1,
@@ -88,11 +90,25 @@ it('authors index: card metadata matches list_telawat_groups() exactly — count
 
     $content = $this->get('/recite.htm')->assertOk()->getContent();
 
-    expect($content)->toContain('الأقسام الفرعية : <span>3</span> قسم')
-        ->and($content)->toContain('التلاوات : <span>25</span> تلاوة')
-        ->and($content)->toContain('الزيارات : <span>100</span> زيارة')
-        ->and($content)->toContain('بدون تعليق') // functions.php:151's fallback for an empty `des`
+    expect($content)->toContain('3 قسم فرعي')
+        ->and($content)->toContain('25 تلاوة')
+        ->and($content)->toContain('100 زيارة')
+        ->and($content)->toContain('تلاوات قرآنية خاشعة ومجودة')
         ->and($content)->toContain('...'); // the long comment must be truncated, not shown in full
+});
+
+it('group show: subgroups reuse the searchable reciter-card component', function () {
+    DB::connection('main')->table('nuke_telawah_groups')->insert([
+        ['id' => 1, 'title' => 'Reader One', 'parent_id' => 0, 'hits' => 0, 'child' => 1, 'telawah' => 0],
+        ['id' => 2, 'title' => 'Sub Group', 'parent_id' => 1, 'hits' => 7, 'child' => 0, 'telawah' => 3],
+    ]);
+
+    $content = $this->get('/recite-group-1.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('class="w2a-reciter-card"')
+        ->toContain('data-title="Sub Group"')
+        ->toContain('1 قسم فرعي');
 });
 
 it('item show: renders details WITHOUT incrementing hits — legacy never does either', function () {

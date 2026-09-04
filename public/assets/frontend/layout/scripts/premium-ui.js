@@ -579,6 +579,39 @@
       }
     }
 
+    // 10. Quran-reciter search.
+    var recitersWrap = document.querySelector(".w2a-reciters-wrap");
+    if (recitersWrap) {
+      var reciterSearchInput = document.getElementById("w2a_reciter_search_input");
+      var reciterClearBtn = document.getElementById("w2a_reciter_search_clear");
+      var reciterResultStatus = document.getElementById("w2a_reciter_result_status");
+
+      if (reciterSearchInput) {
+        reciterSearchInput.addEventListener("input", function () {
+          var query = reciterSearchInput.value.trim().toLocaleLowerCase("ar");
+          var visibleTotal = 0;
+          if (reciterClearBtn) reciterClearBtn.hidden = query.length === 0;
+
+          recitersWrap.querySelectorAll(".w2a-reciter-card").forEach(function (card) {
+            var title = (card.getAttribute("data-title") || "").toLocaleLowerCase("ar");
+            var visible = !query || title.indexOf(query) !== -1;
+            card.classList.toggle("search-hidden", !visible);
+            if (visible) visibleTotal += 1;
+          });
+
+          if (reciterResultStatus) reciterResultStatus.textContent = visibleTotal + " نتيجة";
+        });
+
+        if (reciterClearBtn) {
+          reciterClearBtn.addEventListener("click", function () {
+            reciterSearchInput.value = "";
+            reciterSearchInput.dispatchEvent(new Event("input"));
+            reciterSearchInput.focus();
+          });
+        }
+      }
+    }
+
     // Keep the mobile menu button state available to assistive technology.
     var mobileToggler = document.querySelector(".mobi-toggler");
     if (mobileToggler) {

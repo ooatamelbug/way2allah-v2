@@ -11,16 +11,7 @@
     --}}
     @if($subGroups->isNotEmpty())
         <section aria-label="قائمة الأقسام الفرعية">
-            <ul>
-                @foreach ($subGroups as $subGroup)
-                    <li>
-                        <a href="/recite-group-{{ $subGroup->id }}.htm">
-                            <img src="/images/telawah.gif" alt="{{ $subGroup->title }}">
-                            <span>{{ $subGroup->title }}</span>
-                        </a>
-                    </li>
-                @endforeach
-            </ul>
+            <x-content.reciter-directory :groups="$subGroups" subgroups />
         </section>
     @endif
 

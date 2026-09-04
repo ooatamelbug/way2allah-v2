@@ -52,37 +52,7 @@
                     <div class="caption"><i class="fa fa-users"></i> قائمة القراء</div>
                 </div>
                 <div class="portlet-body">
-                    <div class="row telawat_authors_list">
-                        @foreach ($groups as $group)
-                            @php($comment = empty($group->des) ? 'بدون تعليق' : $group->des)
-                            <div class="col-xs-12 col-sm-6 col-md-4 telawah-author">
-                                <div class="thumbnail">
-                                    <div class="row">
-                                        <div class="col-xs-12 telawa-author-name text-center">
-                                            <a href="/recite-group-{{ $group->id }}.htm"><span>{{ $group->title }}</span></a>
-                                        </div>
-                                    </div>
-                                    <div class="row margin-top-10">
-                                        <div class="col-xs-12 mar" title="{{ $comment }}">
-                                            <div class="telawa-thumb">
-                                                <a href="/recite-group-{{ $group->id }}.htm" class="bg_group">
-                                                    <img src="/images/telawah.gif" alt="{{ $group->title }}">
-                                                </a>
-                                            </div>
-                                            <div class="telawa-details">
-                                                <div class="list-group">
-                                                    <div class="list-group-item telawah-group-subcats"> الأقسام الفرعية : <span>{{ (int) $group->child }}</span> قسم </div>
-                                                    <div class="list-group-item telawah-group-recits"> التلاوات : <span>{{ (int) $group->telawah }}</span> تلاوة </div>
-                                                    <div class="list-group-item telawah-group-visits"> الزيارات : <span>{{ (int) $group->hits }}</span> زيارة </div>
-                                                    <div class="list-group-item telawah-group-comment"> التعليق : {{ \App\Domain\Content\Support\LegacyTextTruncator::words($comment, 90) }} </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
+                    <x-content.reciter-directory :groups="$groups" />
                 </div>
             </div>
         </div>
