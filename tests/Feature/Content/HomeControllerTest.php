@@ -99,6 +99,13 @@ it('/: loads the premium UI globally and renders the lightweight media rail with
         ->not->toContain('jquery.carouFredSel.js');
 });
 
+it('/: scopes the equal-width presentation-card layout to the introductory section', function () {
+    $content = $this->get('/')->assertOk()->getContent();
+
+    expect($content)->toContain('<div class="row service-box top-section-card">')
+        ->not->toContain('<div class="row service-box margin-bottom-40">');
+});
+
 it('/: exposes keyboard-accessible global navigation and advanced search controls', function () {
     $content = $this->get('/')->assertOk()->getContent();
 

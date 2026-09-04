@@ -1956,7 +1956,7 @@ div.w2a-poll-meta i.fa {
   row-gap: 32px !important;
 }
 
-.row.service-box.margin-bottom-40 {
+.row.service-box.top-section-card {
   display: flex !important;
   flex-wrap: wrap !important;
   align-items: stretch !important;
@@ -1964,7 +1964,7 @@ div.w2a-poll-meta i.fa {
   row-gap: 32px !important;
 }
 
-.row.service-box.margin-bottom-40 .service-box-card {
+.row.service-box.top-section-card .service-box-card {
   display: flex !important;
   flex-direction: column !important;
   justify-content: space-between !important;
@@ -1978,6 +1978,10 @@ div.w2a-poll-meta i.fa {
     transform var(--w2a-motion-normal),
     box-shadow var(--w2a-motion-normal),
     border-color var(--w2a-motion-normal) !important;
+  height: 100% !important;
+}
+
+.row.service-box .portlet {
   height: 100% !important;
 }
 
@@ -1998,16 +2002,16 @@ div.w2a-poll-meta i.fa {
 }
 
 @media (min-width: 768px) {
-  .row.service-box.margin-bottom-40 > div.col-md-4,
-  .row.service-box.margin-bottom-40 > div.col-sm-4 {
+  .row.service-box.top-section-card > div.col-md-4,
+  .row.service-box.top-section-card > div.col-sm-4 {
     flex: 1 1 calc(33.333% - 11px) !important;
     max-width: calc(33.333% - 11px) !important;
     width: calc(33.333% - 11px) !important;
     margin-bottom: 0 !important;
   }
 
-  .row.service-box.margin-bottom-40 > div.col-md-6,
-  .row.service-box.margin-bottom-40 > div.col-sm-6 {
+  .row.service-box.top-section-card > div.col-md-6,
+  .row.service-box.top-section-card > div.col-sm-6 {
     flex: 1 1 calc(50% - 8px) !important;
     max-width: calc(50% - 8px) !important;
     width: calc(50% - 8px) !important;
@@ -2016,7 +2020,7 @@ div.w2a-poll-meta i.fa {
 }
 
 @media (max-width: 767px) {
-  .row.service-box.margin-bottom-40 > div[class*="col-"] {
+  .row.service-box.top-section-card > div[class*="col-"] {
     flex: 1 1 100% !important;
     max-width: 100% !important;
     width: 100% !important;
@@ -2024,7 +2028,7 @@ div.w2a-poll-meta i.fa {
   }
 }
 
-.row.service-box.margin-bottom-40 div.service-box-card:hover {
+.row.service-box.top-section-card div.service-box-card:hover {
   transform: translateY(-4px) !important;
   box-shadow: var(--w2a-shadow-md) !important;
   border-color: var(--w2a-primary-500) !important;
@@ -2066,7 +2070,7 @@ div.w2a-poll-meta i.fa {
   color: var(--w2a-ink-900) !important;
 }
 
-.row.service-box.margin-bottom-40 p {
+.row.service-box.top-section-card p {
   font-size: 14px !important;
   line-height: 1.8 !important;
   color: var(--w2a-ink-800) !important;

@@ -65,7 +65,7 @@
 @section('content')
 
     {{-- BEGIN SERVICE BOX (sections 1-2: static text cards + blockquote CTA) --}}
-    <div class="row service-box margin-bottom-40">
+    <div class="row service-box top-section-card">
         <div class="col-md-4 col-sm-4">
             <div class="service-box-card">
                 <div class="service-box-heading"> <em><i class="fa fa-book blue"></i></em> <span>معاني الآيات</span> </div>
