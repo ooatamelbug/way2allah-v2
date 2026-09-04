@@ -5640,6 +5640,168 @@ button.mobi-toggler {
   color: #ffffff !important;
 }
 
+/* --------------------------------------------------------------------------
+   3.25 BRAND NEW EXCLUSIVE SHOWS UI/UX (.w2a-exclusive-shows-wrap)
+   -------------------------------------------------------------------------- */
+.w2a-exclusive-shows-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 20px !important;
+}
+
+@media (max-width: 1199px) {
+  .w2a-exclusive-shows-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .w2a-exclusive-shows-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .w2a-exclusive-shows-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.w2a-exclusive-card {
+  display: flex !important;
+  flex-direction: column !important;
+  background-color: #ffffff !important;
+  border: 1px solid var(--w2a-border) !important;
+  border-radius: var(--w2a-radius-lg) !important;
+  overflow: hidden !important;
+  text-decoration: none !important;
+  box-shadow: var(--w2a-shadow-sm) !important;
+  transition: all var(--w2a-motion-normal) !important;
+  position: relative !important;
+}
+
+.w2a-exclusive-card:hover {
+  transform: translateY(-4px) !important;
+  border-color: var(--w2a-primary-500) !important;
+  box-shadow: var(--w2a-shadow-md) !important;
+  text-decoration: none !important;
+}
+
+.w2a-exclusive-banner-wrap {
+  position: relative !important;
+  width: 100% !important;
+  height: 160px !important;
+  background: linear-gradient(135deg, var(--w2a-primary-900), var(--w2a-primary-700)) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  padding: 16px !important;
+}
+
+.w2a-exclusive-banner-img {
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain !important;
+  transition: transform var(--w2a-motion-fast) !important;
+}
+
+.w2a-exclusive-card:hover .w2a-exclusive-banner-img {
+  transform: scale(1.08) !important;
+}
+
+.w2a-exclusive-badge {
+  position: absolute !important;
+  top: 10px !important;
+  right: 10px !important;
+  background: rgba(18, 86, 136, 0.85) !important;
+  backdrop-filter: blur(8px) !important;
+  color: #ffffff !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  padding: 4px 10px !important;
+  border-radius: var(--w2a-radius-full) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.w2a-exclusive-overlay {
+  position: absolute !important;
+  inset: 0 !important;
+  background: rgba(18, 86, 136, 0.4) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  opacity: 0 !important;
+  transition: opacity var(--w2a-motion-fast) !important;
+}
+
+.w2a-exclusive-card:hover .w2a-exclusive-overlay {
+  opacity: 1 !important;
+}
+
+.w2a-exclusive-overlay-icon {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 50% !important;
+  background-color: #ffffff !important;
+  color: var(--w2a-primary-600) !important;
+  font-size: 18px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+  transform: scale(0.8) !important;
+  transition: transform var(--w2a-motion-fast) !important;
+}
+
+.w2a-exclusive-card:hover .w2a-exclusive-overlay-icon {
+  transform: scale(1) !important;
+}
+
+.w2a-exclusive-body {
+  padding: 16px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  gap: 10px !important;
+}
+
+.w2a-exclusive-title {
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  color: var(--w2a-ink-900) !important;
+  margin: 0 !important;
+  line-height: 1.4 !important;
+  transition: color var(--w2a-motion-fast) !important;
+  text-align: center !important;
+}
+
+.w2a-exclusive-card:hover .w2a-exclusive-title {
+  color: var(--w2a-primary-600) !important;
+}
+
+.w2a-exclusive-cta {
+  margin-top: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: var(--w2a-primary-600) !important;
+  background-color: var(--w2a-primary-50) !important;
+  padding: 8px 14px !important;
+  border-radius: var(--w2a-radius-md) !important;
+  transition: all var(--w2a-motion-fast) !important;
+}
+
+.w2a-exclusive-card:hover .w2a-exclusive-cta {
+  background-color: var(--w2a-primary-600) !important;
+  color: #ffffff !important;
+}
+
 /* ==========================================================================
    END — UI ENHANCEMENT v2 (PREMIUM UI SYSTEM)
    ========================================================================== */

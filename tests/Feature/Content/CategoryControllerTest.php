@@ -118,7 +118,8 @@ it('show: category 487 renders the "برامج حصرية" portlet listing its m
 
     expect($content)
         ->toContain('برامج حصرية لشبكة الطريق إلى الله')
-        ->toContain('col-xs-12 col-sm-6 col-md-4 col-lg-3 telawah-author')
+        ->toContain('class="w2a-exclusive-shows-grid"')
+        ->toContain('class="w2a-exclusive-card"')
         ->toContain('href="/category-622.htm"')
         ->toContain('Flood Coverage');
     expect(strpos($content, 'برامج حصرية'))->toBeLessThan(strpos($content, 'قائمة المواد'));
@@ -140,7 +141,8 @@ it('show: category 487\'s media-coverage cards use the hardcoded logo for known 
 
     expect($content)
         ->toContain('src="/images/logos/Salon.gif"')
-        ->toContain('src="https://way2allah.com//images/tvnoise.gif"');
+        ->toContain('src="/images/tvnoise.gif"')
+        ->toContain('loading="lazy"');
 });
 
 it('show: category 487 omits the media-coverage portlet entirely when it has no qualifying khotab items, even though its sub-categories exist', function () {
@@ -157,7 +159,7 @@ it('show: category 487 omits the media-coverage portlet entirely when it has no 
     // (layouts/partials/navigation.blade.php:76, present on every page) —
     // check the actual portlet caption markup instead.
     expect($content)
-        ->not->toContain('<div class="caption"><i class="fa fa-child"></i> برامج حصرية لشبكة الطريق إلى الله</div>')
+        ->not->toContain('<div class="caption"><i class="fa fa-star" aria-hidden="true"></i> برامج حصرية لشبكة الطريق إلى الله</div>')
         ->not->toContain('Flood Coverage');
 });
 
@@ -171,7 +173,7 @@ it('show: a DIFFERENT category never renders the media-coverage portlet, even wi
 
     $content = $this->get('/category-5.htm')->assertOk()->getContent();
 
-    expect($content)->not->toContain('<div class="caption"><i class="fa fa-child"></i> برامج حصرية لشبكة الطريق إلى الله</div>');
+    expect($content)->not->toContain('<div class="caption"><i class="fa fa-star" aria-hidden="true"></i> برامج حصرية لشبكة الطريق إلى الله</div>');
 });
 
 // ---- Full Design Parity Pass (category-{id}.htm): the real Series card-grid ----

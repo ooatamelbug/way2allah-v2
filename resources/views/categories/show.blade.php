@@ -76,10 +76,11 @@
                 <div id="" class="col-md-12 col-sm-12">
                     <div class="portlet box blue">
                         <div class="portlet-title">
-                            <div class="caption"><i class="fa fa-child"></i> برامج حصرية لشبكة الطريق إلى الله</div>
+                            <div class="caption"><i class="fa fa-star" aria-hidden="true"></i> برامج حصرية لشبكة الطريق إلى الله</div>
                         </div>
                         <div class="portlet-body ">
-                            <div class="row telawat_authors_list">
+                            <div class="w2a-exclusive-shows-wrap">
+                                <div class="w2a-exclusive-shows-grid">
                                 @foreach ($mediaCoverageSubcategories as $item)
                                     @php($logo = match ((int) $item->id) {
                                         613 => '/images/logos/Salon.gif',
@@ -92,17 +93,26 @@
                                         592 => '/images/logos/ayatTotla.gif',
                                         562 => '/images/logos/AnRab.gif',
                                         618 => '/images/logos/RamdanKarab6.gif',
-                                        default => 'https://way2allah.com//images/tvnoise.gif',
+                                        default => '/images/tvnoise.gif',
                                     })
-                                    <div class="col-xs-12 col-sm-6 col-md-4 col-lg-3 telawah-author">
-                                        <div class="thumbnail">
-                                            <img src="{{ $logo }}" title="{{ $item->title }}" width="" height="">
-                                            <div class="telawa-author-name text-center">
-                                                <a href="/category-{{ $item->id }}.htm"><span style="color: white !important;">{{ $item->title }}</span></a>
+                                    <a href="/category-{{ $item->id }}.htm" class="w2a-exclusive-card">
+                                        <div class="w2a-exclusive-banner-wrap">
+                                            <img src="{{ $logo }}" alt="{{ $item->title }}" class="w2a-exclusive-banner-img" width="240" height="160" loading="lazy" decoding="async">
+                                            <span class="w2a-exclusive-badge"><i class="fa fa-star" aria-hidden="true"></i> برنامج حصري</span>
+                                            <span class="w2a-exclusive-overlay" aria-hidden="true">
+                                                <span class="w2a-exclusive-overlay-icon"><i class="fa fa-play"></i></span>
+                                            </span>
+                                        </div>
+                                        <div class="w2a-exclusive-body">
+                                            <h3 class="w2a-exclusive-title">{{ $item->title }}</h3>
+                                            <div class="w2a-exclusive-cta">
+                                                <span>تصفح البرنامج</span>
+                                                <i class="fa fa-angle-left" aria-hidden="true"></i>
                                             </div>
                                         </div>
-                                    </div>
+                                    </a>
                                 @endforeach
+                                </div>
                             </div>
                         </div>
                     </div>
