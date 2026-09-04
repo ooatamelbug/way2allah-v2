@@ -1,0 +1,16 @@
+.logo-default {
+	margin-top: 2px !important;
+	margin-right: 30px !important;	
+}
+
+.md-checkbox input[type="checkbox"]:checked ~ label > .check {
+transform: scale(1) rotate(-45deg) !important;
+	
+}
+
+.user-pic {
+    display: inline-block;
+    vertical-align: middle;
+    height: 30px;
+    border-radius: 100%;
+}
