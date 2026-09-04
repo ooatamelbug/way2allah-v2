@@ -43,8 +43,8 @@ optimizations remain authoritative.
 | 10 | `2820ada64bd454acb55ec940e5069774f1f8c9be` | `7367f6b` | Blade and asset adaptation | Added the premium live-radio banner, player, controls, and playlist while retaining every selector and data attribute required by the existing audio player. Reused Laravel playlist services and shared sidebar cards without adding queries. |
 | 11 | `bd88261abab747ca24be9db42c26f115f4f56a59` | `2651491` | Blade and asset adaptation | Added a searchable, numbered playlist with active-track styling and accessible result feedback. Preserved the legacy player API and made its title extraction use the new structured track metadata. |
 | 12 | `b4c8fe14ed7f5b5e084427417c078c8019296f0d` | `775f287` | Blade and asset adaptation | Added the searchable responsive gallery-album grid with fixed-size lazy imagery, metadata, and conditional download actions while preserving Laravel's single batched thumbnail lookup. |
-| 13 | `2dd88b4d3b7325335af6c52cf22b696fcb8fd00e` | pending | Blade and asset adaptation | Replaced category 487's legacy thumbnails with responsive premium program cards, local lazy-loaded artwork fallbacks, and a single semantic link per card. Formatting-only legacy PHP changes are excluded. |
-| 14 | `5f877dd395d3bea72faf7e4bdd0711b05cfc3f7f` | pending | Pending | |
+| 13 | `2dd88b4d3b7325335af6c52cf22b696fcb8fd00e` | `a2a3ce6` | Blade and asset adaptation | Replaced category 487's legacy thumbnails with responsive premium program cards, local lazy-loaded artwork fallbacks, and a single semantic link per card. Formatting-only legacy PHP changes are excluded. |
+| 14 | `5f877dd395d3bea72faf7e4bdd0711b05cfc3f7f` | pending | Blade component and asset adaptation | Added reusable category-series, searchable media, and featured-item cards. Applied the global featured-card change across existing Laravel consumers and removed category-page DataTables assets made obsolete by the new grid. |
 | 15 | `128cb5a0a4307505c704778a5ea67edddb691c14` | pending | Pending | |
 | 16 | `fbb10d8a9176be533ac38fa6a4c25e535722eb75` | pending | Pending | |
 | 17 | `a7b8d01fb3b3b663049f02be41b043bda057dfaa` | pending | Pending | |

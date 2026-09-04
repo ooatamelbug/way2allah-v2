@@ -103,11 +103,7 @@
                         <div class="caption">اخترنا لك هذه المادة</div>
                     </div>
                     <div class="portlet-body">
-                        <ul class="news">
-                            @foreach ($randomFeatured as $item)
-                                <li><a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a></li>
-                            @endforeach
-                        </ul>
+                        <x-content.featured-items :items="$randomFeatured" />
                     </div>
                 </div>
             </div>

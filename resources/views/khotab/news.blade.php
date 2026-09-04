@@ -26,11 +26,7 @@
 
         <div class="col-md-3 col-sm-3 nopadding">
             <h3>اخترنا لك هذه المادة</h3>
-            <ul>
-                @foreach ($randomFeatured as $item)
-                    <li><a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a></li>
-                @endforeach
-            </ul>
+            <x-content.featured-items :items="$randomFeatured" />
 
             <h3>الأكثر تحميلا</h3>
             <ul>

@@ -730,6 +730,40 @@
       }
     }
 
+    // 14. Category media search.
+    var catItemsWrap = document.querySelector(".w2a-cat-items-wrap");
+    if (catItemsWrap) {
+      var catSearchInput = document.getElementById("w2a_cat_items_search_input");
+      var catClearBtn = document.getElementById("w2a_cat_items_search_clear");
+      var catResultStatus = document.getElementById("w2a_cat_items_result_status");
+
+      if (catSearchInput) {
+        catSearchInput.addEventListener("input", function () {
+          var query = catSearchInput.value.trim().toLocaleLowerCase("ar");
+          var visibleTotal = 0;
+          if (catClearBtn) catClearBtn.hidden = query.length === 0;
+
+          catItemsWrap.querySelectorAll(".w2a-cat-media-card").forEach(function (card) {
+            var title = (card.getAttribute("data-title") || "").toLocaleLowerCase("ar");
+            var author = (card.getAttribute("data-author") || "").toLocaleLowerCase("ar");
+            var visible = !query || title.indexOf(query) !== -1 || author.indexOf(query) !== -1;
+            card.classList.toggle("search-hidden", !visible);
+            if (visible) visibleTotal += 1;
+          });
+
+          if (catResultStatus) catResultStatus.textContent = visibleTotal + " نتيجة";
+        });
+
+        if (catClearBtn) {
+          catClearBtn.addEventListener("click", function () {
+            catSearchInput.value = "";
+            catSearchInput.dispatchEvent(new Event("input"));
+            catSearchInput.focus();
+          });
+        }
+      }
+    }
+
     // Keep the mobile menu button state available to assistive technology.
     var mobileToggler = document.querySelector(".mobi-toggler");
     if (mobileToggler) {

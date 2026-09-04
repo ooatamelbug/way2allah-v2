@@ -67,18 +67,7 @@
                         <div class="caption"><i class="fa fa-child"></i> اخترنا لك هذه المادة</div>
                     </div>
                     <div class="portlet-body">
-                        @foreach ($randomFeatured as $item)
-                            @php($photo = ((int) ($item->gif ?? 0)) === 1
-                                ? \App\Domain\Content\Support\MediaPathResolver::path('khotab_gifs', $item->id, 'gif')
-                                : \App\Domain\Content\Support\MediaPathResolver::path('khotab_frames', $item->id, 'jpg'))
-                            <div class="thumbnail">
-                                <img src="/{{ $photo }}" alt="{{ $item->title }}" style="width: 100%; height: 160px; display: block;">
-                                <div class="caption">
-                                    <h3>{{ $item->name }}</h3>
-                                    <p><a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a></p>
-                                </div>
-                            </div>
-                        @endforeach
+                        <x-content.featured-items :items="$randomFeatured" />
                     </div>
                 </div>
             </div>

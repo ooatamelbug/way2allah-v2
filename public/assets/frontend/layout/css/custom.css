@@ -1913,6 +1913,14 @@ audio:focus {
   padding: var(--w2a-space-2) var(--w2a-space-4) !important;
   border-radius: 0 !important;
 }
+.page-bar span {
+	display: inline-block;
+	margin-top: 16px !important;
+}
+.page-bar span img {
+	display: inline-block;
+	margin-inline-end: 8px !important;
+}
 /* Breadcrumb links */
 .page-breadcrumb li a {
   color: var(--w2a-primary-600);
