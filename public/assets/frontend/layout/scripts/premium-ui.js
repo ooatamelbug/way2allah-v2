@@ -545,6 +545,40 @@
       });
     }
 
+    // 9. Satellite-channel search.
+    var channelsWrap = document.querySelector(".w2a-channels-wrap");
+    if (channelsWrap) {
+      var channelSearchInput = document.getElementById("w2a_channel_search_input");
+      var channelClearBtn = document.getElementById("w2a_channel_search_clear");
+      var channelResultStatus = document.getElementById("w2a_channel_result_status");
+
+      if (channelSearchInput) {
+        channelSearchInput.addEventListener("input", function () {
+          var query = channelSearchInput.value.trim().toLocaleLowerCase("ar");
+          var visibleTotal = 0;
+          if (channelClearBtn) channelClearBtn.hidden = query.length === 0;
+
+          channelsWrap.querySelectorAll(".w2a-channel-card").forEach(function (card) {
+            var title = (card.getAttribute("data-title") || "").toLocaleLowerCase("ar");
+            var frequency = (card.getAttribute("data-freq") || "").toLocaleLowerCase("ar");
+            var visible = !query || title.indexOf(query) !== -1 || frequency.indexOf(query) !== -1;
+            card.classList.toggle("search-hidden", !visible);
+            if (visible) visibleTotal += 1;
+          });
+
+          if (channelResultStatus) channelResultStatus.textContent = visibleTotal + " نتيجة";
+        });
+
+        if (channelClearBtn) {
+          channelClearBtn.addEventListener("click", function () {
+            channelSearchInput.value = "";
+            channelSearchInput.dispatchEvent(new Event("input"));
+            channelSearchInput.focus();
+          });
+        }
+      }
+    }
+
     // Keep the mobile menu button state available to assistive technology.
     var mobileToggler = document.querySelector(".mobi-toggler");
     if (mobileToggler) {

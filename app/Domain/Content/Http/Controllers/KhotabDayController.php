@@ -5,7 +5,10 @@ namespace App\Domain\Content\Http\Controllers;
 use App\Domain\Content\Services\ContentListingService;
 use App\Domain\Content\Services\ContentSidebarWidget;
 use App\Domain\Content\Support\LegacyShortDateFormatter;
+use DateTimeImmutable;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 /**
  * Replaces `khotab/day.php` — Roadmap task 4.1. Public-only, same scope
@@ -41,13 +44,21 @@ use Illuminate\Contracts\View\View;
  */
 class KhotabDayController
 {
-    public function videoToday(ContentListingService $listing, ContentSidebarWidget $sidebar): View
+    public function videoToday(Request $request, ContentListingService $listing, ContentSidebarWidget $sidebar): View|RedirectResponse
     {
+        if ($redirect = $this->requestedDateRedirect($request, true)) {
+            return $redirect;
+        }
+
         return $this->render(true, $this->today(), true, $listing, $sidebar);
     }
 
-    public function audioToday(ContentListingService $listing, ContentSidebarWidget $sidebar): View
+    public function audioToday(Request $request, ContentListingService $listing, ContentSidebarWidget $sidebar): View|RedirectResponse
     {
+        if ($redirect = $this->requestedDateRedirect($request, false)) {
+            return $redirect;
+        }
+
         return $this->render(false, $this->today(), true, $listing, $sidebar);
     }
 
@@ -64,6 +75,28 @@ class KhotabDayController
     private function today(): int
     {
         return mktime(0, 0, 0, (int) date('n'), (int) date('j'), (int) date('Y'));
+    }
+
+    private function requestedDateRedirect(Request $request, bool $video): ?RedirectResponse
+    {
+        $rawDate = $request->query('date');
+
+        if (! is_string($rawDate) || $rawDate === '') {
+            return null;
+        }
+
+        $date = DateTimeImmutable::createFromFormat('!Y-m-d', $rawDate);
+        $errors = DateTimeImmutable::getLastErrors();
+
+        if ($date === false || ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))) {
+            return null;
+        }
+
+        return redirect()->route($video ? 'khotab.day.video-date' : 'khotab.day.audio-date', [
+            'd' => $date->format('j'),
+            'm' => $date->format('n'),
+            'y' => $date->format('Y'),
+        ]);
     }
 
     private function render(bool $video, int $dayStart, bool $isToday, ContentListingService $listing, ContentSidebarWidget $sidebar): View
@@ -85,6 +118,10 @@ class KhotabDayController
             ['title' => ' المواد المنشورة بتاريخ '.$mydate, 'url' => ''],
         ];
 
+        $todayRoute = $video ? 'khotab.day.video-today' : 'khotab.day.audio-today';
+        $dateRoute = $video ? 'khotab.day.video-date' : 'khotab.day.audio-date';
+        $yesterday = new DateTimeImmutable('yesterday');
+
         return view('khotab.day', [
             'video' => $video,
             'date' => $dayStart,
@@ -92,6 +129,14 @@ class KhotabDayController
             'mostDownloaded' => $mostDownloaded,
             'mostRecent' => $mostRecent,
             'breadcrumbTrail' => $breadcrumbTrail,
+            'formattedDateLabel' => $mydate,
+            'dateSearchAction' => route($todayRoute, [], false),
+            'todayUrl' => route($todayRoute, [], false),
+            'yesterdayUrl' => route($dateRoute, [
+                'd' => $yesterday->format('j'),
+                'm' => $yesterday->format('n'),
+                'y' => $yesterday->format('Y'),
+            ], false),
         ]);
     }
 }

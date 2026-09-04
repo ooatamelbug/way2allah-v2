@@ -17,56 +17,6 @@
 --}}
 @section('title', $video ? 'المرئيات ' : 'الصوتيات ')
 
-{{--
-    khotab-video-today.htm parity: khotab/day.php:20-23 registers
-    scripts/khotab_date.js, scripts/khotab_tables.js, w2a_css/datepicker.css,
-    and Plugins('datepicker') unconditionally. Verified against fresh live
-    HTML (khotab-video-today.htm): the real, effective plugin is
-    bootstrap-datepicker (assets/global/plugins/bootstrap-datepicker/{css,js}) —
-    its option names (format/weekStart/startDate/todayBtn/orientation/
-    todayHighlight) match the real init call at day.php's own footer script
-    exactly. w2a_css/datepicker.css does NOT exist anywhere in this session's
-    legacy-project source snapshot (confirmed: no w2a_css/ directory at all)
-    — SOURCE_UNRECOVERABLE, left un-ported rather than guessed at; the
-    bootstrap-datepicker assets alone are what the live page's actual
-    datepicker.min.js call depends on. khotab_date.js is genuinely loaded
-    (register_script is unconditional) but targets `#datetimepicker2`, an
-    id that does not exist anywhere in day.php's own form — CONFIGURED, not
-    ACTUALLY_EFFECTIVE; loaded here to match legacy's real asset list, not
-    because it does anything on this page.
---}}
-@push('styles')
-    <link href="/assets/global/plugins/bootstrap-datepicker/css/bootstrap-datepicker3.min.css" rel="stylesheet" type="text/css"/>
-@endpush
-
-@push('scripts')
-    <script src="/assets/global/plugins/bootstrap-datepicker/js/bootstrap-datepicker.js" type="text/javascript"></script>
-    <script src="/scripts/khotab_date.js" type="text/javascript"></script>
-    <script>
-        ;(function($){
-            $.fn.datepicker.dates['ar'] = {
-                days: ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"],
-                daysShort: ["أحد", "اثنين", "ثلاثاء", "أربعاء", "خميس", "جمعة", "سبت", "أحد"],
-                daysMin: ["ح", "ن", "ث", "ع", "خ", "ج", "س", "ح"],
-                months: ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"],
-                monthsShort: ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"],
-                today: "هذا اليوم",
-            };
-        }(jQuery));
-        jQuery(document).ready(function() {
-            $('#form_datetime_1').datepicker({
-                format: "dd.mm.yyyy",
-                language: "ar",
-                weekStart: 6,
-                startDate: "1/7/2005",
-                todayBtn: true,
-                orientation: "top right",
-                todayHighlight: true,
-            });
-        });
-    </script>
-@endpush
-
 @section('content')
     {{--
         Shared Page Chrome Parity Audit: day.php:90-101's breadcrumb
@@ -84,7 +34,17 @@
     <x-page-chrome :breadcrumb="$breadcrumbTrail" />
 
     <div class="row service-box margin-bottom-40">
-        <div class="col-lg-9 col-md-8 col-sm-7 nopadding">
+        <div class="col-xs-12">
+            <div class="w2a-date-banner">
+                <div class="w2a-date-banner-icon" aria-hidden="true"><i class="fa fa-calendar"></i></div>
+                <div>
+                    <span class="w2a-date-banner-label">الأرشيف اليومي</span>
+                    <h2>المواد المنشورة بتاريخ: {{ $formattedDateLabel }}</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-9 col-md-8 col-sm-12">
             {{--
                 khotab/day.php:113 calls ListKhotab($ob) with $ob->mode='day'
                 (khotab/functions.php:659,669,677) — author link shown (mode
@@ -152,34 +112,26 @@
             </div>
         </div>
 
-        <aside class="col-lg-3 col-md-4 col-sm-5 nopadding" aria-label="الشريط الجانبي">
-            {{-- day.php:124-155 — "البحث بالتاريخ" date-search form, real input/value/datepicker trigger. --}}
+        <aside class="col-lg-3 col-md-4 col-sm-12" aria-label="الشريط الجانبي">
             <div class="col-md-12 col-sm-12">
                 <div class="portlet box blue">
                     <div class="portlet-title">
-                        <div class="caption"><i class="fa fa-child"></i> البحث بالتاريخ</div>
+                        <div class="caption"><i class="fa fa-calendar"></i> البحث بالتاريخ</div>
                     </div>
                     <div class="portlet-body">
-                        <form action="" method="post" class="form-horizontal form-bordered">
-                            <div class="form-body">
-                                <div class="input-group date form_datetime">
-                                    <input name="date" value="{{ date('Y-m-d', $date) }}" type="text" id="form_datetime_1" data-date-format="yyyy-mm-dd" size="16" readonly
-                                           class="form-control">
-                                    <span class="input-group-btn">
-                                        <button class="btn default date-set" type="button">
-                                            <i class="fa fa-calendar"></i>
-                                        </button>
-                                    </span>
-                                </div>
+                        <form action="{{ $dateSearchAction }}" method="get" class="w2a-date-picker-form">
+                            <label for="w2a_archive_date">اختر تاريخ عرض المواد</label>
+                            <div class="w2a-date-input-wrap">
+                                <i class="fa fa-calendar" aria-hidden="true"></i>
+                                <input name="date" value="{{ date('Y-m-d', $date) }}" type="date" id="w2a_archive_date" min="2005-07-01" required>
                             </div>
-                            <div class="form-actions">
-                                <div class="row"><br>
-                                    <div class="col-md-offset-3 col-md-9">
-                                        <button type="submit" class="btn green btn-outline">
-                                            <i class="fa fa-check"></i> ابحث
-                                        </button>
-                                    </div>
-                                </div>
+                            <button type="submit" class="w2a-date-submit">
+                                <i class="fa fa-search" aria-hidden="true"></i>
+                                <span>عرض المواد</span>
+                            </button>
+                            <div class="w2a-date-presets" aria-label="اختصارات التاريخ">
+                                <a href="{{ $todayUrl }}">اليوم</a>
+                                <a href="{{ $yesterdayUrl }}">أمس</a>
                             </div>
                         </form>
                     </div>

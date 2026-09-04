@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Content\Support\LegacyShortDateFormatter;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\Fixtures\MainSchema;
 use Tests\Support\InMemoryConnection;
@@ -38,7 +39,7 @@ it('index: G-13-08 — each row shows the flat images/channels/{id}.png logo, ma
     $this->get('/channels.htm')->assertOk()->assertSee('/images/channels/7.png', false);
 });
 
-it('index: loads gallery.css and renders the hover-reveal gallery-item/zoomix/channel-logo markup it targets (channels.php:9,41-51)', function () {
+it('index: renders searchable premium channel cards with complete satellite details', function () {
     DB::connection('main')->table('nuke_sat_channels')->insert([
         'id' => 7, 'title' => 'A Channel', 'active' => 0, 'khotab' => 1,
         'freq' => '11000', 'polar' => 'V', 'srate' => '27500', 'fec' => '3/4',
@@ -47,12 +48,19 @@ it('index: loads gallery.css and renders the hover-reveal gallery-item/zoomix/ch
     $response = $this->get('/channels.htm');
 
     $response->assertOk()
-        ->assertSee('/assets/frontend/pages/css/gallery.css', false)
-        ->assertSee('gallery-item', false)
-        ->assertSee('zoomix', false)
-        ->assertSee('channel-logo', false)
-        ->assertSee('قناة : A Channel')
-        ->assertSee('التردد : 11000');
+        ->assertSee('w2a_channel_search_input', false)
+        ->assertSee('w2a-channels-grid', false)
+        ->assertSee('class="w2a-channel-card"', false)
+        ->assertSee('data-title="A Channel"', false)
+        ->assertSee('data-freq="11000"', false)
+        ->assertSee('alt="شعار قناة A Channel"', false)
+        ->assertSee('width="160"', false)
+        ->assertSee('height="90"', false)
+        ->assertSee('loading="lazy"', false)
+        ->assertSee('A Channel')
+        ->assertSee('11000')
+        ->assertSee('27500')
+        ->assertDontSee('/assets/frontend/pages/css/gallery.css', false);
 });
 
 it('index: orders by khotab desc', function () {
@@ -156,10 +164,14 @@ it('show: "الأكثر تحميلا"/"جديد المواد" use the real media
         // "الأكثر تحميلا" (mode='hits'): a formatted hit count, not a date.
         ->toContain('<small>عدد مرات التحميل: 4,200 مرة</small>')
         // "جديد المواد" (mode='time', confirmed from channel.php:110 directly): a real formatted date, not a hit count.
-        ->toContain('<small>بتاريخ: '.\App\Domain\Content\Support\LegacyShortDateFormatter::format(mktime(0, 0, 0, 6, 6, 2015)).'</small>');
+        ->toContain('<small>بتاريخ: '.LegacyShortDateFormatter::format(mktime(0, 0, 0, 6, 6, 2015)).'</small>');
 });
 
 it('show: sidebar thumbnail resolves to a real bucketed frame path when frame=1 and the file exists on disk', function () {
+    if (! is_writable(public_path('media'))) {
+        $this->markTestSkipped('The public media directory is read-only in this environment.');
+    }
+
     $db = DB::connection('main');
     $db->table('nuke_sat_channels')->insert(['id' => 5, 'title' => 'Chan', 'khotab' => 0]);
     $id = 55;

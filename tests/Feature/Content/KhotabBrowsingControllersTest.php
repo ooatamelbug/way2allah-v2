@@ -449,17 +449,33 @@ it('day: IF-022 fix — a dated URL scopes the main list to that date\'s items, 
     expect($listSection)->not->toContain('Today Item');
 });
 
-it('day: khotab-video-today.htm parity — 4 portlets, datepicker assets loaded, empty-state message when no items today, "newest" box shows a date not a hit count', function () {
+it('day: renders the premium archive banner and native date form without legacy datepicker assets', function () {
     $response = $this->get('/khotab-video-today.htm');
     $content = $response->assertOk()->getContent();
 
     expect(substr_count($content, 'portlet-title'))->toBe(4)
         ->and($content)->toContain('بحث بالتاريخ')
-        ->and($content)->toContain('bootstrap-datepicker3.min.css')
-        ->and($content)->toContain('bootstrap-datepicker.js')
-        ->and($content)->toContain('scripts/khotab_date.js')
-        ->and($content)->toContain("\$('#form_datetime_1').datepicker(")
+        ->and($content)->toContain('w2a-date-banner')
+        ->and($content)->toContain('الأرشيف اليومي')
+        ->and($content)->toContain('type="date"')
+        ->and($content)->toContain('method="get"')
+        ->and($content)->not->toContain('bootstrap-datepicker')
+        ->and($content)->not->toContain('scripts/khotab_date.js')
         ->and($content)->toContain('لا توجد مواد مطابقة بقاعدة بيانات الموقع');
+});
+
+it('day: native date search redirects to the canonical dated route for video and audio', function () {
+    $this->get('/khotab-video-today.htm?date=2020-01-15')
+        ->assertRedirect('/khotab-videodate-15-1-2020.htm');
+
+    $this->get('/khotab-audio-today.htm?date=2020-01-15')
+        ->assertRedirect('/khotab-audiodate-15-1-2020.htm');
+});
+
+it('day: invalid native date input is ignored safely', function () {
+    $this->get('/khotab-video-today.htm?date=2020-02-31')
+        ->assertOk()
+        ->assertSee('الأرشيف اليومي');
 });
 
 it('day: "جديد المواد" box uses mode=\'time\' (a formatted date), unlike khotab-series-{id}.htm\'s always-\'hits\' boxes', function () {
