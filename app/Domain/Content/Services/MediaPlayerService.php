@@ -71,7 +71,7 @@ class MediaPlayerService
             return null;
         }
 
-        return $this->renderPlayer($media->link, $media->video);
+        return $this->renderPlayer($media->title, $media->link, $media->video);
     }
 
     /**
@@ -224,31 +224,38 @@ class MediaPlayerService
      * other unrecognized format) rather than embedding dead technology or
      * inventing a fallback UI.
      */
-    private function renderPlayer(string $link, bool $video): ?string
+    private function renderPlayer(string $title, string $link, bool $video): ?string
     {
         if ($video && str_contains($link, 'youtu')) {
             $youtubeId = $this->youtubeId($link);
 
-            return '<div class="embed-responsive embed-responsive-16by9"><iframe src="https://www.youtube.com/embed/'.e($youtubeId).'" frameborder="0" allowfullscreen></iframe></div>';
+            return '<div class="w2a-video-player-wrapper"><div class="embed-responsive embed-responsive-16by9"><iframe src="https://www.youtube.com/embed/'.e($youtubeId).'?autoplay=1" title="'.e($title).'" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div></div>';
         }
 
         $extension = strtolower(pathinfo(parse_url($link, PHP_URL_PATH) ?: $link, PATHINFO_EXTENSION));
 
         if ($extension === 'mp3') {
-            return '<audio controls autoplay><source src="'.e($link).'" type="audio/mpeg"></audio>';
+            return $this->audioPlayer($title, '<audio controls autoplay><source src="'.e($link).'" type="audio/mpeg"></audio>');
         }
 
         if (! $video && str_contains($link, 'soundcloud.com')) {
-            $embedUrl = 'https://w.soundcloud.com/player/?url='.$link.'&color=%23ff5500&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true';
+            $embedUrl = 'https://w.soundcloud.com/player/?url='.$link.'&color=%2310b981&auto_play=true&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true';
 
-            return '<iframe width="100%" height="166" scrolling="no" frameborder="no" allow="autoplay" src="'.e($embedUrl).'"></iframe>';
+            return $this->audioPlayer($title, '<iframe width="100%" height="166" loading="lazy" title="'.e($title).'" allow="autoplay" src="'.e($embedUrl).'"></iframe>');
         }
 
         if ($video && $extension === 'mp4') {
-            return '<video controls autoplay><source src="'.e($link).'" type="video/mp4"></video>';
+            return '<div class="w2a-video-player-wrapper"><video controls autoplay><source src="'.e($link).'" type="video/mp4"></video></div>';
         }
 
         return null;
+    }
+
+    private function audioPlayer(string $title, string $player): string
+    {
+        $bars = str_repeat('<span class="w2a-audio-anim-bar"></span>', 5);
+
+        return '<div class="w2a-audio-player-wrapper"><div class="w2a-audio-anim-bars" aria-hidden="true">'.$bars.'</div><h4>'.e($title).'</h4>'.$player.'</div>';
     }
 
     /**

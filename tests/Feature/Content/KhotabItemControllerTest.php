@@ -1,6 +1,12 @@
 <?php
 
+use App\Domain\Content\Events\CommentPosted;
+use App\Domain\Content\Mail\KhotabFriendMail;
+use App\Domain\Content\Models\KhotabItem;
+use App\Domain\Content\Models\Mirror;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Mail;
 use Tests\Support\Fixtures\MainSchema;
 use Tests\Support\InMemoryConnection;
 
@@ -261,7 +267,7 @@ it('show: renders mirrors', function () {
     $this->get('/khotab-item-1.htm')->assertOk()->assertSee('HD quality');
 });
 
-it('show: G-13-13 — each mirror row renders its quality-extension icon, matching item.php:274-308\'s exact mapping', function () {
+it('show: each mirror card renders its normalized quality format badge', function () {
     insertKhotabAuthor();
     DB::connection('main')->table('nuke_islamic_khotab')->insert([
         'id' => 1, 'author' => 1, 'title' => 'Item', 'vedio' => 1, 'hidden' => 0,
@@ -270,11 +276,13 @@ it('show: G-13-13 — each mirror row renders its quality-extension icon, matchi
         'id' => 1, 'khid' => 1, 'comment' => 'MP4 quality', 'link' => 'https://cdn.example.com/a.mp4', 'linksize' => 100, 'hits' => 0,
     ]);
 
-    $this->get('/khotab-item-1.htm')->assertOk()->assertSee('/images/ext/mp4.gif', false);
+    $content = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('class="w2a-quality-badge-fmt">MP4</span>');
 });
 
 it('Mirror::extensionIconFilename(): G-13-13 — reproduces item.php\'s exact 3-way branch, including the literal (not substring) soundcloud/youtube segment match', function () {
-    $filename = fn (string $link) => (new \App\Domain\Content\Models\Mirror(['link' => $link]))->extensionIconFilename();
+    $filename = fn (string $link) => (new Mirror(['link' => $link]))->extensionIconFilename();
 
     expect($filename('https://cdn.example.com/a.mp3'))->toBe('mp3.gif')
         ->and($filename('https://soundcloud.com/a-track'))->toBe('soundcloud.png') // exact "https://soundcloud" dot-segment
@@ -293,7 +301,7 @@ it('Mirror::extensionIconFilename(): G-13-13 — reproduces item.php\'s exact 3-
 
 // ---- Visual parity audit (khotab-item-298784.htm, 2026-08-18): Batch 2 / Finding #8 — "تعليق على الدرس" row deliberately NOT implemented ----
 
-it('show: never renders a "تعليق على الدرس" notes row — item.php:181-186\'s `notes != 0` + cool_number($Khotab->notes) is dead code against the real varchar(255) free-text column (confirmed live: khotab-item-101.htm has real notes text and still shows no such row)', function () {
+it('show: renders a non-empty free-text lesson note without forcing numeric formatting', function () {
     insertKhotabAuthor();
     DB::connection('main')->table('nuke_islamic_khotab')->insert([
         'id' => 1, 'author' => 1, 'title' => 'Item', 'vedio' => 1, 'hidden' => 0,
@@ -302,12 +310,12 @@ it('show: never renders a "تعليق على الدرس" notes row — item.php:
 
     $content = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
 
-    expect($content)->not->toContain('تعليق على الدرس');
+    expect($content)->toContain('تعليق الدرس')->toContain('تفسير سورة التوبة');
 });
 
 // ---- Visual parity audit (khotab-item-298784.htm, 2026-08-18): Batch 2 — action buttons + mirror row structure restored, previously missing ----
 
-it('show: action buttons use item.php:189-238\'s exact .badge.blue > .circle > <i> + <h5> structure and icons (fa-floppy-o, fa-commenting), not the flat placeholder markup', function () {
+it('show: renders semantic responsive action controls for play, download, comments, and sharing', function () {
     insertKhotabAuthor();
     DB::connection('main')->table('nuke_islamic_khotab')->insert([
         'id' => 1, 'author' => 1, 'title' => 'Item', 'vedio' => 1, 'hidden' => 0,
@@ -315,15 +323,11 @@ it('show: action buttons use item.php:189-238\'s exact .badge.blue > .circle > <
 
     $content = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
 
-    expect($content)->toContain('<a href="/khotab-download-1.htm" target="_blank">')
-        ->and($content)->toContain('<i class="fa fa-floppy-o fa-4 text-blue"></i>')
-        ->and($content)->not->toContain('fa-download"></i><br>')
-        ->and($content)->toContain('<a data-toggle="modal" data-target="#commentsModal" href="javascript:;" class="send-comment-btn">')
-        ->and($content)->toContain('<i class="fa fa-commenting fa-4 text-blue"></i>')
-        // 4 as of Batch 3 (play/download/comment/send-friend) — pdf is
-        // conditional and absent here, so not counted in this fixture.
-        ->and(substr_count($content, 'class="badge blue"'))->toBe(4)
-        ->and(substr_count($content, 'class="circle"'))->toBe(4);
+    expect($content)->toContain('class="w2a-item-actions-grid"')
+        ->and($content)->toContain('class="w2a-action-btn w2a-action-play"')
+        ->and($content)->toContain('href="/khotab-download-1.htm" target="_blank" rel="noopener" class="w2a-action-btn w2a-action-download"')
+        ->and($content)->toContain('data-target="#commentsModal" class="w2a-action-btn w2a-action-comment send-comment-btn"')
+        ->and($content)->toContain('data-target="#sendFriendModal" class="w2a-action-btn w2a-action-share send-friend-btn"');
 });
 
 it('show: the play/watch button markup renders correctly (icon/label vary by vedio) and, as of Batch 4, is backed by a real player — #the_main_player/#w2a_main_player exist and w2a_play() is defined', function () {
@@ -335,16 +339,15 @@ it('show: the play/watch button markup renders correctly (icon/label vary by ved
 
     $video = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
     expect($video)->toContain('onclick="w2a_play(1,\'khotab\')"')
-        ->and($video)->toContain('<i class="fa fa-youtube-play fa-4 text-blue"></i>')
-        ->and($video)->toContain('<h5>مشاهدة المادة</h5>')
+        ->and($video)->toContain('<i class="fa fa-play-circle" aria-hidden="true"></i><span>مشاهدة المادة</span>')
+        ->and($video)->toContain('class="w2a-player-panel"')
         ->and(substr_count($video, 'id="the_main_player"'))->toBe(1)
         ->and(substr_count($video, 'id="w2a_main_player"'))->toBe(1)
         ->and($video)->toContain('function w2a_play(id, type)');
 
     $audio = $this->get('/khotab-item-2.htm')->assertOk()->getContent();
     expect($audio)->toContain('onclick="w2a_play(2,\'khotab\')"')
-        ->and($audio)->toContain('<i class="fa fa-headphones fa-4 text-blue"></i>')
-        ->and($audio)->toContain('<h5>إستماع المادة</h5>')
+        ->and($audio)->toContain('<i class="fa fa-headphones" aria-hidden="true"></i><span>استماع المادة</span>')
         // scripts/w2a_play.js/get-mada-player.htm themselves are still not
         // loaded/routed — this app's own /media-player replaces them.
         ->and($audio)->not->toContain('w2a_play.js')
@@ -359,12 +362,11 @@ it('show: as of Batch 3, the send-friend button/trigger is restored, targeting #
 
     $content = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
 
-    expect($content)->toContain('<a data-toggle="modal" data-target="#sendFriendModal" href="javascript:;" class="send-friend-btn">')
-        ->and($content)->toContain('<i class="fa fa-envelope fa-4 text-blue"></i>')
-        ->and($content)->toContain('<h5>أرسل لصديق</h5>');
+    expect($content)->toContain('<button type="button" data-toggle="modal" data-target="#sendFriendModal" class="w2a-action-btn w2a-action-share send-friend-btn">')
+        ->and($content)->toContain('<i class="fa fa-paper-plane" aria-hidden="true"></i><span>أرسل لصديق</span>');
 });
 
-it('show: mirror rows render item.php:309-351\'s numbered <h5>/quality_title/download-attribute link and the 4-column .page-header row, matching real olddb mirror data (item 298784, mirror 429195)', function () {
+it('show: mirror qualities render responsive cards with metadata and semantic actions', function () {
     insertKhotabAuthor();
     DB::connection('main')->table('nuke_islamic_khotab')->insert([
         'id' => 1, 'author' => 1, 'title' => 'Item', 'vedio' => 1, 'hidden' => 0,
@@ -376,18 +378,14 @@ it('show: mirror rows render item.php:309-351\'s numbered <h5>/quality_title/dow
 
     $content = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
 
-    expect($content)->toContain('table class="table table-striped table-hover" id="tabelgrp"')
-        ->and($content)->toContain('1 - <a class="quality_title" href="/khotab-mirror-1-429195.htm" download>جودة عالية - mp4</a>')
-        ->and($content)->toContain('2 - <a class="quality_title" href="/khotab-mirror-1-429196.htm" download>جودة صوت - mp3</a>')
-        // vedio=1 mirror: "مشاهدة"/"مشاهدة الوصلة"/fa-youtube-play; vedio=0: "إستماع"/"سماع الوصلة"/fa-headphones (item.php:280-293).
-        ->and($content)->toContain('title="مشاهدة الوصلة" onclick="w2a_play(429195,\'khotab_mirror\')">')
-        ->and($content)->toContain('title="سماع الوصلة" onclick="w2a_play(429196,\'khotab_mirror\')">')
-        ->and(substr_count($content, 'fa-youtube-play fa-2'))->toBe(1)
-        ->and(substr_count($content, 'fa-headphones fa-2'))->toBe(1)
-        ->and($content)->toContain('42')
-        ->and($content)->toContain('43')
-        ->and(substr_count($content, 'fa-file-archive-o'))->toBe(2)
-        ->and(substr_count($content, 'fa-download'))->toBeGreaterThanOrEqual(2);
+    expect($content)->toContain('class="w2a-qualities-list"')
+        ->and(substr_count($content, 'class="w2a-quality-card"'))->toBe(2)
+        ->and($content)->toContain('<a class="w2a-quality-title" href="/khotab-mirror-1-429195.htm" download>جودة عالية - mp4</a>')
+        ->and($content)->toContain('<a class="w2a-quality-title" href="/khotab-mirror-1-429196.htm" download>جودة صوت - mp3</a>')
+        ->and($content)->toContain('onclick="w2a_play(429195,\'khotab_mirror\')"')
+        ->and($content)->toContain('onclick="w2a_play(429196,\'khotab_mirror\')"')
+        ->and($content)->toContain('42 تنزيل')
+        ->and($content)->toContain('43 تنزيل');
 });
 
 it('show: mirror numbering restarts and increments correctly across 3+ mirrors, not a fixed/static counter', function () {
@@ -403,9 +401,9 @@ it('show: mirror numbering restarts and increments correctly across 3+ mirrors, 
 
     $content = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
 
-    expect($content)->toContain('1 - <a class="quality_title" href="/khotab-mirror-1-1.htm" download>First</a>')
-        ->and($content)->toContain('2 - <a class="quality_title" href="/khotab-mirror-1-2.htm" download>Second</a>')
-        ->and($content)->toContain('3 - <a class="quality_title" href="/khotab-mirror-1-3.htm" download>Third</a>');
+    expect($content)->toContain('<span class="w2a-quality-num">1</span>')
+        ->and($content)->toContain('<span class="w2a-quality-num">2</span>')
+        ->and($content)->toContain('<span class="w2a-quality-num">3</span>');
 });
 
 it('show: the legacy literal get-mada-player.htm path remains unrouted — Batch 4\'s player endpoint lives at the Laravel-native /media-player instead, same URL-adaptation approach as the comment/send-friend routes', function () {
@@ -502,7 +500,7 @@ it('sendToFriend: validates all 4 fields + both emails, matching khotab_send_fri
 });
 
 it('sendToFriend: on valid input, sends a KhotabFriendMail to the friend\'s email, From the submitter\'s own name/email — matching shams_mail_no_spam()\'s behavior (functions.php:942-949), reused from AnasheedFriendMail\'s established pattern', function () {
-    \Illuminate\Support\Facades\Mail::fake();
+    Mail::fake();
     insertKhotabAuthor();
     DB::connection('main')->table('nuke_islamic_khotab')->insert([
         'id' => 1, 'author' => 1, 'title' => 'A Lesson', 'vedio' => 1, 'hidden' => 0,
@@ -515,7 +513,7 @@ it('sendToFriend: on valid input, sends a KhotabFriendMail to the friend\'s emai
 
     $response->assertOk()->assertSeeText('1');
 
-    \Illuminate\Support\Facades\Mail::assertSent(\App\Domain\Content\Mail\KhotabFriendMail::class, function ($mail) {
+    Mail::assertSent(KhotabFriendMail::class, function ($mail) {
         return $mail->hasTo('friend@example.com')
             && $mail->khotabItem->id === 1
             && $mail->yourName === 'Sender Name'
@@ -529,9 +527,9 @@ it('KhotabFriendMail: subject/body match khotab_send_friend() exactly, except th
     DB::connection('main')->table('nuke_islamic_khotab')->insert([
         'id' => 42, 'author' => 1, 'title' => 'The Lesson Title', 'vedio' => 1, 'hidden' => 0,
     ]);
-    $khotabItem = \App\Domain\Content\Models\KhotabItem::find(42);
+    $khotabItem = KhotabItem::find(42);
 
-    $mail = new \App\Domain\Content\Mail\KhotabFriendMail($khotabItem, 'Friend Name', 'Your Name', 'you@example.com');
+    $mail = new KhotabFriendMail($khotabItem, 'Friend Name', 'Your Name', 'you@example.com');
     $rendered = $mail->render();
 
     expect($mail->hasSubject('The Lesson Title - موقع الطريق الى الله'))->toBeTrue()
@@ -638,7 +636,7 @@ it('show: renders no category-tree extension when the item has no categories', f
     expect($content)->not->toContain('arrowbullet');
 });
 
-it('show: the details table has table-striped/w20 classes, matching item.php:148-150 (not a bare <table>)', function () {
+it('show: renders the redesigned details card and metadata grid', function () {
     insertKhotabAuthor();
     DB::connection('main')->table('nuke_islamic_khotab')->insert([
         'id' => 1, 'author' => 1, 'title' => 'Item', 'vedio' => 1, 'hidden' => 0,
@@ -646,8 +644,9 @@ it('show: the details table has table-striped/w20 classes, matching item.php:148
 
     $content = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
 
-    expect($content)->toContain('<table class="table table-striped">')
-        ->and(substr_count($content, '<th class="w20"'))->toBeGreaterThanOrEqual(5);
+    expect($content)->toContain('class="w2a-item-details-card"')
+        ->and($content)->toContain('class="w2a-item-header-title">Item</h2>')
+        ->and(substr_count($content, 'class="w2a-meta-pill"'))->toBeGreaterThanOrEqual(4);
 });
 
 it('show: every portlet caption on the page renders its w2a_open_div() icon (fa-video-camera/fa-clone/fa-comments/fa-child), matching functions.php:112', function () {
@@ -896,14 +895,14 @@ it('storeComment: post-Wave-4 fix — resolves the country code via GeoIpLookup 
 });
 
 it('storeComment: post-Wave-4 fix — dispatches CommentPosted', function () {
-    \Illuminate\Support\Facades\Event::fake([\App\Domain\Content\Events\CommentPosted::class]);
+    Event::fake([CommentPosted::class]);
 
     DB::connection('main')->table('nuke_islamic_khotab')->insert(['id' => 1, 'title' => 'Item']);
 
     $this->post('/khotab-item-1/comments', ['user_nickname' => 'Test User', 'user_comment' => 'Great lesson'])
         ->assertOk();
 
-    \Illuminate\Support\Facades\Event::assertDispatched(\App\Domain\Content\Events\CommentPosted::class);
+    Event::assertDispatched(CommentPosted::class);
 });
 
 it('storeComment: returns "2" when the nickname is missing', function () {

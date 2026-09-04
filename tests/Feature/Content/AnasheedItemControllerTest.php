@@ -1,6 +1,11 @@
 <?php
 
+use App\Domain\Content\Events\CommentPosted;
+use App\Domain\Content\Mail\AnasheedFriendMail;
+use App\Domain\Content\Models\AnasheedItem;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Mail;
 use Tests\Support\Fixtures\MainSchema;
 use Tests\Support\InMemoryConnection;
 
@@ -59,7 +64,8 @@ it('show: renders the real watch/comment/send-friend controls and both modals, a
         ->and($content)->toContain('مشاهدة المادة')
         ->and($content)->toContain('id="commentsModal"')
         ->and($content)->toContain('id="sendFriendModal"')
-        ->and($content)->toContain('class="send-friend-btn"')
+        ->and($content)->toContain('send-friend-btn')
+        ->and($content)->toContain('class="w2a-player-panel"')
         ->and(substr_count($content, 'id="anasheed_id"'))->toBe(2) // one per modal, matches legacy's own duplicate id
         ->and($content)->toContain('id="the_main_player"')
         ->and($content)->toContain('id="w2a_main_player"');
@@ -74,10 +80,10 @@ it('show: mirror rows render the real numbered/play-button/extension-icon/size/d
     $content = $this->get('/var-item-1.htm')->assertOk()->getContent();
 
     expect($content)->toContain("onclick=\"w2a_play(10,'anasheed_mirror')\"")
-        ->and($content)->toContain('1 - ')
-        ->and($content)->toContain('/images/ext/mp4.gif')
+        ->and($content)->toContain('<span class="w2a-quality-num">1</span>')
+        ->and($content)->toContain('class="w2a-quality-badge-fmt">MP4</span>')
         ->and($content)->toContain('8.58 ميجا بايت')
-        ->and($content)->toContain('fa-youtube-play');
+        ->and($content)->toContain('class="fa fa-play-circle"');
 });
 
 it('show: IF-028 fix — comment flags render from images/flags/, not flags/', function () {
@@ -108,7 +114,7 @@ it('show: renders mirrors only when the mirror flag is set, even if mirror rows 
     $this->get('/var-item-1.htm')->assertOk()->assertDontSee('قائمة الجودات المختلفة');
 });
 
-it('show: G-13-09 — the "الأكثر تحميلا"/"احدث المواد" sidebar rows render a thumbnails.php-wrapped thumb, matching most_recent_html()\'s w=72,h=50', function () {
+it('show: the redesigned sidebar rows replace thumbnails with lightweight media icons', function () {
     DB::connection('main')->table('nuke_anasheed_anasheed')->insert([
         ['id' => 1, 'title' => 'Item', 'group_id' => 5, 'frame' => 0, 'hits' => 1],
         ['id' => 100, 'title' => 'Other Framed Item', 'group_id' => 5, 'frame' => 1, 'hits' => 2],
@@ -116,7 +122,9 @@ it('show: G-13-09 — the "الأكثر تحميلا"/"احدث المواد" si
 
     $content = $this->get('/var-item-1.htm')->assertOk()->getContent();
 
-    expect($content)->toContain('thumbnails.php?h=50&amp;w=72&amp;src=media/anasheed/frame/0/100.jpg');
+    expect($content)
+        ->toContain('class="w2a-chat-sidebar-icon"')
+        ->not->toContain('thumbnails.php?h=50&amp;w=72');
 });
 
 it('show: G-13 closure — the "most downloaded"/"most recent" sidebar is still present on the item page (item.php:93 DOES call most_downloaded_recent_sidebar($Group), unlike group.php)', function () {
@@ -174,19 +182,19 @@ it('storeComment: post-Wave-4 fix — resolves the country code via GeoIpLookup 
 });
 
 it('storeComment: post-Wave-4 fix — dispatches CommentPosted', function () {
-    \Illuminate\Support\Facades\Event::fake([\App\Domain\Content\Events\CommentPosted::class]);
+    Event::fake([CommentPosted::class]);
 
     DB::connection('main')->table('nuke_anasheed_anasheed')->insert(['id' => 1, 'title' => 'Item']);
 
     $this->post('/var-item-1/comments', ['user_nickname' => 'Test', 'user_comment' => 'Nice'])->assertOk();
 
-    \Illuminate\Support\Facades\Event::assertDispatched(\App\Domain\Content\Events\CommentPosted::class);
+    Event::assertDispatched(CommentPosted::class);
 });
 
 // ---- G-11-02 (Phase 1 audit): send-friend-anasheed-{id}.htm ----
 
 it('sendToFriend: valid submission sends AnasheedFriendMail and returns "1", matching anasheed_send_friend()\'s bare success code', function () {
-    \Illuminate\Support\Facades\Mail::fake();
+    Mail::fake();
     DB::connection('main')->table('nuke_anasheed_groups')->insert(['id' => 9, 'title' => 'A Group']);
     DB::connection('main')->table('nuke_anasheed_anasheed')->insert(['id' => 1, 'title' => 'A Nasheed', 'group_id' => 9]);
 
@@ -201,7 +209,7 @@ it('sendToFriend: valid submission sends AnasheedFriendMail and returns "1", mat
     // existing test doesn't assert its (also build()-set) from address
     // this way either. yourEmail is asserted directly instead — it's a
     // public constructor property, populated before build() runs.
-    \Illuminate\Support\Facades\Mail::assertSent(\App\Domain\Content\Mail\AnasheedFriendMail::class, function ($mail) {
+    Mail::assertSent(AnasheedFriendMail::class, function ($mail) {
         return $mail->hasTo('sami@example.com')
             && $mail->yourEmail === 'ahmed@example.com'
             && $mail->friendName === 'Sami'
@@ -211,7 +219,7 @@ it('sendToFriend: valid submission sends AnasheedFriendMail and returns "1", mat
 });
 
 it('sendToFriend: missing your_name returns "2" (legacy\'s single combined validation code) and sends no mail', function () {
-    \Illuminate\Support\Facades\Mail::fake();
+    Mail::fake();
     DB::connection('main')->table('nuke_anasheed_anasheed')->insert(['id' => 1, 'title' => 'Item']);
 
     $response = $this->post('/send-friend-anasheed-1.htm', [
@@ -220,11 +228,11 @@ it('sendToFriend: missing your_name returns "2" (legacy\'s single combined valid
     ]);
 
     $response->assertOk()->assertSeeText('2');
-    \Illuminate\Support\Facades\Mail::assertNothingSent();
+    Mail::assertNothingSent();
 });
 
 it('sendToFriend: an invalid email format returns "2", matching legacy\'s FILTER_VALIDATE_EMAIL check (no DNS lookup, unlike Fatawa)', function () {
-    \Illuminate\Support\Facades\Mail::fake();
+    Mail::fake();
     DB::connection('main')->table('nuke_anasheed_anasheed')->insert(['id' => 1, 'title' => 'Item']);
 
     $response = $this->post('/send-friend-anasheed-1.htm', [
@@ -233,11 +241,11 @@ it('sendToFriend: an invalid email format returns "2", matching legacy\'s FILTER
     ]);
 
     $response->assertOk()->assertSeeText('2');
-    \Illuminate\Support\Facades\Mail::assertNothingSent();
+    Mail::assertNothingSent();
 });
 
 it('sendToFriend: a single-character name is accepted — legacy has no minimum-length check, unlike Fatawa\'s 2-character rule', function () {
-    \Illuminate\Support\Facades\Mail::fake();
+    Mail::fake();
     DB::connection('main')->table('nuke_anasheed_anasheed')->insert(['id' => 1, 'title' => 'Item']);
 
     $response = $this->post('/send-friend-anasheed-1.htm', [
@@ -249,9 +257,9 @@ it('sendToFriend: a single-character name is accepted — legacy has no minimum-
 });
 
 it('AnasheedFriendMail: build() sets From to the submitting user\'s own name/email, matching shams_mail_no_spam() exactly (not a fixed site address like FatwaFriendMail)', function () {
-    $item = new \App\Domain\Content\Models\AnasheedItem(['id' => 1, 'title' => 'A Nasheed']);
+    $item = new AnasheedItem(['id' => 1, 'title' => 'A Nasheed']);
 
-    $built = (new \App\Domain\Content\Mail\AnasheedFriendMail($item, 'Sami', 'Ahmed', 'ahmed@example.com'))->build();
+    $built = (new AnasheedFriendMail($item, 'Sami', 'Ahmed', 'ahmed@example.com'))->build();
 
     expect($built->from[0]['address'])->toBe('ahmed@example.com')
         ->and($built->from[0]['name'])->toBe('Ahmed')
@@ -259,7 +267,7 @@ it('AnasheedFriendMail: build() sets From to the submitting user\'s own name/ema
 });
 
 it('sendToFriend: 404s for a nonexistent anasheed item', function () {
-    \Illuminate\Support\Facades\Mail::fake();
+    Mail::fake();
 
     $this->post('/send-friend-anasheed-999.htm', [
         'your_name' => 'Ahmed', 'your_email' => 'ahmed@example.com',
@@ -349,10 +357,10 @@ it('show: detail table date row uses CoolShortDate() formatting, not a raw Y-m-d
     $content = $this->get('/var-item-1.htm')->assertOk()->getContent();
 
     expect($content)->toContain('الثلاثاء 23 يونيو 2026 مـ')
-        ->and($content)->toContain('class="anasheed-details mada-details"');
+        ->and($content)->toContain('class="w2a-item-details-card"');
 });
 
-it('show: sidebar boxes use the real recent_list/anasheed-latest-item markup with the correct metadata line per box (downloads vs date)', function () {
+it('show: sidebar boxes use compact media cards with the correct downloads/date metadata', function () {
     DB::connection('main')->table('nuke_anasheed_anasheed')->insert([
         ['id' => 1, 'title' => 'Main Item', 'group_id' => 5, 'hits' => 0, 'downcount' => 0, 'mytime' => null],
         ['id' => 2, 'title' => 'Sidebar Item', 'group_id' => 5, 'hits' => 10, 'downcount' => 42, 'mytime' => mktime(0, 0, 0, 6, 23, 2026)],
@@ -360,14 +368,9 @@ it('show: sidebar boxes use the real recent_list/anasheed-latest-item markup wit
 
     $content = $this->get('/var-item-1.htm')->assertOk()->getContent();
 
-    expect($content)->toContain('class="recent_list"')
-        ->and($content)->toContain('class="list-group-item anasheed-latest-item"')
-        ->and($content)->toContain('مرات التحميل : 42 مرة')
-        ->and($content)->toContain('بتاريخ : الثلاثاء 23 يونيو 2026 مـ')
-        // most_recent_html() (functions.php:895,898) has a literal space
-        // inside the <a> before <img>/<h5> — confirmed against live
-        // production char-by-char; a manual visual comparison caught this
-        // being silently dropped by the previous implementation.
-        ->and($content)->toContain('/var-item-2.htm"> <img')
-        ->and($content)->toContain('/var-item-2.htm"> <h5>Sidebar Item</h5>');
+    expect($content)->toContain('class="w2a-chat-sidebar-list"')
+        ->and($content)->toContain('class="w2a-chat-sidebar-item"')
+        ->and($content)->toContain('<i class="fa fa-download" aria-hidden="true"></i> 42 مرة')
+        ->and($content)->toContain('<i class="fa fa-calendar" aria-hidden="true"></i> الثلاثاء 23 يونيو 2026 مـ')
+        ->and($content)->toContain('href="/var-item-2.htm"');
 });

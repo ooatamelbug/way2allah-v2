@@ -31,6 +31,24 @@ beforeEach(function () {
     useInMemoryMainConnectionForMediaPlayer();
 });
 
+function expectModernVideoPlayer(string $content, string $source): void
+{
+    expect($content)
+        ->toStartWith('<div class="w2a-video-player-wrapper">')
+        ->toContain('<video controls autoplay>')
+        ->toContain('src="'.$source.'"');
+}
+
+function expectModernAudioPlayer(string $content, string $source, string $title): void
+{
+    expect($content)
+        ->toStartWith('<div class="w2a-audio-player-wrapper">')
+        ->toContain('class="w2a-audio-anim-bars"')
+        ->toContain('<h4>'.$title.'</h4>')
+        ->toContain('<audio controls autoplay>')
+        ->toContain('src="'.$source.'"');
+}
+
 it('POST /media-player: khotab type, mp4 (video) renders a native <video> tag, matching w2a_mada_play()\'s video+mp4 branch', function () {
     DB::connection('main')->table('nuke_islamic_khotab')->insert([
         'id' => 1, 'author' => 1, 'title' => 'Item', 'vedio' => 1, 'hidden' => 0,
@@ -40,7 +58,7 @@ it('POST /media-player: khotab type, mp4 (video) renders a native <video> tag, m
     $response = $this->post('/media-player', ['id' => 1, 'type' => 'khotab']);
 
     $response->assertOk();
-    expect($response->getContent())->toBe('<video controls autoplay><source src="https://cdn.example.com/a.mp4" type="video/mp4"></video>');
+    expectModernVideoPlayer($response->getContent(), 'https://cdn.example.com/a.mp4');
 });
 
 it('POST /media-player: khotab type, mp3 renders a native <audio> tag regardless of vedio, matching w2a_mada_play()\'s dual mp3 check', function () {
@@ -52,7 +70,7 @@ it('POST /media-player: khotab type, mp3 renders a native <audio> tag regardless
     $response = $this->post('/media-player', ['id' => 1, 'type' => 'khotab']);
 
     $response->assertOk();
-    expect($response->getContent())->toBe('<audio controls autoplay><source src="https://cdn.example.com/a.mp3" type="audio/mpeg"></audio>');
+    expectModernAudioPlayer($response->getContent(), 'https://cdn.example.com/a.mp3', 'Item');
 });
 
 it('POST /media-player: khotab_mirror type, mp4 renders a native <video> tag, resolving via nuke_islamic_mirror (not nuke_islamic_khotab)', function () {
@@ -64,7 +82,7 @@ it('POST /media-player: khotab_mirror type, mp4 renders a native <video> tag, re
     $response = $this->post('/media-player', ['id' => 1, 'type' => 'khotab_mirror']);
 
     $response->assertOk();
-    expect($response->getContent())->toBe('<video controls autoplay><source src="https://cdn.example.com/hd.mp4" type="video/mp4"></video>');
+    expectModernVideoPlayer($response->getContent(), 'https://cdn.example.com/hd.mp4');
 });
 
 it('POST /media-player: khotab_mirror type, mp3 renders a native <audio> tag', function () {
@@ -76,7 +94,7 @@ it('POST /media-player: khotab_mirror type, mp3 renders a native <audio> tag', f
     $response = $this->post('/media-player', ['id' => 1, 'type' => 'khotab_mirror']);
 
     $response->assertOk();
-    expect($response->getContent())->toBe('<audio controls autoplay><source src="https://cdn.example.com/a.mp3" type="audio/mpeg"></audio>');
+    expectModernAudioPlayer($response->getContent(), 'https://cdn.example.com/a.mp3', 'A quality');
 });
 
 it('POST /media-player: anasheed type, mp4 renders a native <video> tag, resolving via nuke_anasheed_anasheed (var-item-{id}.htm parity)', function () {
@@ -88,7 +106,7 @@ it('POST /media-player: anasheed type, mp4 renders a native <video> tag, resolvi
     $response = $this->post('/media-player', ['id' => 1, 'type' => 'anasheed']);
 
     $response->assertOk();
-    expect($response->getContent())->toBe('<video controls autoplay><source src="https://cdn.example.com/a.mp4" type="video/mp4"></video>');
+    expectModernVideoPlayer($response->getContent(), 'https://cdn.example.com/a.mp4');
 });
 
 it('POST /media-player: anasheed_mirror type, mp3 renders a native <audio> tag, resolving via nuke_anasheed_mirror (var-item-{id}.htm parity)', function () {
@@ -100,7 +118,7 @@ it('POST /media-player: anasheed_mirror type, mp3 renders a native <audio> tag, 
     $response = $this->post('/media-player', ['id' => 1, 'type' => 'anasheed_mirror']);
 
     $response->assertOk();
-    expect($response->getContent())->toBe('<audio controls autoplay><source src="https://cdn.example.com/a.mp3" type="audio/mpeg"></audio>');
+    expectModernAudioPlayer($response->getContent(), 'https://cdn.example.com/a.mp3', 'A quality');
 });
 
 it('POST /media-player: anasheed type returns empty for a hidden item, same hidden=0 filter as khotab', function () {
@@ -124,7 +142,10 @@ it('POST /media-player: a youtube.com link (video) renders a YouTube iframe embe
     $response = $this->post('/media-player', ['id' => 1, 'type' => 'khotab']);
 
     $response->assertOk();
-    expect($response->getContent())->toBe('<div class="embed-responsive embed-responsive-16by9"><iframe src="https://www.youtube.com/embed/ihWoHVmdEpU" frameborder="0" allowfullscreen></iframe></div>');
+    expect($response->getContent())
+        ->toStartWith('<div class="w2a-video-player-wrapper">')
+        ->toContain('src="https://www.youtube.com/embed/ihWoHVmdEpU?autoplay=1"')
+        ->toContain('title="Item"');
 });
 
 it('POST /media-player: a youtu.be short link (video) strips the prefix for the embed id, matching w2a_mada_play():830-832', function () {
@@ -136,7 +157,9 @@ it('POST /media-player: a youtu.be short link (video) strips the prefix for the 
     $response = $this->post('/media-player', ['id' => 1, 'type' => 'khotab']);
 
     $response->assertOk();
-    expect($response->getContent())->toBe('<div class="embed-responsive embed-responsive-16by9"><iframe src="https://www.youtube.com/embed/ihWoHVmdEpU" frameborder="0" allowfullscreen></iframe></div>');
+    expect($response->getContent())
+        ->toStartWith('<div class="w2a-video-player-wrapper">')
+        ->toContain('src="https://www.youtube.com/embed/ihWoHVmdEpU?autoplay=1"');
 });
 
 it('POST /media-player: a soundcloud.com link (audio only) renders a SoundCloud iframe embed, matching w2a_mada_play()\'s audio-branch-only check', function () {
@@ -148,8 +171,11 @@ it('POST /media-player: a soundcloud.com link (audio only) renders a SoundCloud 
     $response = $this->post('/media-player', ['id' => 1, 'type' => 'khotab']);
 
     $response->assertOk();
-    expect($response->getContent())->toContain('src="https://w.soundcloud.com/player/?url=https://soundcloud.com/shiekhahmedgalal/20-8-2014a')
-        ->and($response->getContent())->toStartWith('<iframe width="100%" height="166" scrolling="no" frameborder="no" allow="autoplay"');
+    expect($response->getContent())
+        ->toStartWith('<div class="w2a-audio-player-wrapper">')
+        ->toContain('<h4>Item</h4>')
+        ->toContain('src="https://w.soundcloud.com/player/?url=https://soundcloud.com/shiekhahmedgalal/20-8-2014a')
+        ->toContain('auto_play=true');
 });
 
 it('POST /media-player: an invalid/nonexistent id returns an empty 200 body, matching get_w2a_mada_player()\'s own silent-failure contract (confirmed live)', function () {
@@ -206,7 +232,7 @@ it('POST /media-player: a SQL-injection-shaped id parameter does not execute inj
     // SQL) — this looks up the real item 1 by its actual numeric id,
     // never executes "OR 1=1" as SQL. Table remains fully intact either way.
     $response->assertOk();
-    expect($response->getContent())->toBe('<video controls autoplay><source src="a.mp4" type="video/mp4"></video>');
+    expectModernVideoPlayer($response->getContent(), 'a.mp4');
     expect(DB::connection('main')->table('nuke_islamic_khotab')->count())->toBe(1);
 });
 
@@ -239,7 +265,7 @@ it('POST /media-player: fatawa type, mp4 renders a native <video> tag, resolving
     $response = $this->post('/media-player', ['id' => 42, 'type' => 'fatawa']);
 
     $response->assertOk();
-    expect($response->getContent())->toBe('<video controls autoplay><source src="https://cdn.example.com/fatwa.mp4" type="video/mp4"></video>');
+    expectModernVideoPlayer($response->getContent(), 'https://cdn.example.com/fatwa.mp4');
 });
 
 it('POST /media-player: fatawa type is unconditionally treated as video, matching get_w2a_mada_player()\'s dead media_type if/else (both arms call the same thing)', function () {
@@ -250,7 +276,7 @@ it('POST /media-player: fatawa type is unconditionally treated as video, matchin
     $response = $this->post('/media-player', ['id' => 43, 'type' => 'fatawa']);
 
     $response->assertOk();
-    expect($response->getContent())->toBe('<video controls autoplay><source src="https://cdn.example.com/fatwa.mp4" type="video/mp4"></video>');
+    expectModernVideoPlayer($response->getContent(), 'https://cdn.example.com/fatwa.mp4');
 });
 
 it('POST /media-player: fatawa type, an unresolvable id returns an empty 200 body', function () {
