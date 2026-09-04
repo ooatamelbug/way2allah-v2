@@ -4832,6 +4832,331 @@ button.mobi-toggler {
   color: #ffffff !important;
 }
 
+/* --------------------------------------------------------------------------
+   3.23 BRAND NEW ONLINE RADIO STATION UI/UX (.w2a-radio-wrap)
+   -------------------------------------------------------------------------- */
+.w2a-radio-banner {
+  background: linear-gradient(
+    135deg,
+    var(--w2a-primary-900) 0%,
+    var(--w2a-primary-700) 100%
+  ) !important;
+  color: #ffffff !important;
+  border-radius: var(--w2a-radius-lg) !important;
+  padding: 24px 28px !important;
+  margin-bottom: 24px !important;
+  position: relative !important;
+  overflow: hidden !important;
+  box-shadow: var(--w2a-shadow-md) !important;
+}
+
+.w2a-radio-banner-content {
+  position: relative !important;
+  z-index: 2 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: wrap !important;
+  gap: 16px !important;
+}
+
+.w2a-radio-status-tag {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+  backdrop-filter: blur(8px) !important;
+  padding: 6px 14px !important;
+  border-radius: var(--w2a-radius-full) !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+}
+
+.w2a-radio-pulse {
+  width: 10px !important;
+  height: 10px !important;
+  border-radius: 50% !important;
+  background-color: #10b981 !important;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7) !important;
+  animation: w2aPulse 2s infinite !important;
+}
+
+@keyframes w2aPulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.w2a-radio-card {
+  background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%) !important;
+  border-radius: var(--w2a-radius-xl) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  padding: 28px !important;
+  margin-bottom: 24px !important;
+  box-shadow: var(--w2a-shadow-xl) !important;
+  color: #ffffff !important;
+  position: relative !important;
+}
+
+#w2a_radio .player {
+  background: none !important;
+  height: auto !important;
+  margin: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.w2a-radio-player-top {
+  display: flex !important;
+  align-items: center !important;
+  gap: 20px !important;
+  margin-bottom: 20px !important;
+}
+
+.w2a-radio-disc-wrap {
+  width: 72px !important;
+  height: 72px !important;
+  border-radius: 50% !important;
+  background: radial-gradient(circle, #334155 0%, #0f172a 100%) !important;
+  border: 3px solid rgba(255, 255, 255, 0.15) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4) !important;
+}
+
+.w2a-radio-disc-icon {
+  font-size: 28px !important;
+  color: var(--w2a-primary-400) !important;
+}
+
+.w2a-radio-track-info {
+  flex: 1 !important;
+  overflow: hidden !important;
+}
+
+#w2a_radio .title {
+  color: #ffffff !important;
+  font-size: 17px !important;
+  font-weight: 800 !important;
+  height: auto !important;
+  margin: 0 0 12px 0 !important;
+  line-height: 1.3 !important;
+  text-align: right !important;
+}
+
+#w2a_radio .artist {
+  color: #f59e0b !important;
+  background: #263a5d !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  margin: 0 !important;
+  text-align: right !important;
+}
+
+/* Tracker & Timer */
+.w2a-radio-tracker-wrap {
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+  margin-bottom: 20px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  padding: 12px 18px !important;
+  border-radius: var(--w2a-radius-md) !important;
+}
+
+#w2a_radio .tracker {
+  flex: 1 !important;
+  height: 8px !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+  border: none !important;
+  border-radius: var(--w2a-radius-full) !important;
+  cursor: pointer !important;
+}
+
+#w2a_radio .tracker .ui-slider-range {
+  background: linear-gradient(
+    90deg,
+    var(--w2a-primary-500),
+    #38bdf8
+  ) !important;
+  border-radius: var(--w2a-radius-full) !important;
+}
+
+#w2a_radio .tracker .ui-slider-handle {
+  width: 16px !important;
+  height: 16px !important;
+  top: -4px !important;
+  border-radius: 50% !important;
+  background-color: #ffffff !important;
+  border: 2px solid var(--w2a-primary-500) !important;
+  outline: none !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+#w2a_radio .player-timer {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #94a3b8 !important;
+  font-family: monospace !important;
+  white-space: nowrap !important;
+}
+
+/* Controls & Volume */
+.w2a-radio-controls-bar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: wrap !important;
+  gap: 20px !important;
+}
+
+#w2a_radio .controls {
+  height: auto !important;
+  width: auto !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+}
+
+#w2a_radio .controls .play,
+#w2a_radio .controls .pause,
+#w2a_radio .controls .rew,
+#w2a_radio .controls .fwd {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #ffffff !important;
+  font-size: 18px !important;
+  transition: all var(--w2a-motion-fast) !important;
+  cursor: pointer !important;
+}
+
+#w2a_radio .controls .play:hover,
+#w2a_radio .controls .pause:hover,
+#w2a_radio .controls .rew:hover,
+#w2a_radio .controls .fwd:hover {
+  background: var(--w2a-primary-500) !important;
+  transform: scale(1.08) !important;
+}
+
+#w2a_radio .controls .play::before {
+  content: "\f04b";
+  font-family: FontAwesome;
+}
+#w2a_radio .controls .pause::before {
+  content: "\f04c";
+  font-family: FontAwesome;
+}
+#w2a_radio .controls .rew::before {
+  content: "\f04e";
+  font-family: FontAwesome;
+}
+#w2a_radio .controls .fwd::before {
+  content: "\f04a";
+  font-family: FontAwesome;
+}
+
+#w2a_radio .volume-cont {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  width: 180px !important;
+}
+
+#w2a_radio .vol-icon {
+  width: 24px !important;
+  height: 24px !important;
+  color: #94a3b8 !important;
+  font-size: 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: none !important;
+}
+
+#w2a_radio .vol-icon::before {
+  content: "\f028";
+  font-family: FontAwesome;
+}
+
+#w2a_radio .volume {
+  flex: 1 !important;
+  height: 6px !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+  border: none !important;
+  border-radius: var(--w2a-radius-full) !important;
+}
+
+#w2a_radio .volume .ui-slider-range {
+  background: #38bdf8 !important;
+  border-radius: var(--w2a-radius-full) !important;
+}
+
+#w2a_radio .volume .ui-slider-handle {
+  width: 12px !important;
+  height: 12px !important;
+  top: -3px !important;
+  border-radius: 50% !important;
+  background-color: #ffffff !important;
+  border: none !important;
+}
+
+/* Playlist */
+#w2a_radio ul.playlist {
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  max-height: 480px !important;
+  overflow-y: auto !important;
+}
+
+#w2a_radio ul.playlist li {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  background-color: #ffffff !important;
+  border: 1px solid var(--w2a-border) !important;
+  border-radius: var(--w2a-radius-md) !important;
+  padding: 12px 16px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: var(--w2a-ink-900) !important;
+  cursor: pointer !important;
+  transition: all var(--w2a-motion-fast) !important;
+}
+
+#w2a_radio ul.playlist li:hover {
+  background-color: var(--w2a-primary-50) !important;
+  border-color: var(--w2a-primary-300) !important;
+  color: var(--w2a-primary-700) !important;
+}
+
+#w2a_radio ul.playlist li.active {
+  background-color: var(--w2a-primary-600) !important;
+  border-color: var(--w2a-primary-600) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(18, 86, 136, 0.25) !important;
+}
+
 /* ==========================================================================
    END — UI ENHANCEMENT v2 (PREMIUM UI SYSTEM)
    ========================================================================== */

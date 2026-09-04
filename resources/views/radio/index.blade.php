@@ -63,9 +63,17 @@
     <x-page-chrome heading="راديو الطريق الى الله" :breadcrumb="[['title' => 'راديو الطريق الى الله']]" />
 
     <div class="row service-box margin-bottom-40 sh-w2a-block">
-        {{-- radio/index.php:33-36 — sits outside both columns, exactly as legacy renders it (not "fixed" into the grid). --}}
-        <div class="current-user-warning">
-            <div class="alert alert-info" style="text-align:right;">يمكنك الإستماع زائرنا الكريم إلى أحدث الدروس المضافة إلى موقعنا على هيئة صوتيات
+        <div class="col-xs-12">
+            <div class="w2a-radio-banner">
+                <div class="w2a-radio-banner-content">
+                    <div>
+                        <h2 style="font-size: 22px; font-weight: 800; margin: 0 0 16px 0;">
+                            <i class="fa fa-podcast" aria-hidden="true"></i>
+                            راديو الطريق إلى الله المباشر
+                        </h2>
+                        <p style="font-size: 13px; opacity: 0.9; margin: 0;">استمع زائرنا الكريم بشكل متواصل لأحدث الدروس والمحاضرات الصوتية المضافة للموقع.</p>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -73,57 +81,56 @@
             <input type="hidden" name="w2a_is_mobile" id="w2a_is_mobile" value="true" />
         @endif
 
-        <div class="col-xs-12 col-sm-8 col-md-8 col-lg-8 nopadding">
+        <div class="col-xs-12 col-sm-8 col-md-8 col-lg-8">
             {{-- radio/index.php:51-130 — #w2a_radio wraps ONLY the player+playlist, not the sidebar (w2a_radio.css's `#w2a_radio{direction:ltr}` would otherwise flip the Arabic sidebar to LTR too). --}}
             <div id="w2a_radio">
-                <div class="player">
-                    <div class="play-loading"><i class="fa fa-spinner fa-pulse fa-3x fa-fw"></i></div>
-                    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                        <div class="col-lg-10 col-md-9 col-sm-8 col-xs-9">
-                            <div class="title"></div>
-                            <div class="artist"></div>
-                            <div class="clearfix"></div>
-                            <div class="row">
-                                <div class="col-lg-9 col-md-8 col-sm-12 col-xs-12">
-                                    <div class="tracker"></div>
-                                </div>
-                                <div class="col-lg-3 col-md-4 col-sm-12 col-xs-12">
-                                    <div class="player-timer"><span class="current-t">00:00:00</span> / <span class="total-t">00:00:00</span></div>
-                                </div>
+                <div class="w2a-radio-card">
+                    <div class="player">
+                        <div class="play-loading"><i class="fa fa-spinner fa-pulse fa-2x fa-fw" aria-hidden="true"></i></div>
+
+                        <div class="w2a-radio-player-top">
+                            <div class="w2a-radio-disc-wrap">
+                                <i class="fa fa-music w2a-radio-disc-icon" aria-hidden="true"></i>
                             </div>
-                            <div class="clearfix"></div>
-                            <div class="row">
-                                <div class="col-lg-4 col-md-4 col-sm-6 col-xs-6 pull-right controls-cont">
-                                    <div class="controls">
-                                        <div class="play"></div>
-                                        <div class="pause"></div>
-                                        <div class="rew"></div>
-                                        <div class="fwd"></div>
-                                    </div>
-                                </div>
-                                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6 volume-cont  pull-right">
-                                    <div class="vol-icon"></div>
-                                    <div class="volume"></div>
-                                </div>
+                            <div class="w2a-radio-track-info">
+                                <h3 class="title">جاري تحميل البث...</h3>
+                                <p class="artist">راديو الطريق إلى الله</p>
+                            </div>
+                        </div>
+
+                        <div class="w2a-radio-tracker-wrap">
+                            <div class="tracker"></div>
+                            <div class="player-timer"><span class="current-t">00:00:00</span> / <span class="total-t">00:00:00</span></div>
+                        </div>
+
+                        <div class="w2a-radio-controls-bar">
+                            <div class="controls">
+                                <div class="play" title="تشغيل"></div>
+                                <div class="pause" title="إيقاف مؤقت"></div>
+                                <div class="rew" title="السابق"></div>
+                                <div class="fwd" title="التالي"></div>
+                            </div>
+                            <div class="volume-cont">
+                                <div class="vol-icon" title="مستوى الصوت"></div>
+                                <div class="volume"></div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {{-- radio/index.php:89-129's w2a_open_div()/w2a_close_div() portlet, matching the same shape day.blade.php's sidebar boxes already use. --}}
-                <div class="col-md-12 col-sm-12">
-                    <div class="portlet box blue">
-                        <div class="portlet-title">
-                            <div class="caption"><i class="fa fa-eject"></i> قائمة التشغيل الحالية</div>
-                        </div>
-                        <div class="portlet-body">
-                            <ul class="playlist">
-                                @foreach ($playlist as $item)
-                                    <li audiourl="{{ $item->audio_url }}" cover="cover1.jpg" artist="{{ trim($item->prename.' '.$item->author_name) }}" id="li_{{ $item->khid }}_{{ $item->pl_section }}">{{ $item->title }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    </div>
+                <div>
+                    <ul class="playlist">
+                        @foreach ($playlist as $item)
+                            @php($authorName = trim($item->prename.' '.$item->author_name))
+                            <li audiourl="{{ $item->audio_url }}" cover="cover1.jpg" artist="{{ $authorName }}" id="li_{{ $item->khid }}_{{ $item->pl_section }}">
+                                <span style="display: flex; align-items: center; gap: 10px;">
+                                    <i class="fa fa-play-circle" style="opacity: 0.7;" aria-hidden="true"></i>
+                                    {{ $item->title }}
+                                </span>
+                                <small style="opacity: 0.75; font-weight: 600;">{{ $authorName }}</small>
+                            </li>
+                        @endforeach
+                    </ul>
                 </div>
             </div>
         </div>
@@ -136,17 +143,7 @@
                         <div class="caption"><i class="fa fa-video-camera"></i> جديد المواد المرئية</div>
                     </div>
                     <div class="portlet-body">
-                        <ul class="media-list">
-                            @foreach ($newestVideo as $item)
-                                <li class="media">
-                                    <a class="pull-left" href="javascript:;"><img class="media-object" src="{{ $item->thumb }}" alt="{{ $item->title }}" style="width: 60px; height: 40px;"></a>
-                                    <div class="media-body">
-                                        <a href="/khotab-item-{{ $item->id }}.htm"><h5 class="media-heading">{{ $item->title }}</h5></a>
-                                        <small>عدد مرات التحميل: {{ number_format($item->hits) }} مرة</small>
-                                    </div>
-                                </li>
-                            @endforeach
-                        </ul>
+                        <x-content.top-items :items="$newestVideo" />
                     </div>
                 </div>
             </div>
@@ -157,17 +154,7 @@
                         <div class="caption"><i class="fa fa-headphones"></i> جديد المواد الصوتية</div>
                     </div>
                     <div class="portlet-body">
-                        <ul class="media-list">
-                            @foreach ($newestAudio as $item)
-                                <li class="media">
-                                    <a class="pull-left" href="javascript:;"><img class="media-object" src="{{ $item->thumb }}" alt="{{ $item->title }}" style="width: 60px; height: 40px;"></a>
-                                    <div class="media-body">
-                                        <a href="/khotab-item-{{ $item->id }}.htm"><h5 class="media-heading">{{ $item->title }}</h5></a>
-                                        <small>عدد مرات التحميل: {{ number_format($item->hits) }} مرة</small>
-                                    </div>
-                                </li>
-                            @endforeach
-                        </ul>
+                        <x-content.top-items :items="$newestAudio" />
                     </div>
                 </div>
             </div>

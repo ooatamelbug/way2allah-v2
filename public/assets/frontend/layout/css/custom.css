@@ -2411,12 +2411,6 @@ textarea:focus {
    file, so these rules use stronger specificity where needed. */
 
 /* Main radio container */
-#w2a_radio {
-  border-radius: var(--w2a-radius-lg) !important;
-  box-shadow: var(--w2a-shadow-lg) !important;
-  overflow: hidden;
-  background: var(--w2a-surface) !important;
-}
 /* Progress bar — modernise track */
 #w2a_radio input[type="range"] {
   -webkit-appearance: none;
