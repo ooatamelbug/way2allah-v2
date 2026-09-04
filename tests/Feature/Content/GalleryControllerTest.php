@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Content\Support\LegacyShortDateFormatter;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\Fixtures\MainSchema;
 use Tests\Support\InMemoryConnection;
@@ -86,37 +87,40 @@ it('index: renders the shared page chrome (title/breadcrumb), not a bare <sectio
         ->toContain('<title>التصميمات الدعوية - ');
 });
 
-it('index: wraps the album grid in the real w2a_open_div() portlet, including the extra outer .row list.php:32 emits', function () {
+it('index: wraps the redesigned album grid in the gallery portlet and search toolbar', function () {
     DB::connection('main')->table('nuke_albums')->insert(['album_id' => 1, 'title' => 'Ramadan Album', 'count' => 1]);
     DB::connection('main')->table('nuke_albums_images')->insert(['image_id' => 1, 'album_id' => 1, 'url' => 'media/albums/a.jpg', 'order' => 1]);
 
     $content = $this->get('/gallery.htm')->assertOk()->getContent();
 
     expect($content)
-        ->toContain('<div class="caption"><i class="fa fa-picture-o"></i> التصميمات الدعوية</div>')
+        ->toContain('التصميمات والبطاقات الدعوية</div>')
         ->toContain('<div class="portlet-body ">')
-        ->toContain('<div class="row albums_list row-fluid">');
+        ->toContain('class="w2a-gallery-wrap"')
+        ->toContain('id="w2a_gallery_search_input"')
+        ->toContain('id="w2a_gallery_result_status"')
+        ->toContain('class="w2a-albums-grid"');
 });
 
 it('index: omits the portlet entirely when there are no albums, matching legacy\'s own !empty($albums) gate', function () {
     $content = $this->get('/gallery.htm')->assertOk()->getContent();
 
-    expect($content)->not->toContain('albums_list')->not->toContain('fa-picture-o');
+    expect($content)->not->toContain('w2a-albums-grid')->not->toContain('fa-picture-o');
 });
 
-it('index: each card uses the real .album-item DOM — a SEPARATE .w2a_album_title link around the <h5>, not the title nested inside the thumbnail link', function () {
+it('index: each album uses the premium card with count, date, and browse action', function () {
     DB::connection('main')->table('nuke_albums')->insert(['album_id' => 7, 'title' => 'Eid Cards', 'count' => 3]);
     DB::connection('main')->table('nuke_albums_images')->insert(['image_id' => 1, 'album_id' => 7, 'url' => 'media/albums/a.jpg', 'order' => 1]);
 
     $content = $this->get('/gallery.htm')->assertOk()->getContent();
 
     expect($content)
-        ->toContain('<div class="album-item">')
-        ->toContain('<a class="standard" href="/gallery-7.htm">')
-        ->toContain('<a class="w2a_album_title" href="/gallery-7.htm">')
-        ->toContain('<h5 class="text-center">Eid Cards</h5>')
-        ->toContain('<span class="album_last_update"><i class="fa fa-calendar"></i>')
-        ->toContain('<span class="w2a_gallery_imgs_c"><i class="fa fa-files-o"></i> 3 صورة</span>');
+        ->toContain('<article class="w2a-album-card" data-title="Eid Cards">')
+        ->toContain('<h3 class="w2a-album-card-title">Eid Cards</h3>')
+        ->toContain('class="w2a-album-date"')
+        ->toContain('class="w2a-album-count-badge"')
+        ->toContain('3 صورة')
+        ->toContain('class="w2a-album-btn-view"');
 });
 
 it('index: shows the "حفظ الألبوم" save-album button only for compressed albums (is_compressed=1)', function () {
@@ -129,8 +133,8 @@ it('index: shows the "حفظ الألبوم" save-album button only for compress
 
     expect($content)
         ->toContain('onclick="downlaod_gellery_images(1)"')
-        ->toContain('class="w2a_album_save"')
-        ->toContain('title="حفظ جميع صور الألبوم : Compressed Album"')
+        ->toContain('class="w2a-album-btn-download"')
+        ->toContain('title="تحميل جميع صور الألبوم"')
         ->not->toContain('downlaod_gellery_images(2)');
 });
 
@@ -150,7 +154,8 @@ it('index: album thumbnail routes through thumbnails.php at the exact legacy 250
     $content = $this->get('/gallery.htm')->assertOk()->getContent();
 
     expect($content)->toContain('/thumbnails.php?h=250&amp;w=350&amp;src=media/albums/first.jpg')
-        ->and($content)->toContain('class="img-responsive"');
+        ->and($content)->toContain('class="w2a-album-cover"')
+        ->and($content)->toContain('loading="lazy"');
 });
 
 // Full Design Parity Pass (gallery.htm): list.php:51 calls
@@ -164,7 +169,7 @@ it('index: shows the album\'s last-update date using CoolShortDate() (LegacyShor
 
     $content = $this->get('/gallery.htm')->assertOk()->getContent();
 
-    expect($content)->toContain(\App\Domain\Content\Support\LegacyShortDateFormatter::format($timestamp))
+    expect($content)->toContain(LegacyShortDateFormatter::format($timestamp))
         ->toContain('مارس'); // CoolShortDate()'s Arabic month name for March.
 });
 

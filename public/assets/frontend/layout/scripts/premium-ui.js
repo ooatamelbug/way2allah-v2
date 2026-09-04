@@ -697,6 +697,39 @@
       });
     });
 
+    // 13. Dawah gallery search.
+    var galleryWrap = document.querySelector(".w2a-gallery-wrap");
+    if (galleryWrap) {
+      var gallerySearchInput = document.getElementById("w2a_gallery_search_input");
+      var galleryClearBtn = document.getElementById("w2a_gallery_search_clear");
+      var galleryResultStatus = document.getElementById("w2a_gallery_result_status");
+
+      if (gallerySearchInput) {
+        gallerySearchInput.addEventListener("input", function () {
+          var query = gallerySearchInput.value.trim().toLocaleLowerCase("ar");
+          var visibleTotal = 0;
+          if (galleryClearBtn) galleryClearBtn.hidden = query.length === 0;
+
+          galleryWrap.querySelectorAll(".w2a-album-card").forEach(function (card) {
+            var title = (card.getAttribute("data-title") || "").toLocaleLowerCase("ar");
+            var visible = !query || title.indexOf(query) !== -1;
+            card.classList.toggle("search-hidden", !visible);
+            if (visible) visibleTotal += 1;
+          });
+
+          if (galleryResultStatus) galleryResultStatus.textContent = visibleTotal + " نتيجة";
+        });
+
+        if (galleryClearBtn) {
+          galleryClearBtn.addEventListener("click", function () {
+            gallerySearchInput.value = "";
+            gallerySearchInput.dispatchEvent(new Event("input"));
+            gallerySearchInput.focus();
+          });
+        }
+      }
+    }
+
     // Keep the mobile menu button state available to assistive technology.
     var mobileToggler = document.querySelector(".mobi-toggler");
     if (mobileToggler) {
