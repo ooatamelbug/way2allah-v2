@@ -41,9 +41,9 @@
                 <div class="portlet-body">
                     <div id="tree_1" class="tree-demo nav">
                         <ul class="list">
-                            @foreach ($categories->where('main_cat', 0) as $topLevel)
+                            @foreach ($categoriesByParent->get(0, collect()) as $topLevel)
                                 <li>
-                                    @if ($categories->contains('main_cat', $topLevel->id))
+                                    @if ($categoriesByParent->has($topLevel->id))
                                         <input id="group{{ $loop->iteration }}" type="checkbox" hidden>
                                         <label for="group{{ $loop->iteration }}">
                                             <div class="arrowStyle">
@@ -57,10 +57,10 @@
                                         <a href="/fatawa-category-{{ $topLevel->id }}.htm">{{ $topLevel->title }}</a>
                                     @endif
                                     <div class="list-container">
-                                        @foreach ($categories->where('main_cat', $topLevel->id) as $group)
+                                        @foreach ($categoriesByParent->get($topLevel->id, collect()) as $group)
                                             <ul class="group_list">
                                                 <li>
-                                                    @if ($categories->contains('main_cat', $group->id))
+                                                    @if ($categoriesByParent->has($group->id))
                                                         <input id="sub-group{{ $group->id }}" type="checkbox" hidden>
                                                         <label for="sub-group{{ $group->id }}">
                                                             <div class="arrowStyle">
@@ -74,7 +74,7 @@
                                                         <a href="/fatawa-category-{{ $group->id }}.htm">{{ $group->title }}</a>
                                                     @endif
                                                     <div class="sub-group-list-container">
-                                                        @foreach ($categories->where('main_cat', $group->id) as $leaf)
+                                                        @foreach ($categoriesByParent->get($group->id, collect()) as $leaf)
                                                             <ul class="sub_group_list">
                                                                 <li>
                                                                     <img src="/assets/img/star (1).png">

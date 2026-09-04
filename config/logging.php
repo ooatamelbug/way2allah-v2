@@ -58,6 +58,33 @@ return [
             'ignore_exceptions' => false,
         ],
 
+        /*
+         * Enhancement Batch E-01 — performance observability. Deliberately
+         * kept out of the normal application log: these are operational
+         * signals with their own retention and their own reading pattern,
+         * and mixing them into `laravel.log` would bury real errors. Both
+         * rotate daily (`performance-YYYY-MM-DD.log`,
+         * `slow-sql-YYYY-MM-DD.log`) with retention shared with
+         * `config/performance.php`. Levels are fixed rather than following
+         * LOG_LEVEL, so tightening the app log to `error` in production
+         * cannot silently switch monitoring off.
+         */
+        'performance' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/performance.log'),
+            'level' => 'notice',
+            'days' => env('PERFORMANCE_LOG_RETENTION_DAYS', 14),
+            'replace_placeholders' => false,
+        ],
+
+        'slow-sql' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/slow-sql.log'),
+            'level' => 'warning',
+            'days' => env('PERFORMANCE_LOG_RETENTION_DAYS', 14),
+            'replace_placeholders' => false,
+        ],
+
         'single' => [
             'driver' => 'single',
             'path' => storage_path('logs/laravel.log'),

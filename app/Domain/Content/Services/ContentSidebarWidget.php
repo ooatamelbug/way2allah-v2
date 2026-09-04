@@ -5,6 +5,7 @@ namespace App\Domain\Content\Services;
 use App\Domain\Content\Models\Channel;
 use App\Domain\Content\Support\MediaPathResolver;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -142,6 +143,21 @@ use Illuminate\Support\Facades\DB;
  */
 class ContentSidebarWidget
 {
+    /**
+     * Enhancement Batch E-02 (F-02) — TTL for the cached khotab sidebar
+     * widgets, in seconds. 300s is legacy's own value for these exact
+     * queries (`functions.php:1032`, `SimpleCache::set($cacheKey, $items,
+     * 300)`), not a number invented here, and matches the TTL this
+     * application already uses for its homepage widgets.
+     *
+     * Deliberately finite: Laravel shares the content database with the
+     * still-live legacy application, so rows can change without any
+     * Laravel write to hook an invalidation onto. TTL expiry is therefore
+     * the freshness mechanism — see this batch's report for the exact
+     * staleness window.
+     */
+    private const CACHE_TTL_SECONDS = 300;
+
     // ---- anasheed ---------------------------------------------------
 
     public function anasheedMostDownloaded(?int $groupId = null): Collection
@@ -241,35 +257,42 @@ class ContentSidebarWidget
      */
     public function channelMostDownloadedKhotabItems(int $channelId): Collection
     {
-        return DB::connection('main')->table('nuke_islamic_khotab')
-            ->where('channel_id', $channelId)
-            ->where('vedio', 1)
-            ->select(['id', 'title', 'author', 'frame', 'hits', 'time'])
-            ->orderByDesc('hits')
-            ->limit(5)
-            ->get()
-            ->map(function ($item) {
-                $item->thumb = $this->topitemsThumb((int) $item->frame, (int) $item->id);
+        // E-02 (F-02): cached — legacy reached this through its own
+        // `topitems()`, which cached for 300s (`channel.php:110`).
+        return $this->rememberRows(
+            $this->cacheKey('channel-khotab', ['channel' => $channelId, 'order' => 'hits', 'limit' => 5]),
+            fn () => DB::connection('main')->table('nuke_islamic_khotab')
+                ->where('channel_id', $channelId)
+                ->where('vedio', 1)
+                ->select(['id', 'title', 'author', 'frame', 'hits', 'time'])
+                ->orderByDesc('hits')
+                ->limit(5)
+                ->get()
+        )->map(function ($item) {
+            $item->thumb = $this->topitemsThumb((int) $item->frame, (int) $item->id);
 
-                return $item;
-            });
+            return $item;
+        });
     }
 
     /** "Newest" counterpart to `channelMostDownloadedKhotabItems()` above — `topitems('time', ..., "time DESC", 5)`, mode='time' confirmed directly from `channel.php:110` (not assumed from a sibling page's own mode). */
     public function channelMostRecentKhotabItems(int $channelId): Collection
     {
-        return DB::connection('main')->table('nuke_islamic_khotab')
-            ->where('channel_id', $channelId)
-            ->where('vedio', 1)
-            ->select(['id', 'title', 'author', 'frame', 'hits', 'time'])
-            ->orderByDesc('time')
-            ->limit(5)
-            ->get()
-            ->map(function ($item) {
-                $item->thumb = $this->topitemsThumb((int) $item->frame, (int) $item->id);
+        // E-02 (F-02): cached — see the "most downloaded" counterpart above.
+        return $this->rememberRows(
+            $this->cacheKey('channel-khotab', ['channel' => $channelId, 'order' => 'time', 'limit' => 5]),
+            fn () => DB::connection('main')->table('nuke_islamic_khotab')
+                ->where('channel_id', $channelId)
+                ->where('vedio', 1)
+                ->select(['id', 'title', 'author', 'frame', 'hits', 'time'])
+                ->orderByDesc('time')
+                ->limit(5)
+                ->get()
+        )->map(function ($item) {
+            $item->thumb = $this->topitemsThumb((int) $item->frame, (int) $item->id);
 
-                return $item;
-            });
+            return $item;
+        });
     }
 
     // ---- Wave 4: khotab/functions.php's topitems()-based sidebar pairs ----
@@ -326,39 +349,53 @@ class ContentSidebarWidget
      */
     public function khotabMostDownloadedForPdf(): Collection
     {
-        return DB::connection('main')->table('nuke_islamic_khotab')
-            ->select(['id', 'title', 'author', 'frame', 'hits', 'downcount', 'time'])
-            ->where('pdf', '>', 0)
-            ->where('hidden', '0')
-            ->orderByDesc('hits')
-            ->limit(5)
-            ->get();
+        // E-02 (F-02): cached — legacy reached this shape through its own
+        // 300s-cached `topitems()` (`dump.php:76`).
+        return $this->rememberRows(
+            $this->cacheKey('khotab-pdf', ['order' => 'hits', 'limit' => 5]),
+            fn () => DB::connection('main')->table('nuke_islamic_khotab')
+                ->select(['id', 'title', 'author', 'frame', 'hits', 'downcount', 'time'])
+                ->where('pdf', '>', 0)
+                ->where('hidden', '0')
+                ->orderByDesc('hits')
+                ->limit(5)
+                ->get()
+        );
     }
 
     /** IF-021's fix — same reasoning as `khotabMostDownloadedForPdf()` above, but scoped to one author (`khotab/author.php`'s `op=pdf` page). */
     public function khotabMostDownloadedByAuthorForPdf(int $authorId): Collection
     {
-        return DB::connection('main')->table('nuke_islamic_khotab')
-            ->select(['id', 'title', 'author', 'frame', 'hits', 'downcount', 'time'])
-            ->where('author', $authorId)
-            ->where('pdf', '>', 0)
-            ->where('hidden', '0')
-            ->orderByDesc('hits')
-            ->limit(5)
-            ->get();
+        // E-02 (F-02): cached — same legacy `topitems()` lineage as
+        // `khotabMostDownloadedForPdf()`, author-scoped.
+        return $this->rememberRows(
+            $this->cacheKey('khotab-pdf', ['author' => $authorId, 'order' => 'hits', 'limit' => 5]),
+            fn () => DB::connection('main')->table('nuke_islamic_khotab')
+                ->select(['id', 'title', 'author', 'frame', 'hits', 'downcount', 'time'])
+                ->where('author', $authorId)
+                ->where('pdf', '>', 0)
+                ->where('hidden', '0')
+                ->orderByDesc('hits')
+                ->limit(5)
+                ->get()
+        );
     }
 
     /** IF-021's fix, "Newest" counterpart — `author.php` renders both boxes unconditionally regardless of op. */
     public function khotabMostRecentByAuthorForPdf(int $authorId): Collection
     {
-        return DB::connection('main')->table('nuke_islamic_khotab')
-            ->select(['id', 'title', 'author', 'frame', 'hits', 'downcount', 'time'])
-            ->where('author', $authorId)
-            ->where('pdf', '>', 0)
-            ->where('hidden', '0')
-            ->orderByDesc('time')
-            ->limit(5)
-            ->get();
+        // E-02 (F-02): cached — see the "most downloaded" counterpart above.
+        return $this->rememberRows(
+            $this->cacheKey('khotab-pdf', ['author' => $authorId, 'order' => 'time', 'limit' => 5]),
+            fn () => DB::connection('main')->table('nuke_islamic_khotab')
+                ->select(['id', 'title', 'author', 'frame', 'hits', 'downcount', 'time'])
+                ->where('author', $authorId)
+                ->where('pdf', '>', 0)
+                ->where('hidden', '0')
+                ->orderByDesc('time')
+                ->limit(5)
+                ->get()
+        );
     }
 
     /**
@@ -727,19 +764,85 @@ class ContentSidebarWidget
     /** Shared query shape behind the 4 `khotabMost*` methods above — `topitems()`'s fixed SELECT list/table, varying only the WHERE filters and ORDER BY column. */
     private function topitems(array $filters, string $orderColumn, int $limit): Collection
     {
-        $query = DB::connection('main')->table('nuke_islamic_khotab')
-            ->select(['id', 'title', 'author', 'frame', 'hits', 'downcount', 'time']);
+        $rows = $this->rememberRows(
+            $this->cacheKey('topitems', $filters + ['order' => $orderColumn, 'limit' => $limit]),
+            function () use ($filters, $orderColumn, $limit) {
+                $query = DB::connection('main')->table('nuke_islamic_khotab')
+                    ->select(['id', 'title', 'author', 'frame', 'hits', 'downcount', 'time']);
 
-        foreach ($filters as $column => $value) {
-            $query->where($column, $value);
-        }
+                foreach ($filters as $column => $value) {
+                    $query->where($column, $value);
+                }
 
-        return $query->orderByDesc($orderColumn)->limit($limit)->get()
-            ->map(function ($item) {
-                $item->thumb = $this->topitemsThumb((int) $item->frame, (int) $item->id);
+                return $query->orderByDesc($orderColumn)->limit($limit)->get();
+            }
+        );
 
-                return $item;
-            });
+        return $rows->map(function ($item) {
+            $item->thumb = $this->topitemsThumb((int) $item->frame, (int) $item->id);
+
+            return $item;
+        });
+    }
+
+    /**
+     * Enhancement Batch E-02 (F-02) — restores the caching legacy already
+     * had for these exact widgets.
+     *
+     * Legacy's own `topitems()` (`functions.php:1027-1033`) cached its raw
+     * result rows for 300s **before** its per-row decoration loop, so a
+     * cache hit still recomputed the display-layer values fresh and only
+     * the database round trip was skipped. That is reproduced exactly:
+     * this helper caches the raw query rows only, and every caller
+     * re-applies its own decoration (`topitemsThumb()`, which performs a
+     * real `file_exists()` check) after retrieval — so a thumbnail
+     * appearing or disappearing on disk is reflected immediately rather
+     * than being frozen for the TTL.
+     *
+     * Rows are stored as **plain arrays** and rehydrated to `stdClass`
+     * with a PHP cast on the way out — the same house pattern
+     * `ContentListingService::homeLatestVideos()` and
+     * `KhotabSearchController::rememberSafely()` already use. Caching the
+     * `stdClass` rows directly would be silently broken on any real
+     * serializing store, because this app runs Laravel's secure default
+     * `cache.serializable_classes = false`, which turns every cached
+     * object into `__PHP_Incomplete_Class` on read. That exact bug has
+     * already hit this application once (see `homeLatestVideos()`'s
+     * docblock); this helper exists so it cannot recur here.
+     *
+     * @param  \Closure(): Collection<int, \stdClass>  $rows
+     * @return Collection<int, \stdClass>
+     */
+    private function rememberRows(string $key, \Closure $rows): Collection
+    {
+        $cached = Cache::remember(
+            $key,
+            self::CACHE_TTL_SECONDS,
+            fn () => $rows()->map(fn ($row) => (array) $row)->all()
+        );
+
+        return collect($cached)->map(fn (array $row) => (object) $row);
+    }
+
+    /**
+     * Deterministic cache key covering every input that changes the
+     * result set. Values are cast and the filter list is sorted by column
+     * name, so two callers expressing the same filters in a different
+     * order share one entry rather than silently splitting the cache.
+     * Keys are built only from internal column names and integer/bool
+     * ids — never from raw user-supplied strings.
+     *
+     * @param  array<string, scalar>  $parts
+     */
+    private function cacheKey(string $widget, array $parts): string
+    {
+        ksort($parts);
+
+        $suffix = collect($parts)
+            ->map(fn ($value, $name) => $name.'='.(is_bool($value) ? (int) $value : $value))
+            ->implode(':');
+
+        return 'sidebar:'.$widget.':'.$suffix;
     }
 
     /**

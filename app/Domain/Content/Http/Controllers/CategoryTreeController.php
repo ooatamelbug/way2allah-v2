@@ -45,22 +45,22 @@ class CategoryTreeController
 {
     public function index(ContentListingService $listing): View
     {
-        $categories = $listing->categoryTree();
-
-        return view('categories.tree', compact('categories'));
+        return view('categories.tree', [
+            'categoriesByParent' => $listing->categoryTree()->groupBy('main_cat'),
+        ]);
     }
 
     public function varIndex(ContentListingService $listing): View
     {
-        $categories = $listing->anasheedCategoryTree();
-
-        return view('categories.tree-anasheed', compact('categories'));
+        return view('categories.tree-anasheed', [
+            'categoriesByParent' => $listing->anasheedCategoryTree()->groupBy('main_cat'),
+        ]);
     }
 
     public function fatawaIndex(ContentListingService $listing): View
     {
-        $categories = $listing->fatawaCategoryTree();
-
-        return view('categories.tree-fatawa', compact('categories'));
+        return view('categories.tree-fatawa', [
+            'categoriesByParent' => $listing->fatawaCategoryTree()->groupBy('main_cat'),
+        ]);
     }
 }

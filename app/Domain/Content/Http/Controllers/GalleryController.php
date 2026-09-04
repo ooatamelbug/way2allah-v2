@@ -30,7 +30,10 @@ class GalleryController
     {
         $albums = Album::orderBy('album_id')->get(['album_id', 'title', 'count', 'is_compressed', 'last_update']);
 
-        return view('gallery.index', compact('albums'));
+        return view('gallery.index', [
+            'albums' => $albums,
+            'thumbnailUrls' => Album::thumbnailUrlsFor($albums),
+        ]);
     }
 
     public function show(int $album): View

@@ -6,10 +6,12 @@ use App\Domain\Engagement\Providers\EngagementServiceProvider;
 use App\Domain\Identity\Providers\IdentityServiceProvider;
 use App\Domain\Pages\Providers\PagesServiceProvider;
 use App\Providers\AppServiceProvider;
+use App\Providers\PerformanceServiceProvider;
 use App\Support\LegacyUrlCompatibility\UrlMapServiceProvider;
 
 return [
     AppServiceProvider::class,
+    PerformanceServiceProvider::class,
     AdminServiceProvider::class,
     ContentServiceProvider::class,
     EngagementServiceProvider::class,

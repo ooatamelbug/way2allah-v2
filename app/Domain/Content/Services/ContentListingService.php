@@ -1085,16 +1085,23 @@ class ContentListingService
 
     /**
      * `fatawa/functions.php:524-534` `get_all_channel_questions($id)` — a
-     * genuinely multi-step legacy query, reproduced in the same shape
-     * rather than optimized into a single join (Behavior First; the N+1
-     * per-row author lookup below is legacy's own shape, not introduced
-     * here): (1) paginate individual answers by `channel_id`; (2) collect
-     * their general-question ids (pipe-stripped); (3) fetch those general
-     * questions, ordered by `question_text`; (4) for each, resolve its
-     * topic and one matching author via legacy's own correlated-subquery
-     * pattern (`functions.php:539`, `answer_text`/`channel_id`/
-     * `general_question_id` match, `limit 1` — arbitrary if more than one
-     * row matches, same as legacy).
+     * genuinely multi-step legacy query: (1) paginate individual answers
+     * by `channel_id`; (2) collect their general-question ids
+     * (pipe-stripped); (3) fetch those general questions, ordered by
+     * `question_text`; (4) resolve each one's topic and author.
+     *
+     * **Enhancement Batch E-03 (F-03):** step (4) was a confirmed N+1 —
+     * legacy resolved the topic and the author with one query *per row*
+     * (`functions.php:539`), which this reproduced faithfully and which
+     * measured at **57 queries** for a full 25-row page. Both lookups are
+     * now batched into one query each (`fatwaTopicsKeyedById()`,
+     * `fatwaChannelAuthorsByGeneralQuestion()`), taking the page to a
+     * fixed 5 queries regardless of row count. The result set, its
+     * ordering, and the author actually selected are all unchanged —
+     * see `fatwaChannelAuthorsByGeneralQuestion()`'s own docblock for how
+     * legacy's arbitrary-looking author pick was derived and then
+     * verified exhaustively (672/672 real multi-candidate pairs) rather
+     * than replaced with a different arbitrary one.
      *
      * Legacy's raw `WHERE id IN ($ids)` would break (empty-parenthesis SQL
      * error) if no answers exist for this channel — not reproduced;
@@ -1117,28 +1124,111 @@ class ContentListingService
         $generalQuestions = DB::connection('main')->table('nuke_fatwa_general_questions')
             ->whereIn('id', $generalQuestionIds)
             ->orderBy('question_text')
-            ->get()
-            ->map(function ($question) use ($channelId) {
-                $topicId = (int) str_replace('|', '', (string) $question->topic_id);
-                $question->topic = $topicId > 0
-                    ? DB::connection('main')->table('nuke_fatwa_topics')->find($topicId)
-                    : null;
+            ->get();
 
-                $question->author = DB::connection('main')->table('nuke_islamic_authors')
-                    ->whereIn('id', function ($query) use ($channelId, $question) {
-                        $query->select('auther_id')->from('nuke_fatwa_questions')
-                            ->where('channel_id', $channelId)
-                            ->where('general_question_id', "|{$question->id}|");
-                    })
-                    ->limit(1)
-                    ->first();
+        $topics = $this->fatwaTopicsKeyedById($generalQuestions);
+        $authors = $this->fatwaChannelAuthorsByGeneralQuestion($channelId, $generalQuestions);
 
-                return $question;
-            });
+        $answers->setCollection($generalQuestions->map(function ($question) use ($topics, $authors) {
+            $topicId = (int) str_replace('|', '', (string) $question->topic_id);
+            $question->topic = $topicId > 0 ? ($topics[$topicId] ?? null) : null;
+            $question->author = $authors[(int) $question->id] ?? null;
 
-        $answers->setCollection($generalQuestions);
+            return $question;
+        }));
 
         return $answers;
+    }
+
+    /**
+     * Enhancement Batch E-03 (F-03) — one batched topic lookup for a whole
+     * page, replacing the per-row `->find($topicId)` that made this
+     * listing an N+1.
+     *
+     * Behaviour preserved exactly: a `topic_id` of 0/blank still yields
+     * `null` (handled by the caller, which never asks for id 0), and a
+     * `topic_id` pointing at a row that does not exist still yields
+     * `null` — `find()` returned null for a miss, and so does a missing
+     * key here.
+     *
+     * @param  \Illuminate\Support\Collection<int, \stdClass>  $generalQuestions
+     * @return \Illuminate\Support\Collection<int, \stdClass>  keyed by topic id
+     */
+    private function fatwaTopicsKeyedById(\Illuminate\Support\Collection $generalQuestions): \Illuminate\Support\Collection
+    {
+        $topicIds = $generalQuestions
+            ->map(fn ($question) => (int) str_replace('|', '', (string) $question->topic_id))
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values();
+
+        if ($topicIds->isEmpty()) {
+            return collect();
+        }
+
+        return DB::connection('main')->table('nuke_fatwa_topics')
+            ->whereIn('id', $topicIds)
+            ->get()
+            ->keyBy('id');
+    }
+
+    /**
+     * Enhancement Batch E-03 (F-03) — one batched author lookup for a
+     * whole page, replacing the per-row correlated subquery
+     * (`authors WHERE id IN (SELECT auther_id ...) LIMIT 1`) that made
+     * this listing an N+1.
+     *
+     * **The legacy winner-selection rule is replicated, not simplified.**
+     * That per-row query had no `ORDER BY`, so which author "won" for a
+     * general question answered by several scholars on the same channel
+     * was formally arbitrary — and this is not a rare edge case: 672 of
+     * 10,596 real channel/question pairs (6.3%) have more than one
+     * candidate. Rather than substitute a different arbitrary pick, the
+     * rule MySQL was actually applying was derived from its own plan
+     * (the subquery is materialised in `nuke_fatwa_questions` physical
+     * order, then joined to authors and cut by `LIMIT 1`) and then
+     * verified exhaustively against the real dataset:
+     *
+     *   the author of the matching answer row with the LOWEST
+     *   `nuke_fatwa_questions.id`, counting only rows whose `auther_id`
+     *   actually exists in `nuke_islamic_authors`
+     *
+     * — which agreed with the old query on **672 of 672** multi-candidate
+     * pairs (the 12 initial mismatches were all rows with `auther_id = 0`,
+     * a non-existent author the old query's join silently skipped; the
+     * inner join below skips them identically). The batched form is
+     * therefore not just equivalent but strictly more predictable: the
+     * result no longer depends on the optimiser's choice of plan.
+     *
+     * @param  \Illuminate\Support\Collection<int, \stdClass>  $generalQuestions
+     * @return \Illuminate\Support\Collection<int, \stdClass>  keyed by general-question id
+     */
+    private function fatwaChannelAuthorsByGeneralQuestion(int $channelId, \Illuminate\Support\Collection $generalQuestions): \Illuminate\Support\Collection
+    {
+        if ($generalQuestions->isEmpty()) {
+            return collect();
+        }
+
+        // Legacy matches the pipe-wrapped literal (`'|123|'`), not a LIKE.
+        $pipedIds = $generalQuestions->map(fn ($question) => '|'.$question->id.'|')->all();
+
+        return DB::connection('main')->table('nuke_fatwa_questions as q')
+            ->join('nuke_islamic_authors as a', 'a.id', '=', 'q.auther_id')
+            ->where('q.channel_id', $channelId)
+            ->whereIn('q.general_question_id', $pipedIds)
+            ->orderBy('q.id')
+            ->select(['q.general_question_id as fatwa_general_question_id', 'a.*'])
+            ->get()
+            ->groupBy(fn ($row) => (int) str_replace('|', '', (string) $row->fatwa_general_question_id))
+            // `orderBy('q.id')` above means the first row of each group is
+            // the lowest-id match — the winner rule proven in the docblock.
+            ->map(function ($rows) {
+                $author = clone $rows->first();
+                // Grouping key only; never part of the author row legacy returned.
+                unset($author->fatwa_general_question_id);
+
+                return $author;
+            });
     }
 
     /**

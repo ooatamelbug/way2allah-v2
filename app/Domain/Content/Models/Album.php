@@ -60,6 +60,51 @@ class Album extends Model implements Viewable
         return AlbumImage::where('album_id', $this->album_id)->orderBy('order')->first();
     }
 
+    /**
+     * The same "first image by `order ASC`" rule as `thumbnailImage()`
+     * above, resolved for many albums in one query instead of one query
+     * per album — the gallery index rendered 84 albums as 1 + 84 queries.
+     *
+     * Deliberately not an `ofMany()` relationship: that builds a
+     * MIN(`order`) subquery which, on two images sharing an album's
+     * lowest `order`, disambiguates by primary key. `thumbnailImage()`
+     * has no tiebreaker at all — it takes whatever `ORDER BY `order``
+     * yields first — so adding one here would be a silent behaviour
+     * change. Ordering the rows exactly as the per-album query does and
+     * keeping the first per album reproduces the current winner,
+     * including that undefined-on-ties behaviour.
+     *
+     * Returns urls rather than models because that is all the listing
+     * uses, and hydrating 2,522 `AlbumImage` models to read 84 of them
+     * would trade one inefficiency for another.
+     *
+     * @param  \Illuminate\Support\Collection<int, self>  $albums
+     * @return array<int, string>  album_id => thumbnail url (absent when the album has no images)
+     */
+    public static function thumbnailUrlsFor(\Illuminate\Support\Collection $albums): array
+    {
+        $albumIds = $albums->pluck('album_id')->all();
+
+        if ($albumIds === []) {
+            return [];
+        }
+
+        $urls = [];
+
+        foreach (
+            AlbumImage::query()
+                ->whereIn('album_id', $albumIds)
+                ->orderBy('album_id')
+                ->orderBy('order')
+                ->toBase()
+                ->get(['album_id', 'url']) as $image
+        ) {
+            $urls[(int) $image->album_id] ??= $image->url;
+        }
+
+        return $urls;
+    }
+
     /** `nuke_albums` has no `lastvisit` column at all. */
     public function tracksLastVisit(): bool
     {
