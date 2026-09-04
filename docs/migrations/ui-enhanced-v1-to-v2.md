@@ -31,8 +31,8 @@ optimizations remain authoritative.
 
 | # | V1 commit | V2 commit | Classification | Result |
 |---:|---|---|---|---|
-| 1 | `6feaca9422905b6948b8b41c94d9c5d03cb097ad` | pending | Direct asset adaptation | Added the v1 design-token and global CSS foundation as a tracked public asset. |
-| 2 | `3afc6bc6e8dc8dc2eecb98c03b6873f32a2ae74a` | pending | Pending | |
+| 1 | `6feaca9422905b6948b8b41c94d9c5d03cb097ad` | `6ea6820` | Direct asset adaptation | Added the v1 design-token and global CSS foundation as a tracked public asset. |
+| 2 | `3afc6bc6e8dc8dc2eecb98c03b6873f32a2ae74a` | pending | Intentional safety adaptation | Retained Laravel environment configuration, database connections, local-only thumbnail policy, and current deployment infrastructure. The legacy Docker stack, hardcoded credentials/URLs, Apache media redirect, and remote TimThumb fallback are intentionally excluded. |
 | 3 | `0babaea367d59e6ae047f7a1bc23a5c9a6901b74` | pending | Pending | |
 | 4 | `e2060207f8692e3f84e27a381bb138f19a765aa7` | pending | Pending | |
 | 5 | `9c1102e4de87f8edcfc5de2da3cee86cd3cc970e` | pending | Pending | |
@@ -51,4 +51,3 @@ optimizations remain authoritative.
 | 18 | `75b7557b9560857a91b9b7df6e1e205ea564d7c0` | pending | Pending | |
 | 19 | `316b08d9b2c7454cfa9be280659b57fbb0e348bd` | pending | Pending | |
 | 20 | `60b060eb6b6d2d7b1cc59d6c45eb325fe7bfe38d` | pending | Pending | |
-
