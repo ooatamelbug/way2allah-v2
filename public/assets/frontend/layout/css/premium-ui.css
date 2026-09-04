@@ -6783,7 +6783,13 @@ button.mobi-toggler {
 }
 
 /* Final v1 UI migration: equal-height content rows */
-.row.service-box.w2a-equal-height-row,
+.row.service-box.w2a-equal-height-row {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  align-items: stretch !important;
+}
+
 .row.service-box.w2a-equal-height-row > [class*="col-"],
 .row.service-box.top-section-card > [class*="col-"] {
   display: flex !important;

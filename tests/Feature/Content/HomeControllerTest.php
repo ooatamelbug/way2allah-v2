@@ -107,6 +107,13 @@ it('/: scopes the equal-width presentation-card layout to the introductory secti
         ->and(substr_count($content, '<div class="row service-box w2a-equal-height-row">'))->toBe(3);
 });
 
+it('/: keeps equal-height content rows horizontal while stretching their card columns', function () {
+    $css = file_get_contents(public_path('assets/frontend/layout/css/premium-ui.css'));
+
+    expect($css)->toMatch('/\.row\.service-box\.w2a-equal-height-row\s*\{[^}]*flex-direction:\s*row\s*!important;[^}]*flex-wrap:\s*wrap\s*!important;/s')
+        ->toMatch('/\.row\.service-box\.w2a-equal-height-row\s*>\s*\[class\*="col-"\][^{]*\{[^}]*flex-direction:\s*column\s*!important;/s');
+});
+
 it('/: exposes keyboard-accessible global navigation and advanced search controls', function () {
     $content = $this->get('/')->assertOk()->getContent();
 
