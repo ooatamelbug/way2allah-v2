@@ -1,0 +1,2596 @@
+/* here you can put your own css to customize and override the theme */
+@font-face {
+    font-family:'GE SS';
+    src:url('ge-ss-med.eot');
+    src:local('?'), url('ge-ss-med.ttf') format('truetype');
+    font-weight:normal;
+}
+
+body{
+/*	font-family: 'GE SS','Tahoma' !important;*/
+/*	font: 400 13px 'GE SS','Tahoma' !important;*/
+/*	font: 400 13px 'Tahoma';*/
+	font-family: 'Almarai', sans-serif;
+
+}
+
+.header-navigation {
+	/* font: 15px "Open Sans",sans-serif; */
+	font-family: 'GE SS','Tahoma' !important;
+	font-size: 115% !important;
+}
+
+.main{
+	background: url(images/way_content_bg.jpg) repeat-x scroll center top rgba(0, 0, 0, 0);
+	padding-top: 23px !important;
+}
+
+.revolution-slider {
+    margin-bottom: 0px !important;
+
+}
+.fullwidthabnner {
+	/*max-height: 379px !important;*/
+	/*height: auto !important;*/
+}
+.fullwidthabnner  img {
+	height: 100% !important;
+}
+
+
+.w2a-footer{
+	background: url(images/way_bottom_content_bg.png) repeat-x scroll center bottom rgba(0, 0, 0, 0);
+	min-height:220px !important;
+	clear:both !important;
+	content: "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  ";
+}
+
+.pre-footer{
+    background: url(images/way_footer_bg.jpg) repeat scroll center top rgba(0, 0, 0, 0);
+    color: #fff !important;
+    height: 120px !important;
+    padding-top: 5px !important;
+    text-align: center !important;	
+}
+
+.pre-header {
+	font-family: 'GE SS','Tahoma' !important;
+}
+
+.caption,
+h1, h2, h3, h4, h5, h6 {
+	font-family: 'GE SS','Tahoma' !important;	
+	font: 300 'GE SS','Tahoma' !important;
+}
+
+.portlet-title{
+	background: url("images/block_bg.png") repeat-x scroll right top transparent;
+}
+
+.blue .portlet-body{
+	background-color:#F5FDFF !important;
+}
+
+small{
+	color: #7C858E;
+}
+
+.header {
+    margin-bottom: 0px !important;
+}
+.blog-item img.media-object {
+    top: 2px;
+    width: 40px !important;
+    height: 40px !important;
+}
+
+
+.page-bar{
+	background:#FFF !important;
+	border:thin #64AED9 solid;
+	
+}
+
+/* ������ ������ �������*/
+.nopadding{
+	padding: 0px !important;
+}
+/* ����� �������� � �������� ��������� */
+
+
+ul.vars {
+	list-style: none;
+	margin: 0px;
+	padding: 0px;
+	display: block;
+	text-align: right;
+	direction: rtl;
+	overflow: hidden;	
+}
+
+ul.vars li {
+	display: block;
+	background: none;
+	margin: 0px;
+	padding: 4px;
+	line-height: normal;
+	text-align: right;
+	font-size:13px;
+	font-weight:bold;
+	color: #558d04;
+	vertical-align: middle;
+	border-bottom-width: 1px;
+	border-bottom-style: dashed;
+	border-bottom-color: #b4d0d7;
+	overflow: hidden;
+	max-height: 68px;
+}
+
+ul.vars li a {
+	display: block;
+	outline: none;
+	margin: 0px;
+	text-decoration: none;
+	color: #0b57a2;
+	padding-left:5px;
+	padding-right:2px;
+	padding-top:2px;
+	padding-bottom:2px;
+	overflow: hidden;
+	line-height: 18px;
+	overflow: hidden;
+	position: relative;
+}
+ul.vars li a .var_time {
+	color: #ccc;
+	position: absolute;
+	bottom: 0;
+	left: 0;
+}
+@media (max-width: 1199px) and (min-width: 992px) {
+	ul.vars li a .var_time {
+		display: none;
+	}
+}
+.var_link a{
+color: #0b57a2;
+}
+ 
+ul.vars li span{
+	overflow:hidden;
+}
+
+ul.vars li a:hover,
+ul.vars li a:active,
+ul.vars li a:focus {
+	color: #558d04;
+	text-decoration: none;
+	overflow: hidden;	
+}
+
+ul.vars img{
+	padding: 2px;
+	border: 1px solid #7C858E;
+	float:right;
+	margin-left: 5px;
+}
+
+/*����� ��������*/
+.var_items{
+	list-style: none;
+	display:inline-block;
+	padding: 0px !important;
+}
+
+.var_item{
+	margin:8px 0;
+	display:inline-block;
+}
+
+.var_item img{
+	height: 75px;
+	width: 100px;
+	border: 0px;
+	clear: both;
+	margin-top: 4px;
+	margin-left:1px;
+	margin-bottom: 25px;
+}
+.var_item a span{
+	height:40px;
+	overflow:hidden;
+	display:block;
+}
+
+.var_item a{
+	height: 140px;
+	width: 139px;
+	border:1px solid #f5fdff;
+	display: block;
+	vertical-align: middle;
+	background-image: url("images/tv.png");
+	background-repeat: no-repeat;
+	background-position: center 10px;
+	margin: 3px;
+	padding:10px 3px;
+	overflow: hidden;
+	line-height: normal;
+	text-align: center;
+}
+.var_item a.cd_bg_img{
+	background-image: url("images/tv_cd.png");
+	height: 175px;
+}
+.var_item a.cd_bg_img img {
+	height: 104px;
+	width: 105px;
+	border: 0px;
+	clear: both;
+	margin-top: 6px;
+	margin-left: 0px;
+	margin-bottom: 8px;
+	border-radius: 50% !important;
+}
+.var_item a.cd_bg_img span {
+	height: 50px;
+}
+.cd_first_img {
+	margin: 5px auto;
+}
+.cd_first_img img {
+	max-width: 100%;
+	height: auto;
+}
+.var_item.current_ch a{
+	border: 1px solid #125ba4;
+	background-color: #2579cf;
+	color: #FFF;
+}
+
+/* ����� ������� �������� */
+.var_group:hover {
+    background: none repeat scroll 0% 0% #EBF6DA;
+    border: 1px solid #508504;
+}
+.var_group {
+    margin: 10px;
+    height: 160px;
+    width: 264px;
+    border: 1px solid #B5E273;
+    overflow: hidden;
+    line-height: normal;
+    text-align: right;
+    display: inline-block;
+    vertical-align: middle;
+    position: relative;
+    padding: 10px 10px 0px;
+}
+
+.var_group .title {
+    font-size: 12px !important;
+    font-weight: bold;
+    color: #000;
+    text-align: center;
+    line-height: 27px;
+}
+
+.var_group .title a {
+    color: #FFF;
+    height: 130px;
+    width: 260px;
+    display: block;
+    overflow: hidden;
+}
+
+.var_group .title {
+    font-size: 16px;
+    font-weight: bold;
+    clear: both;
+    width: auto;
+    height: 25px;
+    color: #000;
+    text-align: center;
+    background: url("images/way_green_bar.png") repeat-x scroll 8px center transparent;
+    margin-bottom: 2px;
+    line-height: 27px;
+    padding: 2px;
+    overflow: hidden;
+}
+
+.var_group a.bg_group {
+    background: url("images/group.png") no-repeat scroll right bottom transparent;
+    height: 107px;
+    width: 120px;
+    display: block;
+    float: right;
+    margin-top: 10px;
+}
+
+.var_group img {
+    height: 75px;
+    width: 100px;
+    margin: 10px 12px 0px 0px;
+}
+
+.var_group p {
+    margin-top: 10px;
+}
+
+/*���� ��������*/
+ul.menu li {
+    display: block;
+    background: none repeat scroll 0% 0% transparent;
+    margin: 0px;
+    line-height: 30px;
+    text-align: right;
+    font-weight: bold;
+    vertical-align: middle;
+    border-bottom: 1px dashed #B4D0D7;
+    width: auto;
+    padding: 4px 4px 4px 10px;
+    color: #0B57A2;
+}
+
+/* ������ */
+.author{
+	display:inline-block;
+	margin:10px !important;
+	/*min-width:240px;	 */
+}
+.author > div.pull-left{
+	max-width: calc(100% - 80px);
+}
+.author img {
+	width: 75px;
+	height: 75px;
+	padding: 3px;
+	border-radius: 150px !important;
+	border: 1px solid #0099CC;
+	margin-left:5px;
+}
+
+.author-name{
+	font-weight:300;
+	clear: both;
+	display: block;
+	margin-top:20px;
+}
+.profile-userpic{
+	height: 162px;
+	width: 162px;
+	margin: 0 auto;
+	border: 1px solid #0099CC;
+	position: relative;
+	border-radius: 50% !important;
+}
+.profile-userpic img {
+	float: none;
+	margin: auto;
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	border-radius: 50% !important;
+}
+
+
+div.dataTables_length label{
+	float:none !important;
+}
+
+.channel-logo{
+	width:160px !important;
+	color:#000 !important;
+	font-size:16px !important;
+}
+
+.channel-logo .zoomix{
+	opacity: 1 !important;
+	background: #F5FDFF !important;
+}
+
+.site-logo{
+	margin-left: 10px !important;
+	padding-top: 1px !important;
+	padding-bottom: 1px !important;
+}
+
+.pre-header{
+	background-color:#E4E4E4 !important;
+	border-bottom:thin solid #999;
+	z-index: 99;
+	position: relative;
+}
+
+#cats-breadtcrumb .page-bar{
+	margin-bottom:5px !important;
+}
+
+.small_logo{
+	width:63px !important;
+	height:50px !important;
+}
+
+.service-box p{
+	margin:0px !important;
+	font-size:14px !important;
+	line-height: 150% !important;
+}
+
+.front-step a{
+	color: #FFF !important;
+}
+
+
+
+
+
+
+/**
+ * HOME PAGE
+ */
+
+.home.portlet.box > .portlet-body {
+	min-height: 250px;
+	position: relative;
+}
+.portlet.box.top_side > .portlet-body {
+	padding: 0px;
+}
+.top_side h5 {
+	margin-bottom: 0px;
+}
+.top_side .img-thumbnail {
+	padding: 0px;
+	border: none;
+}
+#montada {
+	padding: 0 15px;
+}
+
+/**
+ * CHANNELS
+ */
+.gallery-item a {
+	margin: 0 auto;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * FOOTER
+ */
+.copyrights {
+	display: flex;
+}
+.copyrights p {
+	margin: 0;
+}
+.red_sub {
+	color: #900 !important;
+	vertical-align: middle;
+	font-size: inherit;
+}
+.series-overflow {
+	max-height: 400px;
+	overflow-y: auto;
+	overflow-x: hidden;
+}
+.series-overflow tbody {
+	background-color: #fff;
+}
+.series-overflow.series-overflow-auto {
+	height: auto !important;
+	max-height: initial;
+}
+.series-overflow.item{
+	height: auto;
+}
+.series-overflow table {
+	border-right: 1px solid #e7ecf1;
+}
+
+.series-overflow table td{
+	padding: 0!important;
+}
+.series-overflow table tr:last-child td {
+	/*padding: 8px !important;*/
+}
+#kh_ajax_results .series-overflow table tr:last-child td {
+	padding: 8px !important;
+}
+.series-overflow table td > .row > div > h5 {
+	padding: 14px;
+	margin: 0;
+}
+.series-overflow table td > .row .col-sm-12.col-lg-8 {
+	margin-bottom: 5px;
+}
+.page-header {
+	border-top: 1px solid #aee8ff;
+	border-bottom: none;
+	margin: 0px;
+	padding: 5px 0;
+	background-color: #cccccc5c;
+	font-size: 12px;
+}
+.series-overflow.item .page-header {
+	padding-top: 15px;
+}
+.series-overflow.item .page-header > div {
+	margin-bottom: 15px;
+}
+.series-overflow.item .page-header > div:not(:first-child) .fa{
+	font-size: 18px;
+	margin-left: 2px;
+}
+.portlet.box.blue {
+	border: none;
+	outline: 1px solid #60aee4;
+}
+.series-overflow.item table{
+	margin-bottom: 0;
+}
+
+.media-heading {
+	font-size: 14px;
+}
+
+
+
+/* =============================================
+categories page
+================================================= */
+.nav ul li{
+	list-style-type: none;
+	font-size: 18px;
+}
+.nav ul li a{
+	color: #186ec2;
+}
+.list{
+	padding: 0;
+}
+.nav label {
+	display: block;
+	color: #333;
+	background-color: #fff;
+	transition: all .25s ease-in;
+	/* box-shadow: inset 0 -1px #eee; */
+	/* padding: 7px 0; */
+}
+.list li,
+	/* .group_list , */
+.sub_group_list li{
+	box-shadow: inset 0 -1px #eee;
+	/* padding: 7px 0; */
+	padding: 7px 0;
+}
+.sub_group_list li{
+	padding: 0
+}
+/* .list .sub_group_list li:last-child{
+  box-shadow: none;
+} */
+.nav a:focus, .nav a:hover,
+.nav label:focus,
+.nav label:hover {
+	color: rgba(39, 39, 39, 0.5);
+	/* background: #eee; */
+}
+.nav label {
+	cursor: pointer;
+}
+.group_list a,
+.group_list label {
+	padding-left: 2rem;
+	/* background: #eee; */
+	/* box-shadow: inset 0 -1px #eee; */
+}
+.group_list a:focus, .group_list a:hover
+{
+	/* background: #fff; */
+}
+.fatawa-mokhtara,
+.calendar-block{
+	background: #f5fdff;
+	padding: 0;
+	border: 1px solid #60aee4;
+	margin-bottom: 51px;
+}
+.sub_group_list a,
+.sub_group_list label {
+	/* background: #e4e4e4; */
+	/* box-shadow: inset 0 -1px #eee; */
+	display: inline-block;
+	padding: 7px;
+}
+.sub_group_list a:focus, .sub_group_list a:hover,
+.sub_group_list label:focus,
+.sub_group_list label:hover {
+	/* background: #186ec2; */
+	/* color:#fff; */
+	text-decoration: none
+}
+.sub-sub-group-list a,
+.sub-sub-group-list label {
+	padding-left: 6rem;
+	background: #454545;
+	box-shadow: inset 0 -1px #eee;
+}
+.sub-sub-group-list a:focus, .sub-sub-group-list a:hover,
+.sub-sub-group-list label:focus,
+.sub-sub-group-list label:hover {
+	/* background: #616161; */
+}
+
+.list-container,
+.sub-group-list-container ,
+.sub-sub-group-list {
+	height: 100%;
+	max-height: 0;
+	overflow: hidden;
+	transition: max-height .5s ease-in-out;
+}
+
+.list input[type=checkbox]:checked + label + .list-container ,
+.list input[type=checkbox]:checked + label + .sub-group-list-container {
+	/* reset the height when checkbox is checked */
+	max-height: fit-content;
+	max-height: -moz-max-content;
+	box-shadow: none;
+}
+.list input[type=checkbox]:checked + label + .list-container .group_list:last-child li,
+.list input[type=checkbox]:checked + label + .sub-group-list-container .sub_group_list:last-child li
+{
+	box-shadow: none;
+}
+label > span {
+	float: left;
+	transition: -webkit-transform .65s ease;
+	transition: transform .65s ease;
+	transition: transform .65s ease, -webkit-transform .65s ease;
+	color: #186ec2;
+}
+
+.list input[type=checkbox]:checked + label > span {
+	-webkit-transform: rotate(90deg);
+	transform: rotate(90deg);
+}
+
+.list img{
+	width: 20px;
+}
+
+
+/* ==================================================
+pagination
+======================================================*/
+.pagination ul li{
+	float: right;
+	margin-right: 25px;
+	list-style-type: none;
+}
+.pagination{
+	text-align: center;
+	display: block;
+}
+.pagination ul{
+	display: inline-block;
+}
+.pagination ul li:nth-child(n+3)span a:nth-last-child(n+3)span a {
+	border: 1px solid;
+	border-radius: 100px !important;
+	padding: 5px;
+	width: 25px;
+	height: 25px;
+	line-height: 1;
+	background: #1b63ae;
+}
+.pagination ul li:nth-child(n+3)span a:nth-last-child(n+3)span a{
+	color:#fff;
+}
+
+.pagination a.active  {
+	border-radius: 100px !important;
+	background: #1b63ae;
+	color: #fff;
+	padding-left: 9px;
+	text-align: center;
+	padding-right: 8px;
+}
+
+.channel_logo{
+	display: inline;
+	/* margin: 30px; */
+	margin: 15px 0 0 0;
+}
+
+.channel_logo img{
+	margin-bottom: 30px;
+}
+.table_order {
+	text-align: center;
+	vertical-align: middle!important;
+	font-size: 20px!important;
+	color: white;
+	background-color: #247acd;
+	width: 40px;
+}
+
+
+/******** تلاوات قرآنية ********/
+.telawah-author .thumbnail {
+	padding: 2px;
+	height: 195px;
+}
+.telawah-author {
+	margin-bottom: 10px;
+}
+
+.telawah-author .thumbnail .list-group-item {
+	padding: 2px 15px;
+	border: none;
+}
+.telawah-author .thumbnail .list-group-item span {
+	color: #098a0e;
+}
+.telawa-author-name a {
+font-weight: 700;
+background: #41b6dd;
+color: #FFF;
+display: block;
+padding: 10px;
+}
+.telawah-author .telawa-thumb {
+width:120px;
+}
+.telawah-author .telawa-details {
+width: calc(100% - 120px);
+float: left;
+}
+.telawah-author a.bg_group {
+background:url('../img/group.png') no-repeat bottom right;
+height:107px;
+width:120px;
+display:block;
+float:right;
+margin-top:10px;
+}
+.telawah-author .bg_group img {
+height: 75px;
+width: 100px;
+margin: 10px 12px 0 0;
+}
+
+.admin_control_box {
+	display: flex;
+	text-align: center;
+	overflow-x: auto;
+}
+.separation {
+	width: 5px;
+	height: 50px;
+	margin-right: 10px;
+	margin-left: 5px;
+	border-right-width: thin;
+	border-right-style: solid;
+	border-right-color: #999;
+	float: right;
+}
+.portlet-body ul.recent_list, .portlet-body ul.downloaded_list {
+	padding-right: 0;
+}
+.album-item {
+	height: 304px;
+	width: 320px;
+	border: 0px;
+	background: url(../img/gallery_bg.png) no-repeat;
+	clear: none;
+	background-size: cover;
+	/*float: right;*/
+	overflow: hidden;
+	position: relative;
+	margin: 0px auto;
+	padding: 0px;
+	text-align: center;
+	font-family: 'GE SS',Arial,Helvetica,sans-serif;
+}
+.album-item a.standard {
+	border: 2px solid #FFFFFF;
+	display: block;
+	height: 145px;
+	margin: 44px 44px 0 0;
+	overflow: hidden;
+	text-align: center;
+	width: 227px;
+}
+.album a.standard img {
+	width: 100%;
+	margin: 0;
+	height: 166px;
+}
+.w2a_album_title {
+	width: 230px;
+	height: 18px;
+	overflow: hidden;
+	display: inline-block;
+	font-family: 'GE SS', Arial, Helvetica, sans-serif;
+	color: #002f60;
+	font-weight: bold;
+	font-size: 14px;
+	margin-top: 23px;
+	margin-right: -5px;
+}
+.album_last_update {
+	display: block;
+	font-size: 12px;
+	font-weight: bold;
+	margin: 0 auto;
+	width: 218px;
+	height: 15px;
+	line-height: 15px;
+	overflow: hidden;
+}
+.w2a_gallery_imgs_c {
+	color: #01254a;
+	font-weight: bold;
+	line-height: 30px;
+	font-size: 14px;
+}
+.w2a_album_save {
+	background: url(../img/save-bg.png) no-repeat left bottom;
+	border-radius: 5px;
+	color: #FFFFFF;
+	display: block;
+	float: left;
+	margin-left: 55px;
+	margin-right: -45px;
+	padding: 0 4px 0 16px;
+	line-height: 22px;
+	margin-top: 3px;
+}
+.w2a_album_save i {
+	background: url(../img/save-icon.png) no-repeat right top;
+	width: 21px;
+	height: 22px;
+	display: block;
+	float: right;
+	margin-right: 4px;
+	margin-left: 4px;
+}
+.albumpic {
+	background: url(../img/s_gallery_bg.png) no-repeat center top;
+	height: 197px;
+	width: 188px;
+	clear: none;
+	float: right;
+	overflow: hidden;
+	position: relative;
+	text-align: center;
+	margin: 10px 21px 0;
+	vertical-align: middle;
+}
+.albumpic .w2a_singl_img {
+	border: 1px solid #FFFFFF;
+	display: block;
+	height: 150px;
+	margin-right: 10px;
+	margin-top: 10px;
+	overflow: hidden;
+	width: 166px;
+}
+img.pwimages {
+	width: 100%;
+}
+.w2a_gal_sav {
+	background: url(../img/save-bg.png) no-repeat left bottom;
+	border-radius: 5px;
+	color: #FFFFFF;
+	display: block;
+	margin: 0 auto;
+	padding: 0 4px 0 16px;
+	line-height: 22px;
+	margin-top: 3px;
+	width: 125px;
+}
+.w2a_gal_sav i {
+	background: url(../img/save-icon.png) no-repeat right top;
+	width: 21px;
+	height: 22px;
+	display: block;
+	float: right;
+	margin-right: 4px;
+	margin-left: 4px;
+}
+
+
+
+/*************** Home ******************/
+.list_carousel2 {
+	position: relative;
+	height: 220px;
+}
+.list_carousel_cd {
+	height: 250px !important;
+}
+/*.list_carousel2 > div{*/
+/*	min-height: 220px;*/
+/*}*/
+.list_carousel2.list_carousel_cd > div{
+	min-height: 250px;
+}
+.list_carousel2 ul {
+	padding: 0;
+	width: 100% !important;
+}
+.list_carousel2 ul li{
+	position: relative;
+	list-style-type: none;
+	height: 250px;
+	width: 100%;
+	padding: 15px;
+}
+.list_carousel2.list_carousel_cd ul li{
+	height: 250px;
+	padding: 15px;
+}
+.list_carousel2 ul li a {
+	width: 100% !important;
+	height: 100%;
+	display: block;
+	text-align: center;
+}
+.list_carousel2 ul li img {
+	max-width: 100% !important;
+	height: 100%;
+
+}
+.list_carousel2 .caroufredsel_wrapper {
+	margin-bottom: 0px !important;
+	width: 100% !important;
+}
+.tp-bgimg.defaultimg {
+	background-size: contain!important;
+}
+
+#cds .in_cd_title2 {
+	position: absolute;
+	width: 100%;
+	height: 50px;
+	bottom: 0px;
+	left: 0px;
+	padding: 8px;
+	font-size: 16px;
+	font-weight: bold;
+	color: #2060a9;
+	z-index: 1;
+	background-color: #ffffff;
+	opacity: .85;
+}
+
+a.tt2{
+	position:relative;
+	color:#0b57a2;
+	font-weight:bold;
+	text-decoration:none;
+}
+a.tt2 span{ display: none; }
+.top_video {
+	display: block !important;
+	line-height: 16px;
+}
+/*background:; ie hack, something must be changed in a for ie to execute it*/
+a.tt2:hover{  color: #aaaaff; background:;}
+a.tt2:hover span.tooltip2{
+	display:block;
+	position:absolute;
+	z-index:3;
+	top:0px; right:0;
+	padding: 15px 0 0 0;
+	width:200px;
+	color: #0b57a2;
+	text-align: center;
+}
+
+a.tt2 p.attt2 {
+	overflow:hidden;
+	height:15px;
+}
+
+a.tt2:hover span.top2{
+	display: block;
+	padding: 25px 8px 0;
+	background: url(../img/icons/bubble.png) no-repeat top;
+}
+a.tt2:hover span.middle2{ /* different middle bg for stretch */
+	display: block;
+	padding: 0 8px;
+	background: url(../img/icons/bubble2.png) repeat bottom;
+}
+a.tt2:hover span.bottom2{
+	display: block;
+	padding:3px 8px 10px;
+	color: #0b57a2;
+	background: url(../img/icons/bubble.png) no-repeat bottom;
+}
+
+/* news homecss */
+ul.homecss {
+	list-style: none;
+	margin:-5px 0 0 0;
+	padding: 0px;
+	display: block;
+	text-align: right;
+	direction: rtl;
+}
+
+ul.homecss li {
+	padding: 8px 0;
+	font-size: 13px;
+	font-weight: bold;
+	color: #3a93ee;
+	border-bottom-width: 1px;
+	border-bottom-style: dashed;
+	border-bottom-color: #b4d0d7;
+}
+
+ul.homecss li a {
+	display: block;
+	outline: none;
+	margin: 0;
+	text-decoration: none;
+	color: #0b57a2;
+	padding-left:5px;
+	padding-right:25px;
+	height: 15px;
+	line-height: 14px;
+	background-image: url(../img/icons/menu_icon.gif);
+	background-repeat: no-repeat;
+	background-position: right top;
+}
+
+ul.homecss li a:hover,
+ul.homecss li a:active,
+ul.homecss li a:focus {
+	color: #558d04;
+	text-decoration: none;
+	background-image: url(../img/icons/menu_icon2.gif);
+	background-repeat: no-repeat;
+	background-position: right top;
+}
+a {
+	text-decoration: none;
+}
+a:visited {
+	color: #83898f;
+	/*color: #416b04;*/
+	/*color: #5e5e5e;*/
+	font-weight: bold;
+}
+a:hover {
+	color: #558d04;
+}
+
+.w2a_polls #title {
+	font-size: 12px !important;
+	text-align: right !important;
+}
+.w2a_polls .portlet-body {
+	padding: 5px 15px !important;
+}
+.w2a_polls ul.homecss li {
+	border: none;
+	padding: 4px 0;
+}
+.w2a_polls .w2a_submit {
+	display: inline-block;
+	margin: 5px;
+	padding: 3px 13px;
+	border: 1px solid #4081af;
+	border-bottom-color: #20559a;
+	color: white !important;
+	text-align: center;
+	text-shadow: 0 -1px 0 hsla(0,0%,0%,.3);
+	text-decoration: none;
+	cursor: pointer;
+	-webkit-border-radius: 15px;
+	-moz-border-radius: 15px;
+	border-radius: 15px;
+	background: #237fd7;
+	background: -webkit-gradient( linear, left top, left bottom, color-stop(.2, #52a8e8), color-stop(1, #2e76cf) );
+	background: -moz-linear-gradient( center top, #52a8e8 20%, #2e76cf 100% );
+	-webkit-box-shadow: inset 0 1px 0 hsla(0,100%,100%,.3) /*Top*/, inset 0 0 2px hsla(0,100%,100%,.3) /*Shine*/, 0 1px 2px hsla(0, 0%, 0%, .29) /*Shadow*/;
+	-moz-box-shadow: inset 0 1px 0 hsla(0,100%,100%,.3) /*Top*/, inset 0 0 2px hsla(0,100%,100%,.3) /*Shine*/, 0 1px 2px hsla(0, 0%, 0%, .29) /*Shadow*/;
+	box-shadow: inset 0 1px 0 hsla(0,100%,100%,.3) /*Top*/, inset 0 0 2px hsla(0,100%,100%,.3) /*Shine*/, 0 1px 2px hsla(0, 0%, 0%, .29) /*Shadow*/;
+	width: 84px;
+	height: 21px;
+	font-weight: bold;
+	font-family: Tahoma, Geneva, sans-serif;
+	font-size: 12px;
+	float: left;
+}
+.w2a_polls form > div > span {
+	display: inline-block;
+}
+
+/*--------------نهاية سليدر السي دي--------------*/
+.mooore {
+	position: absolute;
+	bottom: 5px;
+	left: 10px;
+}
+.mooore a.mo{
+	float:left;
+	height:17px;
+	color:#FFF;
+	width:62px;
+	background:url('images/more.png') top center no-repeat;
+	margin:4px;
+	text-align:center;
+	line-height: 14px;
+}
+.mooore a.rssb{
+	float:left;
+	height:16px;
+	color:#FFF;
+	width:16px;
+	background:url('images/rss.png') top center no-repeat;
+	margin:5px 4px;
+	text-align:center;
+}
+.mooore a.mo:hover{
+	background:url('images/more.png') bottom center no-repeat;
+}
+
+
+
+.portlet-body .thumbnail {
+	margin-bottom: 0px;
+}
+
+
+/* =============================================
+answer page
+================================================= */
+.badge {
+	position: relative;
+	margin: 1.5em 2em;
+	width: 4em;
+	height: 6.2em;
+	border-radius: 10px;
+	display: inline-block;
+	top: 0;
+	transition: all 0.2s ease;
+}
+.badge:before, .badge:after {
+	position: absolute;
+	width: inherit;
+	height: inherit;
+	border-radius: inherit;
+	background: inherit;
+	content: "";
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	margin: auto;
+}
+.badge:before {
+	transform: rotate(60deg);
+}
+.badge:after {
+	transform: rotate(-60deg);
+}
+.badge:hover {
+	top: -4px;
+}
+.badge .circle {
+	width: 100%;
+	height: 50%;
+	position: absolute;
+	background: #fff;
+	z-index: 10;
+	border-radius: 50%;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	margin: auto;
+}
+.badge .circle i.fa {
+	font-size: 2em;
+	margin-top: 10px;
+}
+.badge.blue {
+	background: linear-gradient(to bottom right, #277bd2 0%, #3cb4df 100%);
+	/*color: #2479ca;*/
+}
+.text-blue {
+	color: #2479ca;
+}
+.send-friend-form{
+	margin: 100px auto;
+}
+.alert-info strong {
+	display: block
+}
+#sendFriendModalLabel{
+	font-size: 16px;
+}
+#sendFriend_form input,
+.modal-footer button,
+.alert-info{
+	border-radius: 10px !important;
+}
+#sendFriend_form label{
+	font-weight: bold;
+}
+.quality_title {
+	font-family: Almarai;
+	font-weight: bold;
+}
+
+.abc {
+	margin: 0 40px;
+	word-break: break-word;
+	font-size: 16px;
+	font-weight: bold;
+}
+#jquery-lightbox {
+	top: 20% !important;
+}
+#lightbox-container-image-data-box {
+	webkit-box-sizing: content-box!important;
+	-moz-box-sizing: content-box!important;
+	box-sizing: content-box!important;
+}
+
+audio:focus {
+	outline: none;
+}
+/*===================New Way2allah Search================*/
+.w2a_search_tabs{
+	display:block;
+	width:100%;
+	border-bottom:1px solid  #64A506;
+	overflow:hidden;
+	padding-right: 25px;
+	margin-bottom: 0;
+}
+.w2a_search_tabs li{
+	display:inline-block;
+	overflow:hidden;
+	margin-left:5px;
+	border-radius: 8px;
+	margin-bottom: -7px;
+}
+.w2a_search_tabs li a.current_tab{
+	background:#64a506;
+	color:#FFF;
+}
+.w2a_search_tabs li a{
+	display:block;
+	padding:5px 10px;
+	color:#1d58a2;
+	padding: 7px 8px 14px;
+	border:1px solid  #9cca5a;
+	border-radius: 8px 8px 0 0;
+	border-bottom:0;
+	font-family: 'GE SS','Tahoma' !important;
+}
+.w2a_search_results{
+	border-left: 1px solid #64A506;
+	border-right: 1px solid #64A506;
+	margin: 15px;
+	margin-top: 0px;
+	text-align: justify;
+	border-bottom: 1px solid #64A506;
+	margin-bottom: 25px;
+	display: flow-root;
+}
+
+
+.old-site-redirect {
+	color: #fff;
+	font-size: 16px;
+	background: #2772bf;
+}
+.old-site-redirect a {
+	text-decoration: none;
+	color: #c9f6ff;
+}
+.old-site-redirect a:hover {
+	color: #114369;
+	text-decoration: none;
+}
+
+
+/***** Chat Room [Rules]********/
+.rules_head {
+	font-size: 16px;
+	line-height: 25px;
+	color: #656565;
+}
+.rules_head p {
+	color: #145ea9;
+}
+.rules_head .mytitle {
+	color: #F00;
+}
+.rules_head ul.news {
+	list-style: none;
+	margin: 0px;
+	padding: 0px;
+	display: block;
+	text-align: right;
+	direction: rtl;
+	color: #145ea9;
+}
+.rules_head ul.news li {
+	display: block;
+	background: none;
+	margin: 0px;
+	padding: 4px;
+	line-height: 26px;
+	text-align: right;
+	font-size: 14px;
+	font-weight: bold;
+	color: #3a93ee;
+	vertical-align: middle;
+	overflow: hidden;
+	border-bottom-width: 1px;
+	border-bottom-style: dashed;
+	border-bottom-color: #b4d0d7;
+}
+
+}
+/*hedaya page*/
+.chat_quick_links{
+	background: rgba(200, 227, 248, 0.58);
+	border: 1px solid #CCC;
+	padding: 10px;
+	border-radius: 6px;
+	box-shadow: 1px 1px 2px #D3D3D3;
+}
+.chat_quick_links ul{
+	margin-bottom: 0;
+}
+.chat_quick_links li {
+	display: inline-block;
+}
+.chat_quick_links li a{
+	background:url(images/hedaya_img.png) no-repeat right 0px;
+	display: block;
+	height: 26px;
+	line-height: 22px;
+	margin-left: 28px;
+}
+.chat_quick_links li.c_lessons a{
+	background-position:right 0px;
+	padding-right:31px;
+}
+.chat_quick_links li.c_rules a{
+	background-position:right -64px;
+	padding-right:31px;
+}
+.chat_quick_links li.c_records a{
+	background-position:right -128px;
+	padding-right:27px;
+}
+.chat_quick_links li.c_team a{
+	background-position:right -192px;
+	padding-right:33px;
+}
+.chat_quick_links li.c_sisters a{
+	background-position:right -256px;
+	padding-right:30px;
+}
+.chat_quick_links li.c_science a{
+	background-position:right -318px;
+	padding-right:30px;
+}
+.chat_quick_links li.c_mobile a{
+	background-position:right -382px;
+	padding-right:28px;
+}
+.hedaya_rooms li{
+	display:inline-block;
+	margin-left:5px;
+	overflow:hidden;
+	border-radius: 8px !important;
+	margin-bottom: -7px;
+}
+.hedaya_rooms {
+	display:flex;
+	width:100%;
+	border-bottom:1px solid  #64A506;
+	overflow:hidden;
+	margin-bottom: 0 !important;
+	list-style-type: none;
+	padding-right: 0;
+}
+.hedaya_rooms li.chat_room{
+	margin-right: auto;
+}
+.hedaya_rooms li a.current_room{
+	background:#64a506;
+	color:#FFF;
+}
+.hedaya_rooms li a{
+	display:block;
+	padding:5px 10px;
+	color:#64a506;
+	padding: 12px 10px 19px;
+	border:1px solid  #9cca5a;
+	border-radius: 8px 8px 0 0 !important;
+	border-bottom:0;
+}
+.hedaya_rooms li.chat_room a{
+	background: #187ec1;
+	color: #FFF;
+	border-color: #115785;
+}
+.hedaya_table_cont{
+	position:relative;
+	display:block;
+	overflow:hidden;
+}
+.hedaya_table_cont .right_arrow,
+.hedaya_table_cont .left_arrow{
+	display:block;
+	position:absolute;
+	top:10px;
+	background:url(images/hedaya_arrows.png) 0 0 no-repeat #d2d2d2;
+	width:37px;
+	z-index:11;
+	height:37px;
+}
+.hedaya_table_cont .right_arrow{
+	background-position:8px 7px;
+	right:5px;
+}
+.hedaya_table_cont .left_arrow{
+	background-position:7px -43px;
+	left:5px;
+}
+.hedaya_table {
+	text-align: center;
+	border-spacing: 0;
+	overflow:hidden;
+}
+.hedaya_table thead tr:nth-child(2n),
+.hedaya_table tbody tr td:first-child {
+	background: #64A506;
+	color:#FFF;
+	font-weight:bold;
+}
+.hedaya_table tbody tr:nth-child(2n){
+	background: #ECF4FC;
+}
+.hedaya_table thead th, .hedaya_table tbody td {
+	border-bottom: 1px dotted #0B57A2;
+	color: #145EA9;
+	padding: 5px 0;
+}
+.hedaya_table tbody tr td:first-child,
+.hedaya_table tbody tr th:first-child{
+	display: inline-block;
+	line-height: 30px;
+	width: 70px;
+}
+.hedaya_table thead th {
+	background: #64A506;
+	text-align: right;
+	padding: 0;
+	color:#FFF;
+	overflow:hidden;
+}
+.hedaya_day_date{
+	background: #64A506;
+	display:block;
+	position:relative;
+	z-index:10;
+	height:70px;
+	margin-top:-5px;
+}
+.hedaya_table thead th .hedaya_time{
+	background: #64A506;
+	display:block;
+	position:relative;
+	z-index:10;
+	height:57px;
+}
+.hedaya_table thead th span {
+	display: block;
+	font-size: 18px;
+	font-weight: normal;
+	margin-right: 10px;
+}
+.hedaya_table tbody td {
+	height:60px;
+}
+.leason-con {
+	position: relative;
+	height: 57px;
+	overflow:visible;
+	width:4512px;
+	z-index:0;
+	transition: left 0.4s linear 0s;
+}
+.leason-con > li {
+	border-right: 1px dotted #FFFFFF;
+	display: block;
+	float: right;
+	height: 57px;
+	line-height: 50px;
+	width: 93px;
+}
+.leason_range {
+	border:1px solid #C4C4C4;
+	display: block;
+	position: absolute;
+	min-width: 90px;
+	overflow: visible;
+	background: rgba(200, 227, 248, 0.58);
+	top: 0;
+	height: 55px;
+	color: #0B57A2;
+	padding-right:5px;
+}
+.leason_range:before {
+	background:url(images/hedaya_ico.png) no-repeat top right;
+	/*background: url("http://www.way2allah.com/css/images/hedaya_img.png") no-repeat  right -128px ;*/
+	content: "";
+	height: 25px;
+	position: absolute;
+	right: 0px;
+	top: 11px;
+	width: 24px;
+}
+.leason_range span, .leason_range a {
+	display: block;
+	height: 25px;
+	line-height: 25px;
+	overflow: hidden;
+}
+.leason_range a.h_lesson_tit{
+	font-weight:normal;
+}
+.start1800{
+	right: 0px;
+}
+.start1830 {
+	right: 180px;
+}
+.start1900 {
+	right: 361px;
+}
+.start1930{
+	right: 542px;
+}
+.start2000 {
+	right: 723px;
+}
+.start2030 {
+	right: 904px;
+}
+.start2100 {
+	right: 1085px;
+}
+.start2130 {
+	right: 1266px;
+}
+.start2200 {
+	right: 1447px;
+}
+.start2230 {
+	right: 1628px;
+}
+.start2300 {
+	right: 1809px;
+}
+.start2330 {
+	right: 1990px;
+}
+/*time*/
+.range1 {
+	/*1 hour*/
+	width: 181px;
+}
+.range2 {
+	/*1.5 hour*/
+	width: 271.5px;
+}
+.range3 {
+	/*2 hours*/
+	width: 362px;
+}
+.range4 {
+	/*2.5 hours*/
+	width: 452.5px;
+}
+.range5 {
+	/*3 hours*/
+	width: 543px;
+}
+.range6 {
+	/*3.5 hours*/
+	width: 633.5px;
+}
+.range7 {
+	/*4 hours*/
+	width: 724px;
+}
+.light_time {
+	background: rgba(109, 109, 74, 0.33);
+	border-right: 1px solid #1A1A1A;
+	border-left: 1px solid #1A1A1A;
+	display: none;
+	height: 625px;
+	position: absolute;
+	width: 100%;
+	right:0;
+	z-index:-10;
+}
+.leason_range:hover .light_time {
+	display: block;
+}
+.hedaya_table tr:nth-child(1) .light_time{
+	top:-65px;
+}
+.hedaya_table tr:nth-child(2) .light_time{
+	top:-136px;
+}
+.hedaya_table tr:nth-child(3) .light_time{
+	top:-207px;
+}
+.hedaya_table tr:nth-child(4) .light_time{
+	top:-278px;
+}
+.hedaya_table tr:nth-child(5) .light_time{
+	top:-349px;
+}
+.hedaya_table tr:nth-child(6) .light_time{
+	top:-421px;
+}
+.hedaya_table tr:nth-child(7) .light_time{
+	top:-492px;
+}
+
+.tbl_current_time:before{
+	border-color: #0A0A0A rgba(0, 0, 0, 0) rgba(0, 0, 0, 0);
+	border-style: solid;
+	border-width: 10px 9px 0;
+	content: "";
+	height: 0;
+	left: -8px;
+	position: absolute;
+	top: 0;
+	width: 0;
+}
+.tbl_current_time {
+	height:900px;
+	background:#333;
+	width:1px;
+	position:absolute;
+	display:block;
+	z-index:999;
+	overflow:visible;
+}
+.hedaya_room_menu li {
+	display: inline-block;
+}
+.loading_img{
+	border: 1px solid #DFDFDF;
+	border-radius: 4px;
+	box-shadow: 0 1px 1px #C7C7C7;
+	display: block;
+	height: 50px;
+	margin: 20px auto;
+	padding: 20px 20px 9px 9px;
+	right: 500px;
+	top: 30px;
+	width: 50px;
+}
+.w2a_print{
+	display: inline-block;
+	margin: 5px;
+	padding: 7px 40px;
+	margin-right: 400px;
+	border: 1px solid #52AF40;
+	border-bottom-color: #389A20;
+	color: white !important;
+	text-align: center;
+	text-shadow: 0 -1px 0 hsla(0,0%,0%,.3);
+	text-decoration: none;
+	cursor: pointer;
+	-webkit-border-radius: 15px;
+	-moz-border-radius: 15px;
+	border-radius: 15px;
+	background: #55D723;
+	background: -webkit-gradient( linear, left top, left bottom, color-stop(.2, #41C43B), color-stop(1, #4AAC24) );
+	background: -moz-linear-gradient( center top, #41C43B 20%, #4AAC24 100% );
+	-webkit-box-shadow: inset 0 1px 0 hsla(0,100%,100%,.3) /*Top*/, inset 0 0 2px hsla(0,100%,100%,.3) /*Shine*/, 0 1px 2px hsla(0, 0%, 0%, .29) /*Shadow*/;
+	-moz-box-shadow: inset 0 1px 0 hsla(0,100%,100%,.3) /*Top*/, inset 0 0 2px hsla(0,100%,100%,.3) /*Shine*/, 0 1px 2px hsla(0, 0%, 0%, .29) /*Shadow*/;
+	box-shadow: inset 0 1px 0 hsla(0,100%,100%,.3) /*Top*/, inset 0 0 2px hsla(0,100%,100%,.3) /*Shine*/, 0 1px 2px hsla(0, 0%, 0%, .29) /*Shadow*/;
+}
+
+.red_sub{
+	color:#900 !important;
+	vertical-align: top;
+}
+
+
+.d-inline-block {
+	display: inline-block;
+}
+.mb-1 {
+	margin-bottom: 3px;
+}
+.mb-2 {
+	margin-bottom: 5px;
+}
+.mb-3 {
+	margin-bottom: 8px;
+}
+.mb-4 {
+	margin-bottom: 10px;
+}
+.mb-5 {
+	margin-bottom: 15px;
+}
+
+
+
+.footer-container {
+	padding-top: 20px;
+	color: #fff;
+	text-align: center;
+}
+.app-promo {
+	max-width: 600px;
+	margin: 0 auto;
+}
+.app-buttons {
+	margin: 10px 0;
+}
+.app-badge {
+	width: 125px;
+	margin: 0 10px;
+}
+
+
+/* ==========================================================================
+   WAY2ALLAH — UI ENHANCEMENT v1
+   File: assets/frontend/layout/css/custom.css (append section)
+   Plan: .personal/ui-enhancement-plan-v1.md
+   Branch: ui-enhanced-v1
+   All rules are additive overrides. No PHP/HTML/JS touched.
+   High-blast-radius file — changes affect every public page.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   SECTION 2 — DESIGN TOKENS
+   -------------------------------------------------------------------------- */
+:root {
+  /* Color — refined brand palette */
+  --w2a-primary-900: #0d3b56;
+  --w2a-primary-700: #14567d;
+  --w2a-primary-600: #1a6a9c;   /* main brand blue, close to current */
+  --w2a-primary-400: #4a94c2;
+  --w2a-primary-100: #eaf4fa;
+  --w2a-accent:      #1fa6a0;   /* teal, pulled from the logo mark */
+  --w2a-accent-100:  #e6f7f6;
+  --w2a-ink-900:     #1c2b36;   /* headings */
+  --w2a-ink-600:     #4c5c68;   /* body text */
+  --w2a-ink-400:     #8a97a1;   /* meta / secondary text */
+  --w2a-surface:     #ffffff;
+  --w2a-surface-muted: #f7fafc;
+  --w2a-border:      #e3eaf0;
+
+  /* Spacing scale */
+  --w2a-space-1: 4px;
+  --w2a-space-2: 8px;
+  --w2a-space-3: 12px;
+  --w2a-space-4: 16px;
+  --w2a-space-5: 24px;
+  --w2a-space-6: 32px;
+  --w2a-space-8: 48px;
+
+  /* Radius */
+  --w2a-radius-sm:   6px;
+  --w2a-radius-md:   10px;
+  --w2a-radius-lg:   16px;
+  --w2a-radius-pill: 999px;
+
+  /* Elevation */
+  --w2a-shadow-sm: 0 1px 3px rgba(20, 40, 60, 0.06);
+  --w2a-shadow-md: 0 4px 16px rgba(20, 40, 60, 0.08);
+  --w2a-shadow-lg: 0 12px 32px rgba(20, 40, 60, 0.12);
+
+  /* Motion */
+  --w2a-transition: 180ms ease;
+}
+
+
+/* --------------------------------------------------------------------------
+   SECTION 3.1 — TOP UTILITY BAR (pre-header)
+   -------------------------------------------------------------------------- */
+/* Tighten the bar, give it a clean bottom separator */
+.pre-header {
+  border-bottom: 1px solid var(--w2a-border) !important;
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+}
+/* Tighten icon gaps and add hover transitions */
+.pre-header li {
+  padding-right: var(--w2a-space-3) !important;
+  padding-left: var(--w2a-space-3) !important;
+}
+.pre-header a {
+  transition: color var(--w2a-transition), opacity var(--w2a-transition);
+}
+.pre-header a:hover {
+  opacity: 0.75;
+}
+/* Social icon sizing consistency */
+.pre-header .fa {
+  font-size: 14px;
+  transition: color var(--w2a-transition);
+}
+
+
+/* --------------------------------------------------------------------------
+   SECTION 3.2 — MAIN NAVBAR (header + header-navigation)
+   -------------------------------------------------------------------------- */
+/* Lift the header off the page with a proper shadow */
+.header {
+  box-shadow: var(--w2a-shadow-md) !important;
+  margin-bottom: 0 !important;
+}
+/* Logo breathing room */
+.site-logo {
+  padding-top: 16px !important;
+  padding-bottom: 16px !important;
+}
+/* Nav item spacing */
+.header-navigation > ul > li > a {
+  padding: 24px var(--w2a-space-4) 25px !important;
+  color: var(--w2a-ink-900) !important;
+  transition: color var(--w2a-transition), background var(--w2a-transition) !important;
+  position: relative;
+}
+/* Hover state — color + animated underline via ::after */
+.header-navigation > ul > li > a::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 50%;
+  left: 50%;
+  height: 3px;
+  background: var(--w2a-primary-600);
+  border-radius: var(--w2a-radius-pill) var(--w2a-radius-pill) 0 0;
+  transition: right var(--w2a-transition), left var(--w2a-transition);
+}
+.header-navigation ul > li.active > a::after,
+.header-navigation ul > li > a:hover::after,
+.header-navigation ul > li > a:focus::after,
+.header-navigation ul > li.open > a::after {
+  right: 0;
+  left: 0;
+}
+.header-navigation ul > li.active > a,
+.header-navigation ul > li > a:hover,
+.header-navigation ul > li > a:focus,
+.header-navigation ul > li.open > a,
+.header-navigation ul > li.open > a:hover,
+.header-navigation ul > li.open > a:focus {
+  color: var(--w2a-primary-600) !important;
+  background: transparent !important;
+}
+
+
+/* --------------------------------------------------------------------------
+   SECTION 3.3 — BREADCRUMB / PAGE-BAR
+   -------------------------------------------------------------------------- */
+/* Modernise the page-bar strip */
+.page-bar {
+  background: var(--w2a-surface) !important;
+  border: none !important;
+  border-bottom: 1px solid var(--w2a-border) !important;
+  box-shadow: var(--w2a-shadow-sm) !important;
+  padding: var(--w2a-space-2) var(--w2a-space-4) !important;
+  border-radius: 0 !important;
+}
+/* Breadcrumb links */
+.page-breadcrumb li a {
+  color: var(--w2a-primary-600);
+  transition: color var(--w2a-transition);
+}
+.page-breadcrumb li a:hover {
+  color: var(--w2a-primary-700);
+  text-decoration: none;
+}
+/* Current (non-link) breadcrumb crumb */
+.page-breadcrumb li.active,
+.page-breadcrumb > li + li::before {
+  color: var(--w2a-ink-400) !important;
+}
+/* Page title (h1 inside page-bar or just after it) */
+.page-bar h1,
+.page-bar .page-title {
+  font-weight: 700 !important;
+  color: var(--w2a-ink-900) !important;
+  font-size: 18px !important;
+  letter-spacing: -0.01em;
+  position: relative;
+  padding-bottom: var(--w2a-space-2);
+}
+/* Accent underline on page title */
+.page-bar h1::after,
+.page-bar .page-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 36px;
+  height: 3px;
+  background: var(--w2a-accent);
+  border-radius: var(--w2a-radius-pill);
+}
+
+
+/* --------------------------------------------------------------------------
+   SECTION 3.4 — CARD / PORTLET COMPONENT (site-wide)
+   -------------------------------------------------------------------------- */
+/* Container: rounded, shadowed, no hard border */
+.portlet.box {
+  border-radius: var(--w2a-radius-md) !important;
+  box-shadow: var(--w2a-shadow-sm) !important;
+  overflow: hidden;
+  transition: box-shadow var(--w2a-transition) !important;
+  border: none !important;
+  outline: none !important;
+}
+/* Header bar: refined blue, more padding, rounded top corners only */
+.portlet.box > .portlet-title {
+  background: var(--w2a-primary-600) !important;
+  background-image: none !important;  /* remove the old arabesque tile */
+  border-radius: var(--w2a-radius-md) var(--w2a-radius-md) 0 0 !important;
+  padding: var(--w2a-space-3) var(--w2a-space-4) !important;
+  border-bottom: none !important;
+}
+.portlet.box > .portlet-title .caption {
+  color: #fff !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  padding: 0 !important;
+}
+.portlet.box > .portlet-title .caption i {
+  margin-left: var(--w2a-space-2);
+}
+/* Body: cleaner padding */
+.portlet.box > .portlet-body {
+  padding: var(--w2a-space-4) !important;
+  background: var(--w2a-surface) !important;
+}
+/* Blue portlet body subtle tint */
+.portlet.box.blue > .portlet-body {
+  background: var(--w2a-surface) !important;
+}
+/* Hover lift for clickable cards (preacher/reciter/channel/gallery wrappers) */
+.author,
+.telawah-author,
+.channel-logo,
+.channel_logo,
+.albums_list .album-item,
+.var_group,
+.gallery-item {
+  transition: transform var(--w2a-transition), box-shadow var(--w2a-transition) !important;
+}
+.author:hover,
+.telawah-author:hover,
+.channel-logo:hover,
+.albums_list .album-item:hover,
+.var_group:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: var(--w2a-shadow-md) !important;
+}
+
+
+/* --------------------------------------------------------------------------
+   SECTION 3.5 — BUTTONS
+   -------------------------------------------------------------------------- */
+.btn {
+  border-radius: var(--w2a-radius-sm) !important;
+  transition: background var(--w2a-transition), box-shadow var(--w2a-transition), transform var(--w2a-transition) !important;
+}
+.btn-primary,
+.btn-default.btn-primary {
+  background: var(--w2a-primary-600) !important;
+  border-color: var(--w2a-primary-700) !important;
+  color: #fff !important;
+  padding-left: var(--w2a-space-5) !important;
+  padding-right: var(--w2a-space-5) !important;
+  box-shadow: var(--w2a-shadow-sm) !important;
+}
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+  background: var(--w2a-primary-700) !important;
+  border-color: var(--w2a-primary-900) !important;
+  box-shadow: var(--w2a-shadow-md) !important;
+  transform: translateY(-1px) !important;
+}
+/* Generic action buttons (ابحث, المزيد, تصويت) */
+.btn-default {
+  border-radius: var(--w2a-radius-sm) !important;
+  border-color: var(--w2a-border) !important;
+  color: var(--w2a-ink-600) !important;
+  transition: background var(--w2a-transition), border-color var(--w2a-transition) !important;
+}
+.btn-default:hover,
+.btn-default:focus {
+  background: var(--w2a-primary-100) !important;
+  border-color: var(--w2a-primary-400) !important;
+  color: var(--w2a-primary-700) !important;
+}
+
+
+/* --------------------------------------------------------------------------
+   SECTION 3.6 — LISTS / ROWS (sidebar lists, playlist, category rows)
+   -------------------------------------------------------------------------- */
+/* downloaded_list and recent_list sidebar rows */
+.downloaded_list li,
+.recent_list li {
+  padding-top: var(--w2a-space-3) !important;
+  padding-bottom: var(--w2a-space-3) !important;
+  padding-right: var(--w2a-space-2);
+  border-bottom: 1px solid var(--w2a-border);
+  transition: background var(--w2a-transition) !important;
+  line-height: 1.5 !important;
+}
+.downloaded_list li:hover,
+.recent_list li:hover {
+  background: var(--w2a-primary-100) !important;
+}
+/* ul.vars sidebar list (homepage widget rows) */
+ul.vars li {
+  padding: var(--w2a-space-2) var(--w2a-space-2) !important;
+  transition: background var(--w2a-transition) !important;
+  line-height: 1.6 !important;
+}
+ul.vars li:hover {
+  background: var(--w2a-surface-muted) !important;
+}
+/* ul.homecss (news/latest items sidebar) */
+ul.homecss li {
+  padding: var(--w2a-space-3) 0 !important;
+  line-height: 1.6 !important;
+  transition: background var(--w2a-transition) !important;
+}
+ul.homecss li:hover {
+  background: var(--w2a-primary-100) !important;
+  padding-right: var(--w2a-space-2) !important;
+}
+
+
+/* --------------------------------------------------------------------------
+   SECTION 5 — SHARED SUB-COMPONENTS
+   -------------------------------------------------------------------------- */
+
+/* 5.1 Empty state */
+.w2a-empty-state {
+  text-align: center;
+  padding: var(--w2a-space-8) var(--w2a-space-5);
+  color: var(--w2a-ink-400);
+}
+.w2a-empty-state::before {
+  content: '\f118'; /* fa-frown-o */
+  font-family: FontAwesome;
+  font-size: 48px;
+  display: block;
+  margin-bottom: var(--w2a-space-4);
+  opacity: 0.35;
+}
+/* Style the actual inline empty message on the date-archive page */
+.portlet-body > p:only-child,
+.portlet-body > .alert-info:only-child {
+  text-align: center;
+  color: var(--w2a-ink-400);
+  padding: var(--w2a-space-8) var(--w2a-space-5);
+  font-size: 15px;
+}
+
+/* 5.2 Avatar frame — unify all author/reciter avatars */
+.author img,
+.telawah-author .telawa-thumb img,
+.profile-userpic img {
+  border: 2px solid var(--w2a-primary-100) !important;
+  box-shadow: 0 0 0 3px rgba(26, 106, 156, 0.10) !important;
+  object-fit: cover;
+  transition: box-shadow var(--w2a-transition) !important;
+}
+.author:hover img,
+.telawah-author:hover .telawa-thumb img {
+  box-shadow: 0 0 0 3px rgba(26, 106, 156, 0.25) !important;
+}
+
+/* 5.3 Focus / input state */
+input[type="text"],
+input[type="email"],
+input[type="search"],
+input[type="date"],
+input[type="number"],
+select,
+textarea {
+  border-radius: var(--w2a-radius-sm) !important;
+  border: 1px solid var(--w2a-border) !important;
+  transition: border-color var(--w2a-transition), box-shadow var(--w2a-transition) !important;
+}
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="search"]:focus,
+input[type="date"]:focus,
+input[type="number"]:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--w2a-primary-600) !important;
+  box-shadow: 0 0 0 3px rgba(26, 106, 156, 0.12) !important;
+  outline: none !important;
+}
+
+/* 5.4 Card hover lift (standalone — reused via §3.4 above) */
+/* (defined inline within §3.4 for DRY) */
+
+/* 5.5 Badge / pill sub-component */
+.w2a-badge {
+  display: inline-block;
+  padding: 2px var(--w2a-space-2);
+  background: var(--w2a-primary-100);
+  color: var(--w2a-primary-700);
+  border-radius: var(--w2a-radius-pill);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  vertical-align: middle;
+}
+
+
+/* --------------------------------------------------------------------------
+   SECTION 4.1 — HOMEPAGE
+   -------------------------------------------------------------------------- */
+/* Widget cards get the global portlet treatment (already handled in §3.4).
+   Additional homepage-specific rules: */
+
+/* Video thumbnail strip hover (تشاهدون الآن) */
+.list_carousel2 ul li {
+  transition: transform var(--w2a-transition), box-shadow var(--w2a-transition) !important;
+}
+.list_carousel2 ul li:hover {
+  transform: scale(1.03) !important;
+  box-shadow: var(--w2a-shadow-md) !important;
+  z-index: 1;
+  position: relative;
+}
+/* App store badges hover lift */
+.app-badge {
+  transition: transform var(--w2a-transition), box-shadow var(--w2a-transition) !important;
+  border-radius: var(--w2a-radius-sm);
+}
+.app-badge:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: var(--w2a-shadow-sm) !important;
+}
+/* Homepage portlet minimum height: increase breathing room */
+.home.portlet.box > .portlet-body {
+  min-height: 200px;
+  padding: var(--w2a-space-4) !important;
+}
+
+
+/* --------------------------------------------------------------------------
+   SECTION 4.2 — VIDEO CATEGORIES TREE
+   -------------------------------------------------------------------------- */
+/* Category tree rows hover */
+.nav label {
+  padding: var(--w2a-space-2) var(--w2a-space-3) !important;
+  border-radius: var(--w2a-radius-sm);
+  transition: background var(--w2a-transition), color var(--w2a-transition) !important;
+}
+.nav label:hover,
+.nav label:focus {
+  background: var(--w2a-primary-100) !important;
+  color: var(--w2a-primary-700) !important;
+}
+/* Indent guide lines for sub-levels */
+.group_list {
+  border-inline-start: 2px solid var(--w2a-border);
+  margin-inline-start: var(--w2a-space-3);
+  padding-inline-start: var(--w2a-space-2);
+}
+.sub_group_list {
+  border-inline-start: 2px solid var(--w2a-primary-100);
+  margin-inline-start: var(--w2a-space-4);
+}
+/* Category tree list item padding */
+.list li,
+.sub_group_list li {
+  padding: var(--w2a-space-2) 0 !important;
+}
+/* Chevron icon already has a rotate transition in the existing code — leave it */
+
+
+/* --------------------------------------------------------------------------
+   SECTION 4.3 — PREACHERS DIRECTORY
+   -------------------------------------------------------------------------- */
+/* A-Z letter index bar: pill chips */
+.abc {
+  margin: var(--w2a-space-3) var(--w2a-space-4) !important;
+  font-size: 15px;
+  word-spacing: var(--w2a-space-2);
+}
+.abc a {
+  display: inline-block;
+  padding: 3px var(--w2a-space-3);
+  border-radius: var(--w2a-radius-pill) !important;
+  border: 1px solid var(--w2a-border);
+  color: var(--w2a-primary-600) !important;
+  font-weight: 600;
+  margin: 2px 1px;
+  transition: background var(--w2a-transition), color var(--w2a-transition), border-color var(--w2a-transition) !important;
+  text-decoration: none !important;
+}
+.abc a:hover {
+  background: var(--w2a-primary-600) !important;
+  color: #fff !important;
+  border-color: var(--w2a-primary-600) !important;
+}
+/* Preacher card: author component */
+.author {
+  border-radius: var(--w2a-radius-md) !important;
+  padding: var(--w2a-space-4) !important;
+  background: var(--w2a-surface) !important;
+  box-shadow: var(--w2a-shadow-sm) !important;
+  border: 1px solid var(--w2a-border) !important;
+}
+/* Author name — primary element hierarchy */
+.author-name,
+.author-name a {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: var(--w2a-ink-900) !important;
+  margin-top: var(--w2a-space-3) !important;
+}
+/* Author meta / counts — secondary element */
+.author small,
+.author .media-heading + small {
+  color: var(--w2a-ink-400) !important;
+  font-size: 12px !important;
+}
+
+
+/* --------------------------------------------------------------------------
+   SECTION 4.4 — SATELLITE CHANNELS GRID
+   -------------------------------------------------------------------------- */
+/* Channel logo tile: uniform container */
+.channel-logo,
+.channel_logo {
+  background: var(--w2a-surface) !important;
+  border: 1px solid var(--w2a-border) !important;
+  border-radius: var(--w2a-radius-md) !important;
+  box-shadow: var(--w2a-shadow-sm) !important;
+  padding: var(--w2a-space-3) !important;
+  text-align: center;
+  overflow: hidden;
+}
+.channel-logo img,
+.channel_logo img {
+  object-fit: contain !important;
+  max-height: 80px;
+  width: auto !important;
+  margin: 0 auto var(--w2a-space-2) !important;
+  display: block;
+}
+/* Channel logo hover uses global §3.4 hover lift */
+.channel-logo:hover .zoomix {
+  background: var(--w2a-primary-100) !important;
+}
+/* Live channel thumbnail */
+.live-channel-item .thumbnail {
+  border-radius: var(--w2a-radius-md) !important;
+  border: 1px solid var(--w2a-border) !important;
+  transition: background var(--w2a-transition) !important;
+}
+.live-channel-item .thumbnail:hover {
+  background: var(--w2a-primary-100) !important;
+}
+
+
+/* --------------------------------------------------------------------------
+   SECTION 4.5 — DATE-BASED ARCHIVE
+   -------------------------------------------------------------------------- */
+/* Date search input / button refinement (covered by §5.3 and §3.5) */
+
+/* "الأكثر تحميلا" download count: badge-style number */
+.downloaded_list li a {
+  display: flex !important;
+  align-items: baseline;
+  gap: var(--w2a-space-2);
+  width: 100% !important;
+  text-decoration: none !important;
+  color: var(--w2a-ink-600) !important;
+  transition: color var(--w2a-transition) !important;
+}
+.downloaded_list li a:hover {
+  color: var(--w2a-primary-600) !important;
+}
+/* Style the table_order rank number (download count column) as a badge */
+.table_order {
+  background: var(--w2a-primary-600) !important;
+  border-radius: var(--w2a-radius-sm) !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  width: 36px !important;
+  padding: var(--w2a-space-1) !important;
+}
+
+/* Calendar / fatawa date block */
+.fatawa-mokhtara,
+.calendar-block {
+  border-radius: var(--w2a-radius-md) !important;
+  border-color: var(--w2a-border) !important;
+  background: var(--w2a-surface-muted) !important;
+  box-shadow: var(--w2a-shadow-sm) !important;
+}
+
+
+/* --------------------------------------------------------------------------
+   SECTION 4.6 — QURAN RECITERS LIST
+   -------------------------------------------------------------------------- */
+/* Reciter card: same as telawah-author, apply unified card frame */
+.telawah-author {
+  border-radius: var(--w2a-radius-md) !important;
+  background: var(--w2a-surface) !important;
+  box-shadow: var(--w2a-shadow-sm) !important;
+  border: 1px solid var(--w2a-border) !important;
+  padding: var(--w2a-space-3) !important;
+}
+/* Reciter name — primary hierarchy */
+.telawa-author-name > a {
+  background: var(--w2a-primary-600) !important;
+  border-radius: var(--w2a-radius-sm) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  padding: var(--w2a-space-2) var(--w2a-space-3) !important;
+  transition: background var(--w2a-transition) !important;
+}
+.telawa-author-name > a:hover {
+  background: var(--w2a-primary-700) !important;
+}
+/* Stat rows — clean label:value alignment */
+.telawa-details > .list-group > .list-group-item {
+  padding: var(--w2a-space-2) var(--w2a-space-2) !important;
+  border-right: 0 !important;
+  border-left: 0 !important;
+  font-size: 13px !important;
+  display: flex !important;
+  justify-content: space-between;
+  gap: var(--w2a-space-2);
+  transition: background var(--w2a-transition) !important;
+}
+.telawa-details > .list-group > .list-group-item:hover {
+  background: var(--w2a-primary-100) !important;
+}
+/* Reciter subcats / visits color — secondary */
+.telawa-details > .list-group > .list-group-item.telawah-group-visits,
+.telawa-details > .list-group > .list-group-item.telawah-group-comment {
+  color: var(--w2a-ink-400) !important;
+}
+.telawa-details > .list-group > .list-group-item.telawah-group-recits {
+  color: var(--w2a-accent) !important;
+}
+
+
+/* --------------------------------------------------------------------------
+   SECTION 4.7 — RADIO PLAYER
+   -------------------------------------------------------------------------- */
+/* Radio page: the canonical custom.css rules here are for w2a_radio.css
+   elements. Note: radio page also loads the STALE css/custom.css after this
+   file, so these rules use stronger specificity where needed. */
+
+/* Main radio container */
+#w2a_radio {
+  border-radius: var(--w2a-radius-lg) !important;
+  box-shadow: var(--w2a-shadow-lg) !important;
+  overflow: hidden;
+  background: var(--w2a-surface) !important;
+}
+/* Progress bar — modernise track */
+#w2a_radio input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 5px;
+  border-radius: var(--w2a-radius-pill);
+  background: var(--w2a-border);
+  outline: none;
+  border: none !important;
+  transition: background var(--w2a-transition) !important;
+}
+#w2a_radio input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--w2a-primary-600);
+  cursor: pointer;
+  box-shadow: 0 0 0 3px var(--w2a-primary-100);
+  transition: box-shadow var(--w2a-transition) !important;
+}
+#w2a_radio input[type="range"]::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 0 5px rgba(26, 106, 156, 0.15) !important;
+}
+#w2a_radio input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--w2a-primary-600);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 0 3px var(--w2a-primary-100);
+}
+/* Volume input — override old red to brand color */
+#w2a_radio input[type="range"].volume-control,
+#w2a_radio .volume input[type="range"] {
+  background: linear-gradient(to left, var(--w2a-primary-600), var(--w2a-border));
+}
+/* Play/Pause/Prev/Next buttons — circular, brand fill */
+#w2a_radio .player-controls button,
+#w2a_radio .controls button,
+#w2a_radio button.play,
+#w2a_radio button.pause,
+#w2a_radio button.prev,
+#w2a_radio button.next {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 50% !important;
+  background: var(--w2a-primary-600) !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: var(--w2a-shadow-sm) !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--w2a-transition), box-shadow var(--w2a-transition), transform var(--w2a-transition) !important;
+  cursor: pointer;
+}
+#w2a_radio .player-controls button:hover,
+#w2a_radio button.play:hover,
+#w2a_radio button.pause:hover,
+#w2a_radio button.prev:hover,
+#w2a_radio button.next:hover {
+  background: var(--w2a-primary-700) !important;
+  box-shadow: var(--w2a-shadow-md) !important;
+  transform: scale(1.08) !important;
+}
+/* Playlist rows */
+#w2a_radio .playlist li,
+#w2a_radio ul.playlist li {
+  padding: var(--w2a-space-2) var(--w2a-space-3) !important;
+  border-bottom: 1px solid var(--w2a-border) !important;
+  transition: background var(--w2a-transition) !important;
+  line-height: 1.5;
+}
+#w2a_radio .playlist li:hover {
+  background: var(--w2a-primary-100) !important;
+}
+/* Active / playing row */
+#w2a_radio .playlist li.active,
+#w2a_radio .playlist li.playing,
+#w2a_radio ul.playlist li.active {
+  border-inline-end: 3px solid var(--w2a-accent) !important;
+  background: var(--w2a-accent-100) !important;
+  font-weight: 600 !important;
+  color: var(--w2a-ink-900) !important;
+}
+
+
+/* --------------------------------------------------------------------------
+   SECTION 4.8 — DAWAH DESIGN GALLERY
+   -------------------------------------------------------------------------- */
+/* Album card: modernise the stacked-photo effect via pseudo-elements */
+.album-item {
+  border-radius: var(--w2a-radius-md) !important;
+  box-shadow: var(--w2a-shadow-sm) !important;
+  transition: transform var(--w2a-transition), box-shadow var(--w2a-transition) !important;
+  overflow: visible !important;
+  position: relative !important;
+  background: var(--w2a-surface) !important;
+}
+/* "Stack" effect via ::before ::after — soft offset cards below */
+.album-item::before,
+.album-item::after {
+  content: '';
+  position: absolute;
+  border-radius: var(--w2a-radius-md);
+  background: var(--w2a-surface);
+  border: 1px solid var(--w2a-border);
+  box-shadow: var(--w2a-shadow-sm);
+  z-index: -1;
+}
+.album-item::before {
+  top: -5px;
+  right: 5px;
+  left: -5px;
+  bottom: 5px;
+  transform: rotate(-2deg);
+  opacity: 0.7;
+}
+.album-item::after {
+  top: -9px;
+  right: 9px;
+  left: -9px;
+  bottom: 9px;
+  transform: rotate(-4deg);
+  opacity: 0.45;
+}
+.album-item:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: var(--w2a-shadow-lg) !important;
+}
+/* Gallery card metadata footer */
+.w2a_album_title {
+  font-weight: 700 !important;
+  color: var(--w2a-ink-900) !important;
+  font-size: 13px !important;
+  width: auto !important;
+  margin: var(--w2a-space-3) 0 var(--w2a-space-1) !important;
+}
+.album_last_update {
+  color: var(--w2a-ink-400) !important;
+  font-size: 11px !important;
+  font-weight: 400 !important;
+  width: auto !important;
+}
+.w2a_gallery_imgs_c {
+  color: var(--w2a-primary-600) !important;
+  font-size: 13px !important;
+}
+/* "حفظ اليوم" save badge — modernise */
+.w2a_album_save,
+.w2a_gal_sav {
+  background: var(--w2a-accent) !important;
+  border-radius: var(--w2a-radius-sm) !important;
+  color: #fff !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  box-shadow: var(--w2a-shadow-sm) !important;
+  padding: 3px var(--w2a-space-3) !important;
+  transition: background var(--w2a-transition) !important;
+}
+.w2a_album_save:hover,
+.w2a_gal_sav:hover {
+  background: #17908a !important;
+}
+/* Placeholder "no image" album tile (solid blue fallback) */
+.album-item[style*="background-color"],
+.album-item:not(:has(img)) {
+  background: linear-gradient(135deg, var(--w2a-primary-600), var(--w2a-primary-400)) !important;
+}
+
+/* ==========================================================================
+   END — UI ENHANCEMENT v1
+   ========================================================================== */
