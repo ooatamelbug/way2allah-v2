@@ -3,9 +3,11 @@
 namespace App\Domain\Content\Models;
 
 use App\Domain\Content\Support\MediaPathResolver;
+use App\Domain\Content\Support\MediaUrl;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 /**
  * One row per group/sub-group in the `anasheed` module's hierarchy
@@ -81,7 +83,7 @@ class AnasheedGroup extends Model
     public function thumbUrl(): string
     {
         if ($this->icon === 1) {
-            return '/'.MediaPathResolver::path('anasheed/icons', $this->id, 'jpg');
+            return MediaUrl::asset(MediaPathResolver::path('anasheed/icons', $this->id, 'jpg'));
         }
 
         return '/images/pix001.gif';
@@ -95,7 +97,7 @@ class AnasheedGroup extends Model
      * breadcrumbTrail()` (`main_cat` there vs `parent_id` here) — a
      * page-local model helper, not a new shared hierarchy abstraction.
      */
-    public function breadcrumbTrail(): \Illuminate\Support\Collection
+    public function breadcrumbTrail(): Collection
     {
         /** @var list<self> $trail */
         $trail = [$this];

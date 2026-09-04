@@ -107,7 +107,7 @@
                                 <div class="col-xs-6 col-sm-3 col-md-2">
                                     <div class="social-item">
                                         <a href="{{ $page['link'] }}" title="{{ $page['name'] }}" target="_blank">
-                                            <img src="/media/social-images/{{ $page['image'] }}" style="width: 100%" alt="{{ $page['alt'] }}">
+                                            <img src="{{ \App\Domain\Content\Support\MediaUrl::asset('social-images/'.$page['image']) }}" style="width: 100%" alt="{{ $page['alt'] }}">
                                             <div class="social-item-content"><span>{{ $page['name'] }}</span></div>
                                         </a>
                                     </div>
@@ -131,7 +131,7 @@
                                 <div class="col-xs-6 col-sm-3 col-md-2">
                                     <div class="social-item">
                                         <a href="{{ $page['link'] }}" title="{{ $page['name'] }}" target="_blank">
-                                            <img src="/media/social-images/{{ $page['image'] }}" style="width: 100%" alt="{{ $page['alt'] }}">
+                                            <img src="{{ \App\Domain\Content\Support\MediaUrl::asset('social-images/'.$page['image']) }}" style="width: 100%" alt="{{ $page['alt'] }}">
                                             <div class="social-item-content"><span>{{ $page['name'] }}</span></div>
                                         </a>
                                     </div>
@@ -155,7 +155,7 @@
                                 <div class="col-xs-6 col-sm-3 col-md-2">
                                     <div class="social-item">
                                         <a href="{{ $page['link'] }}" title="{{ $page['name'] }}" target="_blank">
-                                            <img src="/media/social-images/{{ $page['image'] }}" style="width: 100%" alt="{{ $page['alt'] }}">
+                                            <img src="{{ \App\Domain\Content\Support\MediaUrl::asset('social-images/'.$page['image']) }}" style="width: 100%" alt="{{ $page['alt'] }}">
                                             <div class="social-item-content"><span>{{ $page['name'] }}</span></div>
                                         </a>
                                     </div>
@@ -179,7 +179,7 @@
                                 <div class="col-xs-6 col-sm-3 col-md-2">
                                     <div class="social-item">
                                         <a href="{{ $page['link'] }}" title="{{ $page['name'] }}" target="_blank">
-                                            <img src="/media/social-images/{{ $page['image'] }}" style="width: 100%" alt="{{ $page['alt'] }}">
+                                            <img src="{{ \App\Domain\Content\Support\MediaUrl::asset('social-images/'.$page['image']) }}" style="width: 100%" alt="{{ $page['alt'] }}">
                                             <div class="social-item-content"><span>{{ $page['name'] }}</span></div>
                                         </a>
                                     </div>
@@ -204,7 +204,7 @@
                                     <div class="social-item free">
                                         <a href="{{ $page['link'] }}" title="{{ $page['name'] }}" target="_blank">
                                             <div class="free-item">
-                                                <img src="/media/social-images/{{ $page['image'] }}" style="width: 100%" alt="{{ $page['alt'] }}">
+                                                <img src="{{ \App\Domain\Content\Support\MediaUrl::asset('social-images/'.$page['image']) }}" style="width: 100%" alt="{{ $page['alt'] }}">
                                             </div>
                                             <div class="social-item-content"><span>{{ $page['name'] }}</span></div>
                                         </a>
@@ -230,7 +230,7 @@
                                     <div class="social-item free">
                                         <a href="{{ $page['link'] }}" title="{{ $page['name'] }}" target="_blank">
                                             <div class="free-item">
-                                                <img src="/media/social-images/{{ $page['image'] }}" style="width: 100%" alt="{{ $page['alt'] }}">
+                                                <img src="{{ \App\Domain\Content\Support\MediaUrl::asset('social-images/'.$page['image']) }}" style="width: 100%" alt="{{ $page['alt'] }}">
                                             </div>
                                             <div class="social-item-content"><span>{{ $page['name'] }}</span></div>
                                         </a>

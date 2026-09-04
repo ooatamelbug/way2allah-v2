@@ -60,7 +60,7 @@
 
                                 <div class="w2a-albums-grid">
                                     @foreach ($albums as $album)
-                                        @php($thumbUrl = '/thumbnails.php?h=250&w=350&src='.($thumbnailUrls[$album->album_id] ?? null))
+                                        @php($thumbUrl = \App\Domain\Content\Support\MediaUrl::thumbnail('h=250&w=350&src='.($thumbnailUrls[$album->album_id] ?? null)))
                                         <article class="w2a-album-card" data-title="{{ $album->title }}">
                                             <div class="w2a-album-cover-wrap">
                                                 <a href="/gallery-{{ $album->album_id }}.htm">

@@ -4,6 +4,7 @@ namespace App\Domain\Content\Services;
 
 use App\Domain\Content\Models\Channel;
 use App\Domain\Content\Support\MediaPathResolver;
+use App\Domain\Content\Support\MediaUrl;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -191,8 +192,8 @@ class ContentSidebarWidget
             // Confirmed against live production, not assumed from the
             // frame==1 branch's own convention.
             $item->thumb = ((int) $item->frame) === 1
-                ? '/thumbnails.php?h=50&w=72&src='.MediaPathResolver::path('anasheed/frame', (int) $item->id, 'jpg')
-                : '/thumbnails.php?h=50&w=72&src=images/tvnoise.gif';
+                ? MediaUrl::thumbnail('h=50&w=72&src='.MediaPathResolver::path('anasheed/frame', (int) $item->id, 'jpg'))
+                : MediaUrl::thumbnail('h=50&w=72&src=images/tvnoise.gif');
 
             return $item;
         });
@@ -876,7 +877,7 @@ class ContentSidebarWidget
         if ($frame === 1) {
             $rel = MediaPathResolver::path('khotab_frames', $id, 'jpg');
             if (file_exists(public_path($rel))) {
-                return '/'.$rel;
+                return MediaUrl::asset($rel);
             }
         }
 

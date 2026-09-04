@@ -34,7 +34,7 @@
                     @foreach($slides as $slide)
                         <div class="w2a-hero-slide {{ $loop->first ? 'active' : '' }}" data-slide-index="{{ $loop->index }}" aria-hidden="{{ $loop->first ? 'false' : 'true' }}">
                             <a href="{{ $slide->url }}" class="w2a-hero-slide-link">
-                                <img src="/{{ $slide->image }}"
+                                <img src="{{ \App\Domain\Content\Support\MediaUrl::asset($slide->image) }}"
                                      alt="{{ $slide->title }}"
                                      decoding="async"
                                      @if($loop->first) fetchpriority="high" @else loading="lazy" @endif>

@@ -16,7 +16,7 @@
         {{-- media/authors/sq/{id}.png — a third, non-bucketed media
              convention (IF-013), distinct from MediaPathResolver's
              floor(id/1000) scheme. --}}
-        <img src="/media/authors/sq/{{ $author }}.png" alt="">
+        <img src="{{ \App\Domain\Content\Support\MediaUrl::asset('authors/sq/'.$author.'.png') }}" alt="">
 
         <h3>الأكثر تحميلا</h3>
         <h3>جديد المواد</h3>

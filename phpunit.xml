@@ -24,6 +24,8 @@
              distinct per checkout if regenerated; safe to commit, same as
              any other fixed test fixture value. -->
         <env name="APP_KEY" value="base64:klfjECVEx67naHovq2lcINkloE3BPaXgkiyqrBmQ/Qk="/>
+        <env name="MEDIA_BASE_URL" value="/media" force="true"/>
+        <env name="THUMBNAIL_BASE_URL" value="/thumbnails.php" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>

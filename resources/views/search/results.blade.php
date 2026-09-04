@@ -83,7 +83,7 @@
                             @foreach ($mawad as $item)
                                 @php
                                     $thumbUrl = ((int) $item->frame) === 1
-                                        ? '/media/anasheed/frame/'.intdiv((int) $item->id, 1000).'/'.$item->id.'.jpg'
+                                        ? \App\Domain\Content\Support\MediaUrl::asset('anasheed/frame/'.intdiv((int) $item->id, 1000).'/'.$item->id.'.jpg')
                                         : '/images/tvnoise.gif';
                                 @endphp
                                 <li>
@@ -127,7 +127,7 @@
                             @foreach ($series as $item)
                                 @php
                                     $thumbUrl = ((int) $item->icon) === 1
-                                        ? '/media/anasheed/icons/'.intdiv((int) $item->id, 1000).'/'.$item->id.'.jpg'
+                                        ? \App\Domain\Content\Support\MediaUrl::asset('anasheed/icons/'.intdiv((int) $item->id, 1000).'/'.$item->id.'.jpg')
                                         : '/images/pix001.gif';
                                     $comment = $item->des !== null && $item->des !== '' ? $item->des : 'بدون تعليق';
                                 @endphp

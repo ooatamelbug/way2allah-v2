@@ -2,6 +2,7 @@
 
 namespace App\Domain\Content\Models;
 
+use App\Domain\Content\Support\MediaUrl;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -88,14 +89,18 @@ class Author extends Model
         $path = public_path("media/authors/sq/{$this->id}.png");
 
         return file_exists($path)
-            ? "/media/authors/sq/{$this->id}.png"
-            : '/media/authors/no_author_image.png';
+            ? MediaUrl::asset("authors/sq/{$this->id}.png")
+            : MediaUrl::asset('authors/no_author_image.png');
     }
 
     public function displayImageUrl(): string
     {
-        return $this->author_image !== null && $this->author_image !== ''
-            ? $this->author_image
-            : $this->fallbackImageUrl();
+        if ($this->author_image === null || $this->author_image === '') {
+            return $this->fallbackImageUrl();
+        }
+
+        return str_starts_with(ltrim($this->author_image, '/'), 'media/')
+            ? MediaUrl::asset($this->author_image)
+            : $this->author_image;
     }
 }

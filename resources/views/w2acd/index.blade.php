@@ -66,7 +66,7 @@
                                     $listPhoto = $item->firstThumbnailFilename()
                                         ? '/images/cds_image2/'.$item->firstThumbnailFilename()
                                         : '/images/way2_cddefault.png';
-                                    $listThumb = '/thumbnails.php?h=104&w=105&src='.$listPhoto;
+                                    $listThumb = \App\Domain\Content\Support\MediaUrl::thumbnail('h=104&w=105&src='.$listPhoto);
                                 @endphp
                                 <div class="col-lg-2 col-md-3 col-sm-4 col-xs-6 text-center">
                                     <div class="var_item cd_bg_class">

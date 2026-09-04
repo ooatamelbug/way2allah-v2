@@ -5,6 +5,8 @@ namespace App\Domain\Content\Models;
 use App\Domain\Content\Models\Concerns\TracksViews;
 use App\Domain\Content\Models\Contracts\Viewable;
 use App\Domain\Content\Support\MediaPathResolver;
+use App\Domain\Content\Support\MediaUrl;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -128,7 +130,7 @@ class AnasheedItem extends Model implements Viewable
     public function frameThumbUrl(): string
     {
         if ($this->frame === 1) {
-            return '/'.MediaPathResolver::path('anasheed/frame', $this->id, 'jpg');
+            return MediaUrl::asset(MediaPathResolver::path('anasheed/frame', $this->id, 'jpg'));
         }
 
         return '/images/tvnoise.gif';
@@ -150,7 +152,7 @@ class AnasheedItem extends Model implements Viewable
      * aggregation target, and `OR group_id='16'` is that theme's own
      * business rule.
      */
-    public function scopeInGroup(\Illuminate\Database\Eloquent\Builder $query, int $groupId): void
+    public function scopeInGroup(Builder $query, int $groupId): void
     {
         if ($groupId === 98) {
             $query->whereIn('group_id', [98, 16]);
@@ -184,7 +186,7 @@ class AnasheedItem extends Model implements Viewable
      * queries via the `an` alias, so qualifying it here is safe, not
      * presumptive.
      */
-    public function scopeInParent(\Illuminate\Database\Eloquent\Builder $query, int $parentId): void
+    public function scopeInParent(Builder $query, int $parentId): void
     {
         if ($parentId === 98) {
             $query->whereIn('an.parent_id', [98, 16]);

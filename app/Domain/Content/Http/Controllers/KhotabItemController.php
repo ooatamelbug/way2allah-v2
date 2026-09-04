@@ -12,9 +12,11 @@ use App\Domain\Content\Models\Mirror;
 use App\Domain\Content\Models\Series;
 use App\Domain\Content\Services\ContentSidebarWidget;
 use App\Domain\Content\Services\GeoIpLookup;
+use App\Domain\Content\Support\MediaUrl;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Mail;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -150,7 +152,7 @@ class KhotabItemController
      * was an artifact of the old buggy single-string representation, not
      * a rule worth preserving.
      *
-     * @return array<int, \Illuminate\Support\Collection<int, Category>>
+     * @return array<int, Collection<int, Category>>
      */
     private function categoryBreadcrumbChains(KhotabItem $khotabItem): array
     {
@@ -197,7 +199,7 @@ class KhotabItemController
         $khotabItem = KhotabItem::select(['id', 'pdf'])->findOrFail($khotab);
 
         if ($khotabItem->pdf > 0) {
-            return redirect('/' . $khotabItem->pdfPath());
+            return redirect(MediaUrl::asset($khotabItem->pdfPath()));
         }
 
         return redirect('/');

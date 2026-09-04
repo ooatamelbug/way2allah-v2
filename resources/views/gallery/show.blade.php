@@ -91,8 +91,8 @@
 
                                 <div class="w2a-gallery-grid">
                                     @foreach ($images as $image)
-                                        @php($thumbUrl = '/thumbnails.php?h=260&w=340&src='.$image->url)
-                                        @php($fullUrl = '/thumbnails.php?w=1000&src='.$image->url)
+                                        @php($thumbUrl = \App\Domain\Content\Support\MediaUrl::thumbnail('h=260&w=340&src='.$image->url))
+                                        @php($fullUrl = \App\Domain\Content\Support\MediaUrl::thumbnail('w=1000&src='.$image->url))
                                         <article class="w2a-gallery-item-card">
                                             <div class="w2a-gallery-thumb-wrap">
                                                 <img
