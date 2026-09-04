@@ -50,44 +50,10 @@
                 <div class="col-md-12 col-sm-12">
                     <div class="portlet box blue">
                         <div class="portlet-title">
-                            <div class="caption"><i class="fa fa-child"></i> قائمة المجموعات</div>
+                            <div class="caption"><i class="fa fa-folder" aria-hidden="true"></i> قائمة المجموعات</div>
                         </div>
-                        <div class="portlet-body series-overflow">
-                            <table class="table table-striped table-hover" id="tabelgrp">
-                                <tbody>
-                                    @foreach ($groups as $group)
-                                        <tr>
-                                            <td class="">
-                                                <div class="row">
-                                                    <div class="col-lg-12">
-                                                        <h5>
-                                                            <a href="/khotab-group-{{ $group->id }}.htm">{{ $group->title }}</a>
-                                                        </h5>
-                                                        <div class="row page-header color_00a">
-                                                            <div class="col-md-3 col-xs-6 text-blue">
-                                                                <span>
-                                                                    <i class="fa fa-play-circle-o"></i>
-                                                                    المواد:
-                                                                    {{ $group->count }}
-                                                                </span>
-                                                            </div>
-                                                            @if(!empty($group->channel_id))
-                                                                <div class="col-md-3 col-xs-6 text-blue">
-                                                                    <span>
-                                                                        <i class="fa fa-television"></i>
-                                                                        القناة:
-                                                                        <a href="/channel-{{ $group->channel_id }}.htm"><img width="24" height="24" src="/images/channels/{{ $group->channel_id }}.png" alt=""></a>
-                                                                    </span>
-                                                                </div>
-                                                            @endif
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
+                        <div class="portlet-body">
+                            <x-content.media-collection-grid :items="$groups" type="group" secondary="channel" />
                         </div>
                     </div>
                 </div>
@@ -104,58 +70,10 @@
                 <div class="col-md-12 col-sm-12">
                     <div class="portlet box blue">
                         <div class="portlet-title">
-                            <div class="caption"><i class="fa fa-child"></i> قائمة السلاسل</div>
+                            <div class="caption"><i class="fa fa-list-ol" aria-hidden="true"></i> قائمة السلاسل</div>
                         </div>
-                        <div class="portlet-body series-overflow">
-                            <table class="table table-striped table-hover" id="tableser">
-                                <tbody>
-                                    @foreach ($series as $item)
-                                        <tr>
-                                            <td class="">
-                                                <div class="row">
-                                                    <div class="col-lg-12">
-                                                        <h5>
-                                                            <a href="/khotab-series-{{ $item->id }}.htm">{{ $item->title }}</a>
-                                                        </h5>
-                                                        <div class="row page-header color_00a">
-                                                            <div class="col-md-3 col-xs-6 text-blue">
-                                                                <span>
-                                                                    <i class="fa fa-calendar"></i>
-                                                                    {{ $item->time ? date('Y-m-d', $item->time) : '' }}
-                                                                </span>
-                                                            </div>
-                                                            <div class="col-md-3 col-xs-6 text-blue">
-                                                                <span>
-                                                                    <i class="fa fa-refresh"></i>
-                                                                    {{ $item->lastupdate ? date('Y-m-d', $item->lastupdate) : '' }}
-                                                                </span>
-                                                            </div>
-                                                            <div class="col-md-3 col-xs-6 text-blue">
-                                                                <span>
-                                                                    <i class="fa fa-play-circle-o"></i>
-                                                                    المواد:
-                                                                    {{ $item->count }}
-                                                                </span>
-                                                            </div>
-                                                            @if(!empty($item->channel_id))
-                                                                <div class="col-md-3 col-xs-6 text-blue">
-                                                                    <span>
-                                                                        <i class="fa fa-television"></i>
-                                                                        القناة:
-                                                                        <a href="/channel-{{ $item->channel_id }}.htm">
-                                                                            <img width="24" height="24" border="0" src="/images/channels/{{ $item->channel_id }}.png" alt="" />
-                                                                        </a>
-                                                                    </span>
-                                                                </div>
-                                                            @endif
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
+                        <div class="portlet-body">
+                            <x-content.media-collection-grid :items="$series" secondary="channel" />
                         </div>
                     </div>
                 </div>

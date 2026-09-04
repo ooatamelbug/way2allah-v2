@@ -52,17 +52,6 @@
     `Datatable` symbol at all. CONFIGURED_BUT_INERT — real asset,
     zero functional or observable effect on this page — not added here.
 --}}
-@push('styles')
-    <link href="/assets/global/plugins/datatables/datatables.min.css" rel="stylesheet" type="text/css"/>
-    <link href="/assets/global/plugins/datatables/plugins/bootstrap/datatables.bootstrap-rtl.css" rel="stylesheet" type="text/css"/>
-@endpush
-
-@push('scripts')
-    <script src="/assets/global/plugins/datatables/datatables.min.js" type="text/javascript"></script>
-    <script src="/assets/global/plugins/datatables/plugins/bootstrap/datatables.bootstrap.js" type="text/javascript"></script>
-    <script src="/scripts/khotab_tables.js" type="text/javascript"></script>
-@endpush
-
 @section('content')
     <x-page-chrome
         :heading="'مجموعة '.$groupModel->title.' - '.$authorName"
@@ -82,50 +71,14 @@
             <div id="" class="col-md-12 col-sm-12">
                 <div class="portlet box blue">
                     <div class="portlet-title">
-                        <div class="caption"><i class="fa fa-child"></i> قائمة السلاسل</div>
+                        <div class="caption"><i class="fa fa-list-ol" aria-hidden="true"></i> قائمة السلاسل</div>
                     </div>
                     <div class="portlet-body ">
-                        <div class="portlet-body series-overflow">
-                            @if ($series->isNotEmpty())
-                                <table class="table table-striped table-hover" id="tableser">
-                                    <tbody>
-                                        @foreach ($series as $item)
-                                            <tr>
-                                                <td class="">
-                                                    <div class="row">
-                                                        <div class="col-lg-12">
-                                                            <h5>
-                                                                <a href="/khotab-series-{{ $item->id }}.htm">{{ $item->title }}</a>
-                                                            </h5>
-                                                            <div class="row page-header color_00a">
-                                                                <div class="col-md-3 col-xs-6 text-blue">
-                                                                    <span><i class="fa fa-calendar"></i> {{ date('Y-m-d', $item->time) }}</span>
-                                                                </div>
-                                                                <div class="col-md-3 col-xs-6 text-blue">
-                                                                    <span><i class="fa fa-refresh"></i> {{ date('Y-m-d', $item->lastupdate) }}</span>
-                                                                </div>
-                                                                <div class="col-md-3 col-xs-6 text-blue">
-                                                                    <span><i class="fa fa-play-circle-o"></i> المواد: {{ $item->count }}</span>
-                                                                </div>
-                                                                @if (!empty($item->channel_id))
-                                                                    <div class="col-md-3 col-xs-6 text-blue">
-                                                                        <span><i class="fa fa-television"></i> القناة:
-                                                                            <a href="/channel-{{ $item->channel_id }}.htm"><img width="24" height="24" border="0" src="/images/channels/{{ $item->channel_id }}.png" alt=""></a>
-                                                                        </span>
-                                                                    </div>
-                                                                @endif
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            @else
-                                <h5>لا توجد سلاسل مطابقة بقاعدة بيانات الموقع</h5>
-                            @endif
-                        </div>
+                        @if ($series->isNotEmpty())
+                            <x-content.media-collection-grid :items="$series" secondary="channel" />
+                        @else
+                            <h5>لا توجد سلاسل مطابقة بقاعدة بيانات الموقع</h5>
+                        @endif
                     </div>
                 </div>
             </div>
