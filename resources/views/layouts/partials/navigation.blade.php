@@ -140,11 +140,11 @@
         this step).
     --}}
     <li class="menu-search">
-        <span class="sep"></span>
         <button type="button" class="w2a-search-trigger-btn" aria-label="البحث المتقدم" title="البحث المتقدم">
             <i class="fa fa-search search-btn" aria-hidden="true"></i>
         </button>
-        <div class="search-box" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="w2a-search-title">
+        <div class="search-box" role="dialog" aria-modal="true" aria-hidden="true"
+            aria-labelledby="w2a-search-title">
             <div class="w2a-search-modal-card">
                 <div class="w2a-search-modal-header">
                     <div class="w2a-search-modal-title">
@@ -154,72 +154,91 @@
                             <p>ابحث عن السلاسل والدروس والخطب والأقسام بسهولة</p>
                         </div>
                     </div>
-                    <button type="button" class="w2a-search-close-btn" aria-label="إغلاق نافذة البحث">&times;</button>
+                    <button type="button" class="w2a-search-close-btn"
+                        aria-label="إغلاق نافذة البحث">&times;</button>
                 </div>
                 <div class="w2a-search-modal-body">
                     <script type="text/javascript">
-                var popup_authors_autocomplete_list = {
-                    @php
-                        $authorsFile = public_path('w2a_autocomplete/authors.txt');
-                        $authorsContents = is_file($authorsFile) ? trim(file_get_contents($authorsFile)) : '';
-                        $authorsList = $authorsContents !== '' ? explode(',|^', $authorsContents) : [];
-                    @endphp
-                    @foreach ($authorsList as $index => $author)
-                        "{{ $index + 1 }}": "{{ $author }}"@if (!$loop->last),@endif
-                    @endforeach
-                }
-                var popup_channels_autocomplete_list = {
-                    @php
-                        $channelsFile = public_path('w2a_autocomplete/channels.txt');
-                        $channelsContents = is_file($channelsFile) ? trim(file_get_contents($channelsFile)) : '';
-                        $channelsList = $channelsContents !== '' ? explode(',|^', $channelsContents) : [];
-                    @endphp
-                    @foreach ($channelsList as $index => $channel)
-                        "{{ $index + 1 }}": "{{ $channel }}"@if (!$loop->last),@endif
-                    @endforeach
-                }
+                        var popup_authors_autocomplete_list = {
+                            @php
+                                $authorsFile = public_path('w2a_autocomplete/authors.txt');
+                                $authorsContents = is_file($authorsFile) ? trim(file_get_contents($authorsFile)) : '';
+                                $authorsList = $authorsContents !== '' ? explode(',|^', $authorsContents) : [];
+                            @endphp
+                            @foreach ($authorsList as $index => $author)
+                                "{{ $index + 1 }}": "{{ $author }}"
+                                @if (!$loop->last)
+                                    ,
+                                @endif
+                            @endforeach
+                        }
+                        var popup_channels_autocomplete_list = {
+                            @php
+                                $channelsFile = public_path('w2a_autocomplete/channels.txt');
+                                $channelsContents = is_file($channelsFile) ? trim(file_get_contents($channelsFile)) : '';
+                                $channelsList = $channelsContents !== '' ? explode(',|^', $channelsContents) : [];
+                            @endphp
+                            @foreach ($channelsList as $index => $channel)
+                                "{{ $index + 1 }}": "{{ $channel }}"
+                                @if (!$loop->last)
+                                    ,
+                                @endif
+                            @endforeach
+                        }
                     </script>
-                    <form class="form-horizontal w2a_advanced_search" name="w2a_search_form" id="w2a_search_form" method="post" action="/search.htm">
+                    <form class="form-horizontal w2a_advanced_search" name="w2a_search_form" id="w2a_search_form"
+                        method="post" action="/search.htm">
                         @csrf
                         <div class="w2a-search-grid">
                             <div class="w2a-search-field">
-                                <label for="w2a_kh_title"><i class="fa fa-font" aria-hidden="true"></i> اسم السلسلة أو المادة :</label>
-                                <input type="text" class="form-control" name="kh_title" id="w2a_kh_title" placeholder="أدخل اسم السلسلة أو المادة...">
-                        <span id="w2a_kh_title_msg" class="way_msg"></span>
+                                <label for="w2a_kh_title"><i class="fa fa-font" aria-hidden="true"></i> اسم السلسلة
+                                    أو المادة :</label>
+                                <input type="text" class="form-control" name="kh_title" id="w2a_kh_title"
+                                    placeholder="أدخل اسم السلسلة أو المادة...">
+                                <span id="w2a_kh_title_msg" class="way_msg"></span>
                             </div>
                             <div class="w2a-search-field">
-                                <label for="w2a_kh_dept"><i class="fa fa-th-large" aria-hidden="true"></i> القسم :</label>
+                                <label for="w2a_kh_dept"><i class="fa fa-th-large" aria-hidden="true"></i> القسم
+                                    :</label>
                                 <select class="form-control" id="w2a_kh_dept" name="kh_dept">
                                     <option value="0">إختر القسم</option>
                                 </select>
-                        <span id="w2a_kh_dept_msg" class="way_msg"></span>
+                                <span id="w2a_kh_dept_msg" class="way_msg"></span>
                             </div>
                             <div class="w2a-search-field">
-                                <label for="w2a_kh_author_name"><i class="fa fa-user" aria-hidden="true"></i> الشيخ / المحاضر :</label>
-                                <input type="text" class="form-control" name="kh_author_name" id="w2a_kh_author_name" placeholder="ابحث باسم الشيخ...">
+                                <label for="w2a_kh_author_name"><i class="fa fa-user" aria-hidden="true"></i> الشيخ /
+                                    المحاضر :</label>
+                                <input type="text" class="form-control" name="kh_author_name"
+                                    id="w2a_kh_author_name" placeholder="ابحث باسم الشيخ...">
                             </div>
                             <div class="w2a-search-field">
-                                <label for="w2a_kh_channel"><i class="fa fa-tv" aria-hidden="true"></i> القناة :</label>
-                                <input type="text" class="form-control" name="kh_channel" id="w2a_kh_channel" placeholder="اختر القناة...">
+                                <label for="w2a_kh_channel"><i class="fa fa-tv" aria-hidden="true"></i> القناة
+                                    :</label>
+                                <input type="text" class="form-control" name="kh_channel" id="w2a_kh_channel"
+                                    placeholder="اختر القناة...">
                             </div>
                             <div class="w2a-search-field w2a-search-fullwidth">
-                                <span class="w2a-search-label"><i class="fa fa-calendar" aria-hidden="true"></i> تاريخ الإضافة :</span>
+                                <span class="w2a-search-label"><i class="fa fa-calendar" aria-hidden="true"></i>
+                                    تاريخ الإضافة :</span>
                                 <div class="w2a-date-range">
                                     <label class="sr-only" for="w2a_kh_from">من تاريخ</label>
-                                    <input type="date" name="kh_from" class="form-control datepikerinput mini-input" id="w2a_kh_from">
+                                    <input type="date" name="kh_from"
+                                        class="form-control datepikerinput mini-input" id="w2a_kh_from">
                                     <label class="sr-only" for="w2a_kh_to">إلى تاريخ</label>
-                                    <input type="date" name="kh_to" class="form-control datepikerinput mini-input" id="w2a_kh_to">
+                                    <input type="date" name="kh_to"
+                                        class="form-control datepikerinput mini-input" id="w2a_kh_to">
                                 </div>
                             </div>
                         </div>
                         <div class="w2a-search-actions">
-                            <button type="submit" name="kh_search" id="w2a_kh_search" class="w2a-search-submit-btn">
+                            <button type="submit" name="kh_search" id="w2a_kh_search"
+                                class="w2a-search-submit-btn">
                                 <i class="fa fa-search" aria-hidden="true"></i> بــحــث
                             </button>
                             <button type="button" class="w2a-search-cancel-btn w2a-search-close-btn">إلغاء</button>
-                        <noscript>
-                            عفوا .. لا يمكنك البحث قبل تفعيل الجافا سكريبت و الكوكيز فى المتصفح
-                        </noscript>
+                            <noscript>
+                                عفوا .. لا يمكنك البحث قبل تفعيل الجافا سكريبت و الكوكيز فى المتصفح
+                            </noscript>
                         </div>
                     </form>
                 </div>
