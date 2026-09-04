@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\MonitorsRequestPerformance;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -20,6 +21,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'backup.php',
         ]);
+
+        // Enhancement Batch E-01 — slow-request detection. Prepended so
+        // the measured window covers as much of the stack as possible:
+        // it starts the timer on the way in and logs (only when over the
+        // configured threshold) from terminate(), after the response has
+        // already been sent to the client. Self-disables entirely via
+        // config('performance.enabled').
+        $middleware->prepend(MonitorsRequestPerformance::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

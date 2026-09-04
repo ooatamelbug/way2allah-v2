@@ -46,7 +46,7 @@
                             <div class="portlet-body ">
                                 <div class="row albums_list row-fluid">
                                     @foreach ($albums as $album)
-                                        @php($thumbUrl = '/thumbnails.php?h=250&w=350&src='.optional($album->thumbnailImage())->url)
+                                        @php($thumbUrl = '/thumbnails.php?h=250&w=350&src='.($thumbnailUrls[$album->album_id] ?? null))
                                         <div class="col-lg-4 col-md-6 col-sm-6 col-xs-12">
                                             <div class="album-item">
                                                 <a class="standard" href="/gallery-{{ $album->album_id }}.htm"><img src="{{ $thumbUrl }}" alt="{{ $album->title }}" class="img-responsive"></a>
