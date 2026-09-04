@@ -172,20 +172,6 @@
 	position:relative;
     padding: 4px 0;
 }
-.playlist li:before{
-	content: "\f04b";
-	display: inline-block;
-    font: normal normal normal 14px/1 FontAwesome;
-	width:20px;
-	height:20px;	
-}
-.playlist li.active {
-	/*font-weight: bold;*/
-    color: #5fbfc8;
-}
-.playlist li.active:before{
-	content:"\f04c";
-}
 .playlist li .remove-item-playlist{
     position: absolute;
     left: 0px;

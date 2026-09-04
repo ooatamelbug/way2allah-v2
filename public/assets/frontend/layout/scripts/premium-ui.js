@@ -645,6 +645,58 @@
       }
     }
 
+    // 12. Radio playlist search.
+    var playlistContainer = document.querySelector(".w2a-playlist-container");
+    if (playlistContainer) {
+      var playlistSearchInput = document.getElementById("w2a_playlist_search_input");
+      var playlistClearBtn = document.getElementById("w2a_playlist_search_clear");
+      var playlistResultStatus = document.getElementById("w2a_playlist_result_status");
+
+      if (playlistSearchInput) {
+        playlistSearchInput.addEventListener("input", function () {
+          var query = playlistSearchInput.value.trim().toLocaleLowerCase("ar");
+          var visibleTotal = 0;
+          if (playlistClearBtn) playlistClearBtn.hidden = query.length === 0;
+
+          playlistContainer.querySelectorAll("ul.playlist li").forEach(function (item) {
+            var title = (item.getAttribute("data-title") || "").toLocaleLowerCase("ar");
+            var artist = (item.getAttribute("data-artist") || "").toLocaleLowerCase("ar");
+            var visible = !query || title.indexOf(query) !== -1 || artist.indexOf(query) !== -1;
+            item.classList.toggle("search-hidden", !visible);
+            if (visible) visibleTotal += 1;
+          });
+
+          if (playlistResultStatus) playlistResultStatus.textContent = visibleTotal + " نتيجة";
+        });
+
+        if (playlistClearBtn) {
+          playlistClearBtn.addEventListener("click", function () {
+            playlistSearchInput.value = "";
+            playlistSearchInput.dispatchEvent(new Event("input"));
+            playlistSearchInput.focus();
+          });
+        }
+      }
+
+      playlistContainer.querySelectorAll("ul.playlist li").forEach(function (item) {
+        item.addEventListener("keydown", function (event) {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            item.click();
+          }
+        });
+      });
+    }
+
+    document.querySelectorAll("#w2a_radio .controls [role='button']").forEach(function (control) {
+      control.addEventListener("keydown", function (event) {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          control.click();
+        }
+      });
+    });
+
     // Keep the mobile menu button state available to assistive technology.
     var mobileToggler = document.querySelector(".mobi-toggler");
     if (mobileToggler) {

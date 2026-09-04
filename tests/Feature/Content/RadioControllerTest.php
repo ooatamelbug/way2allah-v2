@@ -173,7 +173,21 @@ it('index: playlist uses the premium list with a visible title and author for ev
     expect($content)
         ->toContain('class="playlist"')
         ->toContain('fa-play-circle')
-        ->toMatch('/<li[^>]+artist="Sheikh Author"[^>]*>.*?Audio Lesson.*?<small[^>]*>Sheikh Author<\/small>/s');
+        ->toContain('w2a-pl-num">01</span>')
+        ->toMatch('/<li[^>]+artist="Sheikh Author"[^>]+data-title="Audio Lesson"[^>]+data-artist="Sheikh Author"[^>]*>.*?w2a-pl-title">Audio Lesson<.*?w2a-pl-author">.*?Sheikh Author<\/span>/s');
+});
+
+it('index: renders the searchable playlist toolbar and accessible result feedback', function () {
+    seedRadioPlaylistFixture();
+
+    $content = $this->get('/radio.htm')->getContent();
+
+    expect($content)
+        ->toContain('class="w2a-playlist-container"')
+        ->toContain('id="w2a_playlist_search_input"')
+        ->toContain('id="w2a_playlist_search_clear"')
+        ->toContain('id="w2a_playlist_result_status"')
+        ->toContain('2 درس صوتي');
 });
 
 it('index: sidebar boxes retain their media icons and use the shared linked top-item cards', function () {

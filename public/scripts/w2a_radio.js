@@ -18,7 +18,7 @@ var last_listen_second = 0;
 var is_mobile = false;
 function initAudio(elem) {
 	var url = elem.attr('audiourl');
-	var title = elem.text();
+	var title = elem.attr('data-title') || elem.text();
 	//var cover = elem.attr('cover');
 	var artist = elem.attr('artist');
 	

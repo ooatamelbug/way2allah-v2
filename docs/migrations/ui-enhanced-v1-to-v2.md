@@ -40,8 +40,8 @@ optimizations remain authoritative.
 | 7 | `7ce48a2898532dddf401568ac6bb6ca3f24f28f0` | `507e3d4` | Blade component adaptation | Replaced repeated legacy item tables and top-item rows with responsive, accessible cards; moved date results and recommendations into the source design's full-width layout. Laravel query services remain unchanged. |
 | 8 | `0e7838fc099f716ba62fee5435c55c07bc8fa288` | `e5e2bf8` | Blade component adaptation | Added a reusable searchable reciter/subgroup directory with responsive cards, lazy fixed-size imagery, counts, descriptions, and accessible live result feedback. |
 | 9 | `b2d15525ad00107b66587c085d7bfc8bc6faf839` | `8541c29` | Blade and query adaptation | Added premium subgroup, download, and searchable media-card components. The existing paginated query gains one left join for source-required duration metadata while retaining its filters, ordering, and page size. |
-| 10 | `2820ada64bd454acb55ec940e5069774f1f8c9be` | pending | Blade and asset adaptation | Added the premium live-radio banner, player, controls, and playlist while retaining every selector and data attribute required by the existing audio player. Reused Laravel playlist services and shared sidebar cards without adding queries. |
-| 11 | `bd88261abab747ca24be9db42c26f115f4f56a59` | pending | Pending | |
+| 10 | `2820ada64bd454acb55ec940e5069774f1f8c9be` | `7367f6b` | Blade and asset adaptation | Added the premium live-radio banner, player, controls, and playlist while retaining every selector and data attribute required by the existing audio player. Reused Laravel playlist services and shared sidebar cards without adding queries. |
+| 11 | `bd88261abab747ca24be9db42c26f115f4f56a59` | pending | Blade and asset adaptation | Added a searchable, numbered playlist with active-track styling and accessible result feedback. Preserved the legacy player API and made its title extraction use the new structured track metadata. |
 | 12 | `b4c8fe14ed7f5b5e084427417c078c8019296f0d` | pending | Pending | |
 | 13 | `2dd88b4d3b7325335af6c52cf22b696fcb8fd00e` | pending | Pending | |
 | 14 | `5f877dd395d3bea72faf7e4bdd0711b05cfc3f7f` | pending | Pending | |

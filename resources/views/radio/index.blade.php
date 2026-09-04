@@ -105,10 +105,10 @@
 
                         <div class="w2a-radio-controls-bar">
                             <div class="controls">
-                                <div class="play" title="تشغيل"></div>
-                                <div class="pause" title="إيقاف مؤقت"></div>
-                                <div class="rew" title="السابق"></div>
-                                <div class="fwd" title="التالي"></div>
+                                <div class="play" role="button" tabindex="0" title="تشغيل" aria-label="تشغيل"></div>
+                                <div class="pause" role="button" tabindex="0" title="إيقاف مؤقت" aria-label="إيقاف مؤقت"></div>
+                                <div class="rew" role="button" tabindex="0" title="السابق" aria-label="المقطع السابق"></div>
+                                <div class="fwd" role="button" tabindex="0" title="التالي" aria-label="المقطع التالي"></div>
                             </div>
                             <div class="volume-cont">
                                 <div class="vol-icon" title="مستوى الصوت"></div>
@@ -118,19 +118,48 @@
                     </div>
                 </div>
 
-                <div>
+                <div class="w2a-playlist-container" dir="rtl">
+                    <div class="w2a-playlist-toolbar">
+                        <div class="w2a-playlist-search-wrap">
+                            <i class="fa fa-search w2a-playlist-search-icon" aria-hidden="true"></i>
+                            <label class="sr-only" for="w2a_playlist_search_input">ابحث في قائمة التشغيل</label>
+                            <input type="search" id="w2a_playlist_search_input" class="w2a-playlist-search-input" placeholder="ابحث في قائمة التشغيل..." autocomplete="off">
+                            <button type="button" id="w2a_playlist_search_clear" class="w2a-playlist-search-clear" hidden aria-label="مسح البحث">
+                                <i class="fa fa-times" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        <div class="w2a-playlist-count">
+                            <i class="fa fa-music" aria-hidden="true"></i>
+                            <span>{{ count($playlist) }} درس صوتي</span>
+                        </div>
+                    </div>
+
                     <ul class="playlist">
                         @foreach ($playlist as $item)
                             @php($authorName = trim($item->prename.' '.$item->author_name))
-                            <li audiourl="{{ $item->audio_url }}" cover="cover1.jpg" artist="{{ $authorName }}" id="li_{{ $item->khid }}_{{ $item->pl_section }}">
-                                <span style="display: flex; align-items: center; gap: 10px;">
-                                    <i class="fa fa-play-circle" style="opacity: 0.7;" aria-hidden="true"></i>
-                                    {{ $item->title }}
-                                </span>
-                                <small style="opacity: 0.75; font-weight: 600;">{{ $authorName }}</small>
+                            <li audiourl="{{ $item->audio_url }}"
+                                cover="cover1.jpg"
+                                artist="{{ $authorName }}"
+                                id="li_{{ $item->khid }}_{{ $item->pl_section }}"
+                                data-title="{{ $item->title }}"
+                                data-artist="{{ $authorName }}"
+                                role="button"
+                                tabindex="0">
+                                <div class="w2a-pl-item-left">
+                                    <span class="w2a-pl-num">{{ sprintf('%02d', $loop->iteration) }}</span>
+                                    <div class="w2a-pl-playing-icon"><i class="fa fa-volume-up" aria-hidden="true"></i></div>
+                                    <div class="w2a-pl-details">
+                                        <h4 class="w2a-pl-title">{{ $item->title }}</h4>
+                                        <span class="w2a-pl-author"><i class="fa fa-user" aria-hidden="true"></i> {{ $authorName }}</span>
+                                    </div>
+                                </div>
+                                <div class="w2a-pl-action" aria-hidden="true">
+                                    <i class="fa fa-play-circle w2a-pl-play-btn"></i>
+                                </div>
                             </li>
                         @endforeach
                     </ul>
+                    <p id="w2a_playlist_result_status" class="sr-only" aria-live="polite"></p>
                 </div>
             </div>
         </div>
