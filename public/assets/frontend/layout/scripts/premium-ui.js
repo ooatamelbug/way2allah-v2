@@ -408,6 +408,143 @@
       }
     });
 
+    // 7. Category tree controls, with state kept in sync for assistive technology.
+    var treeContainer = document.querySelector(".w2a-tree-container");
+    if (treeContainer) {
+      function setTreeNodeExpanded(node, expanded) {
+        node.classList.toggle("expanded", expanded);
+        var toggle = node.querySelector(":scope > .w2a-tree-item .w2a-tree-toggle");
+        var children = node.querySelector(":scope > .w2a-tree-sub-list");
+        if (toggle) toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+        if (children) children.hidden = !expanded;
+      }
+
+      treeContainer.addEventListener("click", function (e) {
+        var toggleBtn = e.target.closest(".w2a-tree-toggle");
+        if (!toggleBtn) return;
+
+        e.preventDefault();
+        var node = toggleBtn.closest(".w2a-tree-node");
+        if (node) setTreeNodeExpanded(node, !node.classList.contains("expanded"));
+      });
+
+      var expandAllBtn = document.getElementById("w2a_tree_expand_all");
+      var collapseAllBtn = document.getElementById("w2a_tree_collapse_all");
+      var branchNodes = treeContainer.querySelectorAll(".w2a-tree-node.has-children");
+
+      if (expandAllBtn) {
+        expandAllBtn.addEventListener("click", function () {
+          branchNodes.forEach(function (node) {
+            setTreeNodeExpanded(node, true);
+          });
+        });
+      }
+
+      if (collapseAllBtn) {
+        collapseAllBtn.addEventListener("click", function () {
+          branchNodes.forEach(function (node) {
+            setTreeNodeExpanded(node, false);
+          });
+        });
+      }
+
+      var treeSearchInput = document.getElementById("w2a_tree_search_input");
+      var treeClearBtn = document.getElementById("w2a_tree_search_clear");
+      if (treeSearchInput) {
+        treeSearchInput.addEventListener("input", function () {
+          var query = treeSearchInput.value.trim().toLocaleLowerCase("ar");
+          if (treeClearBtn) treeClearBtn.hidden = query.length === 0;
+
+          var allNodes = Array.from(treeContainer.querySelectorAll(".w2a-tree-node"));
+          allNodes.forEach(function (node) {
+            node.classList.remove("search-hidden", "search-matched");
+          });
+
+          if (!query) {
+            branchNodes.forEach(function (node) {
+              setTreeNodeExpanded(node, false);
+            });
+            return;
+          }
+
+          allNodes.forEach(function (node) {
+            var title = (node.getAttribute("data-title") || "").toLocaleLowerCase("ar");
+            node.classList.toggle("search-hidden", title.indexOf(query) === -1);
+            node.classList.toggle("search-matched", title.indexOf(query) !== -1);
+          });
+
+          allNodes.filter(function (node) {
+            return node.classList.contains("search-matched");
+          }).forEach(function (node) {
+            var parent = node.parentElement ? node.parentElement.closest(".w2a-tree-node") : null;
+            while (parent) {
+              parent.classList.remove("search-hidden");
+              setTreeNodeExpanded(parent, true);
+              parent = parent.parentElement ? parent.parentElement.closest(".w2a-tree-node") : null;
+            }
+          });
+        });
+
+        if (treeClearBtn) {
+          treeClearBtn.addEventListener("click", function () {
+            treeSearchInput.value = "";
+            treeSearchInput.dispatchEvent(new Event("input"));
+            treeSearchInput.focus();
+          });
+        }
+      }
+    }
+
+    // 8. Searchable alphabetical preacher directory.
+    var preachersWrap = document.querySelector(".w2a-preachers-wrap");
+    if (preachersWrap) {
+      var authorSearchInput = document.getElementById("w2a_author_search_input");
+      var authorClearBtn = document.getElementById("w2a_author_search_clear");
+      var authorResultStatus = document.getElementById("w2a_author_result_status");
+
+      if (authorSearchInput) {
+        authorSearchInput.addEventListener("input", function () {
+          var query = authorSearchInput.value.trim().toLocaleLowerCase("ar");
+          var visibleTotal = 0;
+          if (authorClearBtn) authorClearBtn.hidden = query.length === 0;
+
+          preachersWrap.querySelectorAll(".w2a-letter-section").forEach(function (section) {
+            var sectionVisible = 0;
+            section.querySelectorAll(".w2a-preacher-card").forEach(function (card) {
+              var name = (card.getAttribute("data-name") || "").toLocaleLowerCase("ar");
+              var visible = !query || name.indexOf(query) !== -1;
+              card.classList.toggle("search-hidden", !visible);
+              if (visible) sectionVisible += 1;
+            });
+            section.classList.toggle("search-hidden", sectionVisible === 0);
+            visibleTotal += sectionVisible;
+          });
+
+          if (authorResultStatus) {
+            authorResultStatus.textContent = visibleTotal + " نتيجة";
+          }
+        });
+
+        if (authorClearBtn) {
+          authorClearBtn.addEventListener("click", function () {
+            authorSearchInput.value = "";
+            authorSearchInput.dispatchEvent(new Event("input"));
+            authorSearchInput.focus();
+          });
+        }
+      }
+
+      preachersWrap.querySelectorAll(".w2a-alphabet-link").forEach(function (link) {
+        link.addEventListener("click", function (e) {
+          var target = document.querySelector(link.getAttribute("href"));
+          if (!target) return;
+          e.preventDefault();
+          target.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth" });
+          target.focus({ preventScroll: true });
+        });
+      });
+    }
+
     // Keep the mobile menu button state available to assistive technology.
     var mobileToggler = document.querySelector(".mobi-toggler");
     if (mobileToggler) {

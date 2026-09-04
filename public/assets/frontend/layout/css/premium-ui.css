@@ -3234,6 +3234,487 @@ button.mobi-toggler {
   }
 }
 
+/* --------------------------------------------------------------------------
+   3.17 BRAND NEW CATEGORY TREE VIEW UI/UX (.w2a-tree-container)
+   -------------------------------------------------------------------------- */
+.w2a-tree-toolbar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: wrap !important;
+  gap: 16px !important;
+  background: var(--w2a-surface-subtle) !important;
+  border: 1px solid var(--w2a-border) !important;
+  border-radius: var(--w2a-radius-lg) !important;
+  padding: 16px 20px !important;
+  margin-bottom: 20px !important;
+}
+
+.w2a-tree-search-wrap {
+  position: relative !important;
+  flex: 1 1 300px !important;
+  max-width: 420px !important;
+}
+
+.w2a-tree-search-icon {
+  position: absolute !important;
+  right: 14px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  color: var(--w2a-ink-400) !important;
+  font-size: 15px !important;
+  pointer-events: none !important;
+}
+
+.w2a-tree-search-input {
+  width: 100% !important;
+  height: 42px !important;
+  padding: 0 40px 0 36px !important;
+  border: 1px solid var(--w2a-border) !important;
+  border-radius: var(--w2a-radius-md) !important;
+  font-size: 14px !important;
+  background-color: #ffffff !important;
+  color: var(--w2a-ink-900) !important;
+  transition:
+    border-color var(--w2a-motion-fast),
+    box-shadow var(--w2a-motion-fast) !important;
+}
+
+.w2a-tree-search-input:focus {
+  border-color: var(--w2a-primary-500) !important;
+  box-shadow: 0 0 0 3px rgba(18, 86, 136, 0.12) !important;
+  outline: none !important;
+}
+
+.w2a-tree-search-clear {
+  position: absolute !important;
+  left: 10px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  background: none !important;
+  border: none !important;
+  color: var(--w2a-ink-400) !important;
+  cursor: pointer !important;
+  font-size: 14px !important;
+  padding: 4px !important;
+}
+
+.w2a-tree-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+}
+
+.w2a-tree-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background-color: #ffffff !important;
+  border: 1px solid var(--w2a-border) !important;
+  border-radius: var(--w2a-radius-md) !important;
+  padding: 8px 14px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--w2a-ink-700) !important;
+  cursor: pointer !important;
+  transition: all var(--w2a-motion-fast) !important;
+}
+
+.w2a-tree-btn:hover {
+  background-color: var(--w2a-primary-50) !important;
+  color: var(--w2a-primary-600) !important;
+  border-color: var(--w2a-primary-300) !important;
+}
+
+.w2a-tree-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background-color: var(--w2a-primary-100) !important;
+  color: var(--w2a-primary-700) !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  padding: 6px 14px !important;
+  border-radius: var(--w2a-radius-full) !important;
+}
+
+.w2a-tree-container {
+  background-color: #ffffff !important;
+  border: 1px solid var(--w2a-border) !important;
+  border-radius: var(--w2a-radius-lg) !important;
+  padding: 20px !important;
+  box-shadow: var(--w2a-shadow-sm) !important;
+}
+
+.w2a-tree-root,
+.w2a-tree-sub-list {
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.w2a-tree-sub-list {
+  padding-right: 24px !important;
+  display: none;
+  border-right: 2px dashed var(--w2a-primary-200) !important;
+  margin-right: 14px !important;
+  margin-top: 4px !important;
+  margin-bottom: 4px !important;
+}
+
+.w2a-tree-node.expanded > .w2a-tree-sub-list {
+  display: block !important;
+}
+
+.w2a-tree-node {
+  margin: 4px 0 !important;
+  list-style: none !important;
+}
+
+.w2a-tree-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 8px 12px !important;
+  border-radius: var(--w2a-radius-md) !important;
+  transition: background-color var(--w2a-motion-fast) !important;
+  background-color: transparent !important;
+}
+
+.w2a-tree-item:hover {
+  background-color: var(--w2a-surface-subtle) !important;
+}
+
+.w2a-tree-toggle {
+  background: none !important;
+  border: none !important;
+  padding: 4px 8px !important;
+  cursor: pointer !important;
+  color: var(--w2a-ink-500) !important;
+  border-radius: var(--w2a-radius-sm) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: background-color var(--w2a-motion-fast) !important;
+}
+
+.w2a-tree-toggle:hover {
+  background-color: var(--w2a-primary-100) !important;
+  color: var(--w2a-primary-600) !important;
+}
+
+.w2a-tree-arrow {
+  transition: transform var(--w2a-motion-normal) ease !important;
+  font-size: 12px !important;
+}
+
+.w2a-tree-node.expanded > .w2a-tree-item .w2a-tree-arrow {
+  transform: rotate(-90deg) !important;
+}
+
+.w2a-tree-node.expanded > .w2a-tree-item .folder-icon:before {
+  content: "\f07c" !important; /* fa-folder-open */
+}
+
+.w2a-tree-spacer {
+  width: 24px !important;
+  display: inline-block !important;
+}
+
+.w2a-tree-icon {
+  font-size: 16px !important;
+  color: var(--w2a-primary-500) !important;
+}
+
+.w2a-tree-icon.file-icon {
+  color: var(--w2a-ink-400) !important;
+}
+
+.w2a-tree-link {
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  color: var(--w2a-ink-900) !important;
+  text-decoration: none !important;
+  transition: color var(--w2a-motion-fast) !important;
+}
+
+.w2a-tree-link:hover {
+  color: var(--w2a-primary-600) !important;
+  text-decoration: none !important;
+}
+
+.w2a-tree-sub-count {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  background-color: var(--w2a-primary-50) !important;
+  color: var(--w2a-primary-600) !important;
+  border: 1px solid var(--w2a-primary-200) !important;
+  padding: 2px 8px !important;
+  border-radius: var(--w2a-radius-full) !important;
+  margin-right: auto !important;
+}
+
+/* Tree Search Filter States */
+.w2a-tree-node.search-hidden {
+  display: none !important;
+}
+
+.w2a-tree-node.search-matched > .w2a-tree-item {
+  background-color: #fef9c3 !important;
+  border-radius: var(--w2a-radius-md) !important;
+}
+
+/* --------------------------------------------------------------------------
+   3.18 BRAND NEW PREACHERS LIST & AUTHOR CARDS UI/UX (.w2a-preachers-wrap)
+   -------------------------------------------------------------------------- */
+.w2a-preachers-toolbar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: wrap !important;
+  gap: 16px !important;
+  background: var(--w2a-surface-subtle) !important;
+  border: 1px solid var(--w2a-border) !important;
+  border-radius: var(--w2a-radius-lg) !important;
+  padding: 16px 20px !important;
+  margin-bottom: 24px !important;
+}
+
+.w2a-preachers-search-wrap {
+  position: relative !important;
+  flex: 1 1 300px !important;
+  max-width: 420px !important;
+}
+
+.w2a-preachers-search-icon {
+  position: absolute !important;
+  right: 14px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  color: var(--w2a-ink-400) !important;
+  font-size: 15px !important;
+  pointer-events: none !important;
+}
+
+.w2a-preachers-search-input {
+  width: 100% !important;
+  height: 42px !important;
+  padding: 0 40px 0 36px !important;
+  border: 1px solid var(--w2a-border) !important;
+  border-radius: var(--w2a-radius-md) !important;
+  font-size: 14px !important;
+  background-color: #ffffff !important;
+  color: var(--w2a-ink-900) !important;
+  transition:
+    border-color var(--w2a-motion-fast),
+    box-shadow var(--w2a-motion-fast) !important;
+}
+
+.w2a-preachers-search-input:focus {
+  border-color: var(--w2a-primary-500) !important;
+  box-shadow: 0 0 0 3px rgba(18, 86, 136, 0.12) !important;
+  outline: none !important;
+}
+
+.w2a-preachers-search-clear {
+  position: absolute !important;
+  left: 10px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  background: none !important;
+  border: none !important;
+  color: var(--w2a-ink-400) !important;
+  cursor: pointer !important;
+  font-size: 14px !important;
+  padding: 4px !important;
+}
+
+.w2a-alphabet-nav {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  justify-content: center !important;
+  padding: 14px 18px !important;
+  background: #ffffff !important;
+  border: 1px solid var(--w2a-border) !important;
+  border-radius: var(--w2a-radius-lg) !important;
+  margin-bottom: 28px !important;
+  box-shadow: var(--w2a-shadow-xs) !important;
+}
+
+.w2a-alphabet-link {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 34px !important;
+  height: 34px !important;
+  padding: 0 8px !important;
+  border-radius: var(--w2a-radius-md) !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: var(--w2a-primary-700) !important;
+  background-color: var(--w2a-surface-subtle) !important;
+  border: 1px solid var(--w2a-border) !important;
+  text-decoration: none !important;
+  transition: all var(--w2a-motion-fast) !important;
+}
+
+.w2a-alphabet-link:hover,
+.w2a-alphabet-link.active {
+  background-color: var(--w2a-primary-600) !important;
+  color: #ffffff !important;
+  border-color: var(--w2a-primary-600) !important;
+  text-decoration: none !important;
+  transform: translateY(-1px) !important;
+}
+
+.w2a-letter-section {
+  margin-bottom: 36px !important;
+}
+
+.w2a-letter-section.search-hidden {
+  display: none !important;
+}
+
+.w2a-letter-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding-bottom: 12px !important;
+  margin-bottom: 20px !important;
+  border-bottom: 2px solid var(--w2a-primary-100) !important;
+}
+
+.w2a-letter-badge {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50% !important;
+  background: var(--w2a-primary-600) !important;
+  color: #ffffff !important;
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 4px 12px rgba(18, 86, 136, 0.25) !important;
+}
+
+.w2a-letter-title {
+  font-size: 20px !important;
+  font-weight: 800 !important;
+  color: var(--w2a-ink-900) !important;
+  margin: 0 !important;
+}
+
+.w2a-preachers-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 16px !important;
+}
+
+@media (max-width: 991px) {
+  .w2a-preachers-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 575px) {
+  .w2a-preachers-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.w2a-preacher-card {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  background-color: #ffffff !important;
+  border: 1px solid var(--w2a-border) !important;
+  border-radius: var(--w2a-radius-lg) !important;
+  padding: 16px !important;
+  text-decoration: none !important;
+  box-shadow: var(--w2a-shadow-sm) !important;
+  transition: all var(--w2a-motion-normal) !important;
+  position: relative !important;
+}
+
+.w2a-preacher-card.search-hidden {
+  display: none !important;
+}
+
+.w2a-preacher-card:hover {
+  transform: translateY(-3px) !important;
+  border-color: var(--w2a-primary-500) !important;
+  box-shadow: var(--w2a-shadow-md) !important;
+  text-decoration: none !important;
+}
+
+.w2a-preacher-avatar-wrap {
+  position: relative !important;
+  flex-shrink: 0 !important;
+  width: 60px !important;
+  height: 60px !important;
+  border-radius: 50% !important;
+  overflow: hidden !important;
+  border: 2px solid var(--w2a-primary-200) !important;
+  background-color: var(--w2a-primary-50) !important;
+}
+
+.w2a-preacher-avatar {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+.w2a-preacher-info {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+.w2a-preacher-name {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  color: var(--w2a-ink-900) !important;
+  margin: 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  transition: color var(--w2a-motion-fast) !important;
+  line-height: 1.5 !important;
+}
+
+.w2a-preacher-card:hover .w2a-preacher-name {
+  color: var(--w2a-primary-600) !important;
+}
+
+.w2a-preacher-count {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: var(--w2a-primary-700) !important;
+  background-color: var(--w2a-primary-50) !important;
+  border: 1px solid var(--w2a-primary-200) !important;
+  padding: 4px 10px !important;
+  border-radius: var(--w2a-radius-full) !important;
+  width: fit-content !important;
+}
+
+.w2a-preacher-arrow {
+  color: var(--w2a-ink-400) !important;
+  font-size: 14px !important;
+  transition:
+    transform var(--w2a-motion-fast),
+    color var(--w2a-motion-fast) !important;
+}
+
+.w2a-preacher-card:hover .w2a-preacher-arrow {
+  transform: translateX(-4px) !important;
+  color: var(--w2a-primary-600) !important;
+}
+
 /* ==========================================================================
    END — UI ENHANCEMENT v2 (PREMIUM UI SYSTEM)
    ========================================================================== */

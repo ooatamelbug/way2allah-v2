@@ -33,8 +33,8 @@ optimizations remain authoritative.
 |---:|---|---|---|---|
 | 1 | `6feaca9422905b6948b8b41c94d9c5d03cb097ad` | `6ea6820` | Direct asset adaptation | Added the v1 design-token and global CSS foundation as a tracked public asset. |
 | 2 | `3afc6bc6e8dc8dc2eecb98c03b6873f32a2ae74a` | `81be956` | Intentional safety adaptation | Retained Laravel environment configuration, database connections, local-only thumbnail policy, and current deployment infrastructure. The legacy Docker stack, hardcoded credentials/URLs, Apache media redirect, and remote TimThumb fallback are intentionally excluded. |
-| 3 | `0babaea367d59e6ae047f7a1bc23a5c9a6901b74` | pending | Blade and asset adaptation | Added the premium stylesheet/JavaScript, the five used Thmanyah Sans weights, accessible global chrome/search, lightweight hero and media rails, reusable homepage media links, premium poll markup, and removed queries for the two homepage cards retired by v1. Unreferenced Serif font families and formatting-only CSS churn are excluded. |
-| 4 | `e2060207f8692e3f84e27a381bb138f19a765aa7` | pending | Pending | |
+| 3 | `0babaea367d59e6ae047f7a1bc23a5c9a6901b74` | `b7b3e2e` | Blade and asset adaptation | Added the premium stylesheet/JavaScript, the five used Thmanyah Sans weights, accessible global chrome/search, lightweight hero and media rails, reusable homepage media links, premium poll markup, and removed queries for the two homepage cards retired by v1. Unreferenced Serif font families and formatting-only CSS churn are excluded. |
+| 4 | `e2060207f8692e3f84e27a381bb138f19a765aa7` | pending | Blade component adaptation | Added a reusable recursive category tree over `$categoriesByParent`, accessible expand/collapse/search controls, and the searchable alphabetical preacher card directory. No new queries are introduced. |
 | 5 | `9c1102e4de87f8edcfc5de2da3cee86cd3cc970e` | pending | Pending | |
 | 6 | `40d613a35bc40054713618c3777e46e6ae569580` | pending | Pending | |
 | 7 | `7ce48a2898532dddf401568ac6bb6ca3f24f28f0` | pending | Pending | |

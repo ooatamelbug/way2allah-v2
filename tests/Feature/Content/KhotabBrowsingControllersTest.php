@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Content\Support\LegacyDurationFormatter;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\Fixtures\MainSchema;
 use Tests\Support\InMemoryConnection;
@@ -103,8 +104,25 @@ it('fatawa-authors.htm (op=fatwa) generates real khotab-fatwa-{id}.htm links, by
     $content = $this->get('/fatawa-authors.htm')->assertOk()->getContent();
 
     expect($content)
-        ->toContain('<a href="/khotab-fatwa-17.htm">الحويني</a>')
+        ->toContain('href="/khotab-fatwa-17.htm"')
+        ->toContain('الحويني')
         ->toContain('12 فتوى');
+});
+
+it('author directory: renders searchable alphabetical card groups without inline jQuery navigation', function () {
+    DB::connection('main')->table('nuke_islamic_authors')->insert([
+        ['id' => 1, 'name' => 'أحمد', 'prename' => 'الشيخ', 'vedio' => 5, 'hidden' => 0],
+        ['id' => 2, 'name' => 'محمد', 'prename' => 'الدكتور', 'vedio' => 3, 'hidden' => 0],
+    ]);
+
+    $content = $this->get('/khotab-video.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('id="w2a_author_search_input"')
+        ->toContain('class="w2a-alphabet-nav"')
+        ->toContain('class="w2a-preacher-card"')
+        ->toContain('data-name="الشيخ أحمد"')
+        ->toContain('5 فيديو')
+        ->not->toContain("$('.abc').html");
 });
 
 it('fatawa-authors.htm only lists authors with fatwa > 0, matching authors.php:24\'s real WHERE clause', function () {
@@ -692,10 +710,10 @@ it('author show: an item with no nuke_islamic_advanced row (adur missing) never 
 
 it('LegacyDurationFormatter::format(): matches Duration() (functions.php:357-365) exactly, verified against 2 real olddb items\' raw adur values', function () {
     // khotab-item-158635 (>1hr branch, 12-hour "h" format — legacy's own date("h:i:s",...), not 24-hour).
-    expect(\App\Domain\Content\Support\LegacyDurationFormatter::format(3621662))->toBe('01:00:21')
+    expect(LegacyDurationFormatter::format(3621662))->toBe('01:00:21')
         // khotab-item-158739 (<=1hr branch, "00:i:s").
-        ->and(\App\Domain\Content\Support\LegacyDurationFormatter::format(3405995))->toBe('00:56:45')
-        ->and(\App\Domain\Content\Support\LegacyDurationFormatter::format(0))->toBe('00:00:00');
+        ->and(LegacyDurationFormatter::format(3405995))->toBe('00:56:45')
+        ->and(LegacyDurationFormatter::format(0))->toBe('00:00:00');
 });
 
 it('author show: pdf op\'s item list still renders (khotabPdfItemsByAuthor() has no adur column) — no fatal error, duration silently omitted', function () {
@@ -770,13 +788,9 @@ it('authors index: groups authors by first letter exactly like authors.php:58-74
 
     $content = $this->get('/khotab-video.htm')->assertOk()->getContent();
 
-    // BINARY-ordered: أ (0x...627) sorts before ه (0x...647) — two groups,
-    // "أحمد"/"أنس" both fall under one أ group (index 0), "هشام" starts a
-    // new group at index 2, normalized to هـ (authors.php:61).
-    expect(substr_count($content, '<h1 id="0">أ</h1>'))->toBe(1)
-        ->and(substr_count($content, '<h1 id="2">هـ</h1>'))->toBe(1)
-        // Only 2 groups total — "أنس" must NOT start its own group.
-        ->and(substr_count($content, '<h1 id='))->toBe(2);
+    expect($content)->toContain('id="w2a_letter_'.md5('أ').'"')
+        ->toContain('id="w2a_letter_'.md5('هـ').'"')
+        ->and(substr_count($content, 'class="w2a-letter-section"'))->toBe(2);
 });
 
 it('authors index: a single shared first letter across all authors renders exactly one group, not one per author', function () {
@@ -788,8 +802,8 @@ it('authors index: a single shared first letter across all authors renders exact
 
     $content = $this->get('/khotab-video.htm')->assertOk()->getContent();
 
-    expect(substr_count($content, '<h1 id='))->toBe(1)
-        ->and($content)->toContain('<h1 id="0">خ</h1>');
+    expect(substr_count($content, 'class="w2a-letter-section"'))->toBe(1)
+        ->and($content)->toContain('id="w2a_letter_'.md5('خ').'"');
 });
 
 it('authors index: renders the real vedio/audio/pdf column value as the per-author count, with the op-specific label word', function () {
@@ -798,13 +812,13 @@ it('authors index: renders the real vedio/audio/pdf column value as the per-auth
     ]);
 
     $video = $this->get('/khotab-video.htm')->assertOk()->getContent();
-    expect($video)->toContain('<span class="testimonials-post">42 فيديو</span>');
+    expect($video)->toContain('<span class="w2a-preacher-count">42 فيديو</span>');
 
     $audio = $this->get('/khotab-audio.htm')->assertOk()->getContent();
-    expect($audio)->toContain('<span class="testimonials-post">7 صوت</span>');
+    expect($audio)->toContain('<span class="w2a-preacher-count">7 صوت</span>');
 
     $pdf = $this->get('/khotab-pdf.htm')->assertOk()->getContent();
-    expect($pdf)->toContain('<span class="testimonials-post">3 منشور</span>');
+    expect($pdf)->toContain('<span class="w2a-preacher-count">3 منشور</span>');
 });
 
 it('authors index: author link points at khotab-{op}-{id}.htm', function () {
@@ -814,7 +828,7 @@ it('authors index: author link points at khotab-{op}-{id}.htm', function () {
     expect($this->get('/khotab-audio.htm')->assertOk()->getContent())->toContain('href="/khotab-audio-55.htm"');
 });
 
-it('authors index: renders the A-Z jump-nav container and its populating script exactly once, after jquery.min.js', function () {
+it('authors index: renders semantic alphabet navigation without inline-generated HTML', function () {
     DB::connection('main')->table('nuke_islamic_authors')->insert([
         ['id' => 1, 'name' => 'أحمد', 'vedio' => 1, 'hidden' => 0],
         ['id' => 2, 'name' => 'بلال', 'vedio' => 1, 'hidden' => 0],
@@ -822,16 +836,10 @@ it('authors index: renders the A-Z jump-nav container and its populating script 
 
     $content = $this->get('/khotab-video.htm')->assertOk()->getContent();
 
-    expect(substr_count($content, 'class="abc text-center"'))->toBe(1)
-        ->and(substr_count($content, 'var letterList'))->toBe(1)
-        ->and($content)->toContain('<a href="#0">أ</a>&nbsp;-&nbsp;<a href="#1">ب</a>');
-
-    $jqueryPos = strpos($content, 'jquery.min.js');
-    $scriptPos = strpos($content, 'var letterList');
-
-    expect($jqueryPos)->not->toBeFalse()
-        ->and($scriptPos)->not->toBeFalse()
-        ->and($jqueryPos)->toBeLessThan($scriptPos);
+    expect(substr_count($content, 'class="w2a-alphabet-nav"'))->toBe(1)
+        ->and($content)->toContain('href="#w2a_letter_'.md5('أ').'"')
+        ->toContain('href="#w2a_letter_'.md5('ب').'"')
+        ->not->toContain('var letterList');
 });
 
 it('dump: lists pdf items ordered by pdf_time, with a pdf-scoped sidebar', function () {
