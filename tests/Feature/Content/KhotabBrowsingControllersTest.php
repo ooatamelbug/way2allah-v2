@@ -298,18 +298,18 @@ it('group show: the Series portlet shows the real empty-state text when the grou
     expect($content)->toContain('لا توجد سلاسل مطابقة بقاعدة بيانات الموقع');
 });
 
-it('group show: the Khotab items portlet shows date/comments/hits/channel/duration but NEVER an author link — a confirmed difference from categories\' own ListKhotab()', function () {
+it('group show: the Khotab items portlet uses responsive cards with date, comments, views, channel, and duration but no author link', function () {
     seedKhotabGroupParityFixture();
 
     $content = $this->get('/khotab-group-20.htm')->assertOk()->getContent();
 
     expect($content)
-        ->toContain('id="tabelkht"')
-        ->toContain('<a href="/khotab-item-40.htm">Surah Al-Bayyina</a>')
-        ->toContain('<i class="fa fa-calendar"></i> 2006-12-19')
-        ->toContain('<i class="fa fa-commenting-o"></i> التعليقات: 1')
-        ->toContain('<i class="fa fa-eye"></i> مشاهدات: 2,529')
-        ->not->toContain('الداعية:');
+        ->toContain('class="w2a-item-card-row"')
+        ->toContain('class="w2a-item-card-title">Surah Al-Bayyina</a>')
+        ->toContain('<i class="fa fa-calendar" aria-hidden="true"></i> 2006-12-19')
+        ->toContain('<i class="fa fa-commenting-o" aria-hidden="true"></i> 1 تعليق')
+        ->toContain('<i class="fa fa-eye" aria-hidden="true"></i> 2,529 مشاهدة')
+        ->not->toContain('w2a-item-card-author');
 });
 
 it('group show: the Khotab items portlet shows the real empty-state text when the group has no items', function () {
@@ -331,11 +331,8 @@ it('group show: BOTH "الأكثر تحميلا" and "جديد المواد" sho
 
     $content = $this->get('/khotab-group-20.htm')->assertOk()->getContent();
 
-    // Both fixture items qualify for both LIMIT-5 boxes (only 2 rows
-    // exist), so the label appears once per item per box (4 total) —
-    // the real point of this test is that NEITHER box ever shows a date.
-    expect(substr_count($content, 'عدد مرات التحميل:'))->toBe(4);
-    expect($content)->not->toContain('بتاريخ:');
+    expect(substr_count($content, 'fa-cloud-download'))->toBeGreaterThanOrEqual(4);
+    expect($content)->toContain('500 تحميل')->toContain('42 تحميل');
 });
 
 it('group show: registers the DataTables assets (core + bootstrap plugin + khotab_tables.js), matching this page\'s own confirmed live asset profile', function () {
@@ -449,14 +446,14 @@ it('day: IF-022 fix — a dated URL scopes the main list to that date\'s items, 
     expect($listSection)->not->toContain('Today Item');
 });
 
-it('day: renders the premium archive banner and native date form without legacy datepicker assets', function () {
+it('day: renders the premium native date form without legacy datepicker assets', function () {
     $response = $this->get('/khotab-video-today.htm');
     $content = $response->assertOk()->getContent();
 
     expect(substr_count($content, 'portlet-title'))->toBe(4)
         ->and($content)->toContain('بحث بالتاريخ')
-        ->and($content)->toContain('w2a-date-banner')
-        ->and($content)->toContain('الأرشيف اليومي')
+        ->and($content)->toContain('w2a-date-picker-form')
+        ->and($content)->toContain('w2a-date-picker-submit')
         ->and($content)->toContain('type="date"')
         ->and($content)->toContain('method="get"')
         ->and($content)->not->toContain('bootstrap-datepicker')
@@ -475,7 +472,7 @@ it('day: native date search redirects to the canonical dated route for video and
 it('day: invalid native date input is ignored safely', function () {
     $this->get('/khotab-video-today.htm?date=2020-02-31')
         ->assertOk()
-        ->assertSee('الأرشيف اليومي');
+        ->assertSee('البحث بالتاريخ');
 });
 
 it('day: "جديد المواد" box uses mode=\'time\' (a formatted date), unlike khotab-series-{id}.htm\'s always-\'hits\' boxes', function () {
@@ -486,7 +483,7 @@ it('day: "جديد المواد" box uses mode=\'time\' (a formatted date), unli
 
     $content = $this->get('/khotab-video-today.htm')->assertOk()->getContent();
 
-    expect($content)->toContain('بتاريخ: الأحد 28 يونيو 2026 مـ');
+    expect($content)->toContain('الأحد 28 يونيو 2026 مـ');
 });
 
 // ---- IF-017 + IF-021: news.php / author.php pdf-op sidebars ----
@@ -689,7 +686,7 @@ it('author show: renders ListSeries()\'s exact row markup (khotab/functions.php:
         ->and($content)->toContain('/images/channels/9.png');
 });
 
-it('author show: renders ListKhotab()\'s exact default-branch row markup (khotab/functions.php:643-706) — table#tabelkht, date/comments/views always shown, channel badge and duration conditional', function () {
+it('author show: renders the responsive item-card contract with date, comments, views, channel, and duration', function () {
     DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Author']);
     $time = mktime(0, 0, 0, 4, 22, 2026);
     DB::connection('main')->table('nuke_islamic_khotab')->insert([
@@ -700,17 +697,15 @@ it('author show: renders ListKhotab()\'s exact default-branch row markup (khotab
 
     $content = $this->get('/khotab-video-1.htm')->assertOk()->getContent();
 
-    expect($content)->toContain('<table class="table table-striped table-hover" id="tabelkht">')
-        ->and($content)->toContain('<i class="fa fa-calendar"></i>')
+    expect($content)->toContain('class="w2a-item-card-row"')
+        ->and($content)->toContain('<i class="fa fa-calendar" aria-hidden="true"></i>')
         ->and($content)->toContain(date('Y-m-d', $time))
-        ->and($content)->toContain('<i class="fa fa-commenting-o"></i>')
-        ->and($content)->toContain('التعليقات:')
-        ->and($content)->toContain('4')
-        ->and($content)->toContain('<i class="fa fa-eye"></i>')
-        ->and($content)->toContain('مشاهدات:')
+        ->and($content)->toContain('<i class="fa fa-commenting-o" aria-hidden="true"></i> 4 تعليق')
+        ->and($content)->toContain('<i class="fa fa-eye" aria-hidden="true"></i>')
+        ->and($content)->toContain('مشاهدة')
         ->and($content)->toContain(number_format(1872))
-        ->and($content)->toContain('/images/channels/9.png')
-        ->and($content)->toContain('<i class="fa fa-clock-o"></i>')
+        ->and($content)->toContain('/channel-9.htm')
+        ->and($content)->toContain('<i class="fa fa-clock-o" aria-hidden="true"></i>')
         // Verified against real olddb data (khotab-item-158635, adur=3621662ms) — matches live legacy's displayed "01:00:21" exactly.
         ->and($content)->toContain('01:00:21');
 });

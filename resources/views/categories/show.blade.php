@@ -312,17 +312,7 @@
                         <div class="caption"><i class="fa fa-cloud-download"></i> الأكثر تحميلا</div>
                     </div>
                     <div class="portlet-body ">
-                        <ul class="media-list">
-                            @foreach ($mostDownloaded as $item)
-                                <li class="media">
-                                    <a class="pull-left" href="javascript:;"><img class="media-object" src="{{ $item->thumb }}" alt="{{ $item->title }}" style="width: 60px; height: 40px;"></a>
-                                    <div class="media-body">
-                                        <a href="/khotab-item-{{ $item->id }}.htm"><h5 class="media-heading">{{ $item->title }}</h5></a>
-                                        <small>عدد مرات التحميل: {{ number_format($item->hits) }} مرة</small>
-                                    </div>
-                                </li>
-                            @endforeach
-                        </ul>
+                        <x-content.top-items :items="$mostDownloaded" />
                     </div>
                 </div>
             </div>
@@ -333,17 +323,7 @@
                         <div class="caption"><i class="fa fa-flash"></i> جديد المواد</div>
                     </div>
                     <div class="portlet-body ">
-                        <ul class="media-list">
-                            @foreach ($mostRecent as $item)
-                                <li class="media">
-                                    <a class="pull-left" href="javascript:;"><img class="media-object" src="{{ $item->thumb }}" alt="{{ $item->title }}" style="width: 60px; height: 40px;"></a>
-                                    <div class="media-body">
-                                        <a href="/khotab-item-{{ $item->id }}.htm"><h5 class="media-heading">{{ $item->title }}</h5></a>
-                                        <small>بتاريخ: {{ \App\Domain\Content\Support\LegacyShortDateFormatter::format((int) $item->time) }}</small>
-                                    </div>
-                                </li>
-                            @endforeach
-                        </ul>
+                        <x-content.top-items :items="$mostRecent" mode="time" />
                     </div>
                 </div>
             </div>

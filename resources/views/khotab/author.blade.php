@@ -184,83 +184,8 @@
                     <div class="portlet-title">
                         <div class="caption"><i class="fa fa-child"></i> قائمة المواد</div>
                     </div>
-                    <div class="portlet-body series-overflow series-overflow-auto">
-                        <table class="table table-striped table-hover" id="tabelkht">
-                            <tbody>
-                                @foreach ($items as $item)
-                                    {{--
-                                        `?? 0` — this same table also renders
-                                        khotabPdfItemsByAuthor()'s result set
-                                        when $op==='pdf' (an existing,
-                                        pre-batch behavior: author.php
-                                        actually calls a different function,
-                                        ListPDF(), for that op — not traced
-                                        or matched here, out of this batch's
-                                        scope), whose SELECT has no `adur`
-                                        column at all. Missing duration for
-                                        pdf items resolves to "00:00:00",
-                                        i.e. hidden — never a fatal error.
-                                    --}}
-                                    @php($duration = \App\Domain\Content\Support\LegacyDurationFormatter::format((int) ($item->adur ?? 0)))
-                                    <tr>
-                                        <td class="">
-                                            <div class="row">
-                                                <div class="col-lg-12">
-                                                    <h5>
-                                                        <div class="row">
-                                                            <div class="col-sm-12 col-lg-8">
-                                                                <a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a>
-                                                            </div>
-                                                        </div>
-                                                    </h5>
-                                                    <div class="row page-header color_00a">
-                                                        <div class="col-md-3 col-xs-6 text-blue">
-                                                            <span>
-                                                                <i class="fa fa-calendar"></i>
-                                                                {{ $item->time ? date('Y-m-d', $item->time) : '' }}
-                                                            </span>
-                                                        </div>
-                                                        <div class="col-md-3 col-xs-6 text-blue">
-                                                            <span>
-                                                                <i class="fa fa-commenting-o"></i>
-                                                                التعليقات:
-                                                                {{ $item->comments }}
-                                                            </span>
-                                                        </div>
-                                                        <div class="col-md-3 col-xs-6 text-blue">
-                                                            <span>
-                                                                <i class="fa fa-eye"></i>
-                                                                مشاهدات:
-                                                                {{ number_format($item->hits) }}
-                                                            </span>
-                                                        </div>
-                                                        @if(!empty($item->channel_id))
-                                                            <div class="col-md-3 col-xs-6 text-blue">
-                                                                <span>
-                                                                    <i class="fa fa-television"></i>
-                                                                    القناة:
-                                                                    <a href="/channel-{{ $item->channel_id }}.htm">
-                                                                        <img width="24" height="24" border="0" src="/images/channels/{{ $item->channel_id }}.png" alt="" />
-                                                                    </a>
-                                                                </span>
-                                                            </div>
-                                                        @endif
-                                                        @if($duration !== '00:00:00')
-                                                            <div class="col-md-3 col-xs-6 text-blue">
-                                                                <span>
-                                                                    <i class="fa fa-clock-o"></i>
-                                                                    {{ $duration }}
-                                                                </span>
-                                                            </div>
-                                                        @endif
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                    <div class="portlet-body">
+                        <x-content.khotab-item-list :items="$items" :video="$op === 'video'" />
                     </div>
                 </div>
             </div>
@@ -358,18 +283,7 @@
                         <div class="caption"><i class="fa fa-child"></i> الأكثر تحميلا</div>
                     </div>
                     <div class="portlet-body">
-                        <ul>
-                            @foreach ($mostDownloaded as $item)
-                                @isset($item->thumb)
-                                    <li class="media">
-                                        <a class="pull-left" href="/khotab-item-{{ $item->id }}.htm"><img class="media-object" src="{{ $item->thumb }}" alt="{{ $item->title }}" style="width: 60px; height: 40px;"></a>
-                                        <div class="media-body"><a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a></div>
-                                    </li>
-                                @else
-                                    <li><a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a></li>
-                                @endisset
-                            @endforeach
-                        </ul>
+                        <x-content.top-items :items="$mostDownloaded" />
                     </div>
                 </div>
             </div>
@@ -380,18 +294,7 @@
                         <div class="caption"><i class="fa fa-child"></i> جديد المواد</div>
                     </div>
                     <div class="portlet-body">
-                        <ul>
-                            @foreach ($mostRecent as $item)
-                                @isset($item->thumb)
-                                    <li class="media">
-                                        <a class="pull-left" href="/khotab-item-{{ $item->id }}.htm"><img class="media-object" src="{{ $item->thumb }}" alt="{{ $item->title }}" style="width: 60px; height: 40px;"></a>
-                                        <div class="media-body"><a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a></div>
-                                    </li>
-                                @else
-                                    <li><a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a></li>
-                                @endisset
-                            @endforeach
-                        </ul>
+                        <x-content.top-items :items="$mostRecent" />
                     </div>
                 </div>
             </div>

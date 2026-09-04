@@ -158,13 +158,14 @@ it('show: "الأكثر تحميلا"/"جديد المواد" use the real media
 
     expect($content)
         ->toContain('<ul class="media-list">')
-        ->toContain('<li class="media">')
-        ->toContain('<img class="media-object" src="/images/way2_withoutimg.png" alt="Downloaded Item"')
-        ->toContain('<a href="/khotab-item-100.htm"><h5 class="media-heading">Downloaded Item</h5></a>')
+        ->toContain('<li class="media w2a-top-item">')
+        ->toContain('class="media-object w2a-top-item-thumb"')
+        ->toContain('src="/images/way2_withoutimg.png"')
+        ->toContain('<h5 class="media-heading w2a-top-item-title">Downloaded Item</h5>')
         // "الأكثر تحميلا" (mode='hits'): a formatted hit count, not a date.
-        ->toContain('<small>عدد مرات التحميل: 4,200 مرة</small>')
+        ->toContain('4,200 تحميل')
         // "جديد المواد" (mode='time', confirmed from channel.php:110 directly): a real formatted date, not a hit count.
-        ->toContain('<small>بتاريخ: '.LegacyShortDateFormatter::format(mktime(0, 0, 0, 6, 6, 2015)).'</small>');
+        ->toContain(LegacyShortDateFormatter::format(mktime(0, 0, 0, 6, 6, 2015)));
 });
 
 it('show: sidebar thumbnail resolves to a real bucketed frame path when frame=1 and the file exists on disk', function () {

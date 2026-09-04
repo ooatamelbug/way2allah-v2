@@ -243,7 +243,7 @@ it('show: "اخترنا لك هذه المادة" wraps randomFeatured in a real
         ->toContain('<p><a href="/khotab-item-500.htm">Featured Lesson</a></p>');
 });
 
-it('show: "الأكثر تحميلا" renders real <li class="media"> markup with a thumbnail and download-count label, not a bare list item', function () {
+it('show: "الأكثر تحميلا" renders the premium top-item card with a thumbnail and download count', function () {
     DB::connection('main')->table('nuke_w2a_cat')->insert(['id' => 5, 'title' => 'Fiqh', 'main_cat' => 0]);
     DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Author']);
     DB::connection('main')->table('nuke_islamic_khotab')->insert([
@@ -254,10 +254,10 @@ it('show: "الأكثر تحميلا" renders real <li class="media"> markup wit
     $content = $this->get('/category-5.htm')->assertOk()->getContent();
 
     expect($content)
-        ->toContain('<li class="media">')
-        ->toContain('class="media-object"')
-        ->toContain('<h5 class="media-heading">Popular Lesson</h5>')
-        ->toContain('عدد مرات التحميل: 12,345 مرة')
+        ->toContain('<li class="media w2a-top-item">')
+        ->toContain('class="media-object w2a-top-item-thumb"')
+        ->toContain('<h5 class="media-heading w2a-top-item-title">Popular Lesson</h5>')
+        ->toContain('12,345 تحميل')
         // frame=0 -> the confirmed-broken author-photo path never resolves, always the generic placeholder.
         ->toContain('/images/way2_withoutimg.png');
 });
@@ -272,7 +272,9 @@ it('show: "جديد المواد" shows a CoolShortDate-formatted date label, no
 
     $content = $this->get('/category-5.htm')->assertOk()->getContent();
 
-    expect($content)->toContain('بتاريخ:')->not->toContain('بتاريخ: عدد مرات التحميل');
+    expect($content)
+        ->toContain('class="w2a-top-item-badge"><i class="fa fa-clock-o"')
+        ->toContain('الأحد 14 يونيو 2026 مـ');
 });
 
 it('show: the category description portlet uses the real w2a_open_div() wrapper, not a bare <section>', function () {

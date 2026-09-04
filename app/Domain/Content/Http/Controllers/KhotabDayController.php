@@ -129,7 +129,6 @@ class KhotabDayController
             'mostDownloaded' => $mostDownloaded,
             'mostRecent' => $mostRecent,
             'breadcrumbTrail' => $breadcrumbTrail,
-            'formattedDateLabel' => $mydate,
             'dateSearchAction' => route($todayRoute, [], false),
             'todayUrl' => route($todayRoute, [], false),
             'yesterdayUrl' => route($dateRoute, [
