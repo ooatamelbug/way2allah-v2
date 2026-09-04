@@ -61,18 +61,10 @@
             </div>
 
             <h3>أكثر الدروس مشاهدة</h3>
-            <ul>
-                @foreach ($mostViewed as $item)
-                    <li><a href="/chat_lesson_{{ $item->id }}.htm">{{ $item->title }}</a></li>
-                @endforeach
-            </ul>
+            <x-content.chat-lesson-list :items="$mostViewed" />
 
             <h3>أجدد التسجيلات</h3>
-            <ul>
-                @foreach ($mostRecent as $item)
-                    <li><a href="/chat_lesson_{{ $item->id }}.htm">{{ $item->title }}</a></li>
-                @endforeach
-            </ul>
+            <x-content.chat-lesson-list :items="$mostRecent" />
         </aside>
     </div>
 @endsection

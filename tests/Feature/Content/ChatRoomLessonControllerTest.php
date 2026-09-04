@@ -195,7 +195,7 @@ it('index: caps the most-active-authors list at 15, matching legacy\'s LIMIT 15'
 
     $content = $this->get('/chat_room.htm')->getContent();
 
-    expect(substr_count($content, 'class="author author-block"'))->toBe(15);
+    expect(substr_count($content, 'class="w2a-chat-author-card"'))->toBe(15);
 });
 
 it('index: excludes a hidden author and an author registered at a different location', function () {
@@ -236,7 +236,11 @@ it('index: renders most-viewed and most-recent recorded lessons, ordered correct
     $recentStart = strpos($content, 'أجدد تسجيلات الغرفة');
     $viewedSection = substr($content, $viewedStart, $recentStart - $viewedStart);
     expect(strpos($viewedSection, 'Most Viewed'))->toBeLessThan(strpos($viewedSection, 'Least Viewed'));
-    expect($content)->toContain('fa-video-camera')->toContain('fa-microphone');
+    expect($content)
+        ->toContain('class="w2a-chat-authors-grid"')
+        ->toContain('class="w2a-chat-sidebar-list"')
+        ->toContain('fa-video-camera')
+        ->toContain('fa-headphones');
 });
 
 it('index: omits the most-viewed/most-recent portlets entirely when no recorded lessons exist at this location, matching legacy\'s own $TotalList > 0 guard', function () {

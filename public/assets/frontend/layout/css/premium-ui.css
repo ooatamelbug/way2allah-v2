@@ -6184,6 +6184,173 @@ button.mobi-toggler {
   color: var(--w2a-primary-600) !important;
 }
 
+/* --------------------------------------------------------------------------
+   3.27 RECORDED CHAT-ROOM CONTENT
+   -------------------------------------------------------------------------- */
+
+.w2a-chat-authors-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 16px !important;
+  margin: 12px 0 24px !important;
+}
+
+.w2a-chat-author-card {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  min-height: 74px !important;
+  padding: 12px 14px !important;
+  color: inherit !important;
+  background: var(--w2a-surface) !important;
+  border: 1px solid var(--w2a-border) !important;
+  border-radius: var(--w2a-radius-lg) !important;
+  box-shadow: var(--w2a-shadow-sm) !important;
+  text-decoration: none !important;
+  transition:
+    transform var(--w2a-motion-normal),
+    box-shadow var(--w2a-motion-normal),
+    border-color var(--w2a-motion-normal) !important;
+}
+
+.w2a-chat-author-card:hover,
+.w2a-chat-author-card:focus-visible {
+  transform: translateY(-2px) !important;
+  border-color: var(--w2a-primary-300) !important;
+  box-shadow: var(--w2a-shadow-md) !important;
+}
+
+.w2a-chat-author-card:focus-visible,
+.w2a-chat-sidebar-item:focus-visible {
+  outline: 3px solid var(--w2a-primary-300) !important;
+  outline-offset: 2px !important;
+}
+
+.w2a-chat-author-avatar-wrap {
+  width: 48px !important;
+  height: 48px !important;
+  flex: 0 0 48px !important;
+  overflow: hidden !important;
+  border: 2px solid var(--w2a-primary-200) !important;
+  border-radius: var(--w2a-radius-full) !important;
+  box-shadow: var(--w2a-shadow-sm) !important;
+}
+
+.w2a-chat-author-avatar-wrap img {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+.w2a-chat-author-info {
+  display: flex !important;
+  min-width: 0 !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+}
+
+.w2a-chat-author-name {
+  overflow: hidden !important;
+  color: var(--w2a-ink-900) !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.w2a-chat-author-card:hover .w2a-chat-author-name,
+.w2a-chat-author-card:focus-visible .w2a-chat-author-name {
+  color: var(--w2a-primary-600) !important;
+}
+
+.w2a-chat-author-count {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  color: var(--w2a-ink-500) !important;
+  font-size: 12px !important;
+}
+
+.w2a-chat-sidebar-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  margin: 10px 0 20px !important;
+  padding: 0 !important;
+  list-style: none !important;
+}
+
+.w2a-chat-sidebar-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  min-height: 48px !important;
+  padding: 8px 10px !important;
+  background: var(--w2a-surface) !important;
+  border: 1px solid var(--w2a-border) !important;
+  border-radius: var(--w2a-radius-md) !important;
+  text-decoration: none !important;
+  transition:
+    transform var(--w2a-motion-normal),
+    background-color var(--w2a-motion-normal),
+    border-color var(--w2a-motion-normal) !important;
+}
+
+.w2a-chat-sidebar-item:hover,
+.w2a-chat-sidebar-item:focus-visible {
+  transform: translateX(-3px) !important;
+  background: var(--w2a-surface-muted) !important;
+  border-color: var(--w2a-primary-300) !important;
+}
+
+.w2a-chat-sidebar-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 32px !important;
+  height: 32px !important;
+  flex: 0 0 32px !important;
+  color: var(--w2a-primary-600) !important;
+  background: var(--w2a-primary-50) !important;
+  border-radius: var(--w2a-radius-sm) !important;
+  font-size: 14px !important;
+}
+
+.w2a-chat-sidebar-item:hover .w2a-chat-sidebar-icon,
+.w2a-chat-sidebar-item:focus-visible .w2a-chat-sidebar-icon {
+  color: #ffffff !important;
+  background: var(--w2a-primary-600) !important;
+}
+
+.w2a-chat-sidebar-title {
+  display: -webkit-box !important;
+  overflow: hidden !important;
+  color: var(--w2a-ink-800) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 2 !important;
+}
+
+.w2a-chat-sidebar-item:hover .w2a-chat-sidebar-title,
+.w2a-chat-sidebar-item:focus-visible .w2a-chat-sidebar-title {
+  color: var(--w2a-primary-700) !important;
+}
+
+@media (max-width: 991px) {
+  .w2a-chat-authors-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 575px) {
+  .w2a-chat-authors-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
 /* ==========================================================================
    END — UI ENHANCEMENT v2 (PREMIUM UI SYSTEM)
    ========================================================================== */
