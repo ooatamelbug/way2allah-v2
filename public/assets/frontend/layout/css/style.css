@@ -605,9 +605,6 @@ body.page-header-fixed {
 .header-navigation li.dropdown100 > .dropdown-menu:after {
     display: none !important;
 }
-.header-navigation .dropdown-menu > li:first-child {
-    border-top: solid 2px #ea4c1d;
-}
 .header-navigation .dropdown-menu li {
     padding: 0;
     margin: 0;
@@ -808,12 +805,6 @@ body.page-header-fixed {
     }
     .ecommerce .reduce-header .header-navigation > ul > li > a {
         padding: 23px 12px 20px;
-    }
-    .reduce-header .header-navigation li.menu-search {
-        top: 14px;
-    }
-    .ecommerce .reduce-header .header-navigation li.menu-search {
-        top: 21px;
     }
 }
 .reduce-header .mobi-toggler {
@@ -3228,10 +3219,6 @@ Styler Panel
 .header-navigation ul > li.open > a:hover,
 .header-navigation ul > li.open > a:focus {
     color: #2772bf !important;
-}
-
-.header-navigation .dropdown-menu > li:first-child {
-    border-top: 2px solid #2772bf !important;
 }
 
 .cat_tree {
