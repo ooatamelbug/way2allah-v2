@@ -41,27 +41,7 @@
                         <div class="caption"><i class="fa fa-sitemap"></i> قائمة الأقسام الفرعية: {{ $groupModel->title }}</div>
                     </div>
                     <div class="portlet-body">
-                        <div class="row telawat_authors_list">
-                            @foreach ($subGroups as $subGroup)
-                                @php($comment = empty($subGroup->des) ? 'بدون تعليق' : $subGroup->des)
-                                <div class="col-xs-12 col-sm-6 col-md-4 col-lg-3 telawah-author">
-                                    <div class="thumbnail">
-                                        <div class="telawa-author-name text-center"><a href="/var-group-{{ $subGroup->id }}.htm"><span>{{ $subGroup->title }}</span></a></div>
-                                        <div class="row">
-                                            <div class="col-xs-12 col-sm-5 col-md-5 telawa-thumb"><a href="/var-group-{{ $subGroup->id }}.htm"><img src="{{ $subGroup->thumbUrl() }}" alt="{{ $subGroup->title }}"></a></div>
-                                            <div class="col-xs-12 col-sm-7 col-md-7 telawa-details">
-                                                <div class="list-group">
-                                                    <div class="list-group-item telawah-group-subcats"> الأقسام الفرعية : {{ (int) $subGroup->child }} قسم </div>
-                                                    <div class="list-group-item telawah-group-recits"> المقاطع : {{ (int) $subGroup->anasheed }} مقطع </div>
-                                                    <div class="list-group-item telawah-group-visits"> الزيارات : {{ (int) $subGroup->hits }} زيارة </div>
-                                                    <div class="list-group-item telawah-group-comment"> التعليق : {{ $comment }} </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
+                        <x-content.anasheed-subgroup-grid :groups="$subGroups" />
                     </div>
                 </div>
             </div>
@@ -85,20 +65,16 @@
                         <div class="caption"><i class="fa fa-download"></i> تحميل سلسلة : {{ $groupModel->title }}</div>
                     </div>
                     <div class="portlet-body">
-                        <div class="row var_group_download">
-                            <div class="col-lg-2 col-md-3 col-sm-3 col-xs-6 text-center">
-                                <a href="/var-series-{{ $groupModel->id }}.grx">
-                                    <i class="fa fa-save"></i><br>رابط تحميل السلسلة
-                                </a>
+                        <div class="w2a-series-download-banner">
+                            <div class="w2a-series-download-info">
+                                <div class="w2a-series-download-icon" aria-hidden="true"><i class="fa fa-cloud-download"></i></div>
+                                <div class="w2a-series-download-text">
+                                    <h4>تحميل السلسلة بالكامل دفعة واحدة</h4>
+                                    <p>حمّل ملف السلسلة (.grx) لاستخدامه عبر برنامج GetRight أو برامج التحميل المتوافقة.</p>
+                                </div>
                             </div>
-                            <div class="col-lg-2 col-md-3 col-sm-3 col-xs-6 text-center">
-                                <a href="http://download.getright.com/getright-download.exe">
-                                    <img border="0" src="http://way2allah.com/images/admin/icons/getright.png" alt="getright">
-                                    <br>رابط تحميل برنامج التحميل
-                                </a>
-                            </div>
-                            <div class="col-lg-8 col-md-6 col-sm-6 col-xs-12 download-notes">
-                                قبل تحميل السلسلة يجب أن يكون برنامج (getright) مثبت على جهازك وسوف يقوم بتحميل السلسلة مباشرة بمجرد الضغط على تحميل السلسلة. لتحميل البرنامج إضغط على رابط تحميل البرنامج
+                            <div class="w2a-series-download-actions">
+                                <a href="/var-series-{{ $groupModel->id }}.grx" class="w2a-series-download-btn"><i class="fa fa-download" aria-hidden="true"></i> <span>تحميل السلسلة (.grx)</span></a>
                             </div>
                         </div>
                     </div>
@@ -111,31 +87,7 @@
                         <div class="caption"><i class="fa fa-video-camera"></i> قائمة المواد : {{ $groupModel->title }}</div>
                     </div>
                     <div class="portlet-body">
-                        {{-- G-13-09 (media/visual parity phase): anasheed/functions.php:326-340's
-                             list_anasheed() — a raw (non-thumbnails.php) frame image per item,
-                             no file_exists() gate (confirmed dead fallback check in source).
-                             .hover-var-item is genuinely PHP-comment-wrapped in source
-                             (functions.php:343-346) — never reachable, not reproduced. --}}
-                        <div class="row var_group_items_list">
-                            @forelse ($items as $item)
-                                <div class="col-lg-2 col-md-2 col-sm-3 col-xs-6 var_group_item">
-                                    <div class="center-block">
-                                        <a href="/var-item-{{ $item->id }}.htm">
-                                            <img src="{{ $item->frameThumbUrl() }}" class="img-responsive" alt="{{ $item->title }}" height="67">
-                                        </a>
-                                    </div>
-                                    <div class="text-center">
-                                        <a href="/var-item-{{ $item->id }}.htm"><h4>{{ $item->title }}</h4></a>
-                                    </div>
-                                </div>
-                            @empty
-                                {{-- functions.php:365-367 — list_anasheed()'s own `if(!empty($items))`
-                                     check is on the CURRENT paginated page, separate from group.php's
-                                     outer count>0 gate above — reachable on a beyond-the-last-page
-                                     request (e.g. /var-group-{id}-page-999.htm), not dead code. --}}
-                                <div class="col-md-12"><div class="text-center alert alert-danger">عفوا ، لا يوجد مواد مضافة في هذا القسم</div></div>
-                            @endforelse
-                        </div>
+                        <x-content.anasheed-media-grid :items="$items" />
                         {{ $items->links() }}
                     </div>
                 </div>

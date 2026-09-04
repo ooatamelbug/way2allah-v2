@@ -38,8 +38,8 @@ optimizations remain authoritative.
 | 5 | `9c1102e4de87f8edcfc5de2da3cee86cd3cc970e` | `9e59b1f` | Blade component and routing adaptation | Added searchable premium channel cards and a native, dependency-free date archive form. Valid dates redirect to canonical Laravel routes; invalid input is ignored safely. |
 | 6 | `40d613a35bc40054713618c3777e46e6ae569580` | `af0d21e` | Intentional Laravel no-op | V2 already uses standard PHP tags and Laravel's parameter-bound query builder. Existing tests verify conditional author/series/group filters and the half-open daily timestamp range, so the legacy raw-SQL rewrite is intentionally not imported. |
 | 7 | `7ce48a2898532dddf401568ac6bb6ca3f24f28f0` | `507e3d4` | Blade component adaptation | Replaced repeated legacy item tables and top-item rows with responsive, accessible cards; moved date results and recommendations into the source design's full-width layout. Laravel query services remain unchanged. |
-| 8 | `0e7838fc099f716ba62fee5435c55c07bc8fa288` | pending | Blade component adaptation | Added a reusable searchable reciter/subgroup directory with responsive cards, lazy fixed-size imagery, counts, descriptions, and accessible live result feedback. |
-| 9 | `b2d15525ad00107b66587c085d7bfc8bc6faf839` | pending | Pending | |
+| 8 | `0e7838fc099f716ba62fee5435c55c07bc8fa288` | `e5e2bf8` | Blade component adaptation | Added a reusable searchable reciter/subgroup directory with responsive cards, lazy fixed-size imagery, counts, descriptions, and accessible live result feedback. |
+| 9 | `b2d15525ad00107b66587c085d7bfc8bc6faf839` | pending | Blade and query adaptation | Added premium subgroup, download, and searchable media-card components. The existing paginated query gains one left join for source-required duration metadata while retaining its filters, ordering, and page size. |
 | 10 | `2820ada64bd454acb55ec940e5069774f1f8c9be` | pending | Pending | |
 | 11 | `bd88261abab747ca24be9db42c26f115f4f56a59` | pending | Pending | |
 | 12 | `b4c8fe14ed7f5b5e084427417c078c8019296f0d` | pending | Pending | |

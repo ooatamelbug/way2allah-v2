@@ -9,6 +9,7 @@ function useInMemoryMainConnectionForAnasheedGroup(): void
     InMemoryConnection::setup('main', [
         'nuke_anasheed_groups' => MainSchema::nukeAnasheedGroups(),
         'nuke_anasheed_anasheed' => MainSchema::nukeAnasheedAnasheed(),
+        'nuke_anasheed_advanced' => MainSchema::nukeAnasheedAdvanced(),
     ]);
 }
 
@@ -66,7 +67,7 @@ it('show: a top-level group (parent_id=0) has a breadcrumb with only itself, cur
 
 // ---- var-group-{id}.htm parity: css/custom.css + the real portlet/card/download-block structure ----
 
-it('show: loads css/custom.css (group.php:5) and renders the real portlet/card markup, not the prior plain <ul>/<div> list', function () {
+it('show: renders premium subgroup, download, and searchable media-card sections', function () {
     DB::connection('main')->table('nuke_anasheed_groups')->insert([
         ['id' => 1, 'title' => 'Parent Group', 'parent_id' => 0, 'child' => 0, 'anasheed' => 0, 'hits' => 0, 'des' => null],
         ['id' => 2, 'title' => 'Sub Group', 'parent_id' => 1, 'child' => 1, 'anasheed' => 5, 'hits' => 9, 'des' => 'A comment'],
@@ -77,15 +78,14 @@ it('show: loads css/custom.css (group.php:5) and renders the real portlet/card m
 
     expect($content)->toContain('/css/custom.css')
         ->and(substr_count($content, 'portlet-title'))->toBe(3) // sub-groups + download + items
-        ->and($content)->toContain('telawah-author')
-        ->and($content)->toContain('telawa-details')
-        ->and($content)->toContain('var_group_item')
-        ->and($content)->toContain('var_group_download')
+        ->and($content)->toContain('w2a-subgroup-card')
+        ->and($content)->toContain('w2a-series-download-banner')
+        ->and($content)->toContain('w2a-media-item-card')
+        ->and($content)->toContain('w2a_anasheed_search_input')
         ->and($content)->toContain('/var-series-1.grx')
-        ->and($content)->toContain('الأقسام الفرعية : 1 قسم')
-        ->and($content)->toContain('المقاطع : 5 مقطع')
-        ->and($content)->toContain('الزيارات : 9 زيارة')
-        ->and($content)->toContain('التعليق : A comment');
+        ->and($content)->toContain('1 قسم فرعي')
+        ->and($content)->toContain('5 مقطع')
+        ->and($content)->toContain('9 زيارة');
 });
 
 it('show: the GetRight-download and items portlets do NOT render when the group has zero items (group.php:60-78\'s shared gate)', function () {
@@ -93,7 +93,7 @@ it('show: the GetRight-download and items portlets do NOT render when the group 
 
     $content = $this->get('/var-group-1.htm')->assertOk()->getContent();
 
-    expect($content)->not->toContain('var_group_download')
+    expect($content)->not->toContain('w2a-series-download-banner')
         ->and($content)->not->toContain('تحميل سلسلة')
         ->and($content)->not->toContain('قائمة المواد :');
 });
@@ -129,23 +129,25 @@ it('show: an item beyond the first pagination page (never in "قائمة الم�
     $this->get('/var-group-1.htm')->assertOk()->assertDontSee('Page Two Leaker');
 });
 
-it('show: G-13-09 — item list rows show a raw (non-thumbnails.php) frame image, or tvnoise.gif when frame=0, matching list_anasheed() exactly', function () {
+it('show: media cards use the raw frame path, optimized fallback, and formatted duration', function () {
     DB::connection('main')->table('nuke_anasheed_groups')->insert(['id' => 1, 'title' => 'Group', 'parent_id' => 0]);
     DB::connection('main')->table('nuke_anasheed_anasheed')->insert([
         ['id' => 100, 'title' => 'Framed Item', 'group_id' => 1, 'frame' => 1],
         ['id' => 200, 'title' => 'No-Frame Item', 'group_id' => 1, 'frame' => 0],
     ]);
+    DB::connection('main')->table('nuke_anasheed_advanced')->insert(['id' => 100, 'adur' => 90000]);
 
     $content = $this->get('/var-group-1.htm')->assertOk()->getContent();
 
     expect($content)->toContain('src="/media/anasheed/frame/0/100.jpg"')
         ->and($content)->not->toContain('thumbnails.php') // this listing bypasses the resize proxy entirely
-        ->and($content)->toContain('/images/tvnoise.gif');
+        ->and($content)->toContain('/assets/img/defult_shaik.png')
+        ->and($content)->toContain('00:01:30');
 });
 
 // ---- G-13-04 (media/visual parity phase): sub-group icon thumbnail, anasheed/functions.php:208-212 ----
 
-it('show: a sub-group with icon=1 renders the bucketed media/anasheed/icons path', function () {
+it('show: subgroup cards use a consistent folder icon instead of legacy image thumbnails', function () {
     DB::connection('main')->table('nuke_anasheed_groups')->insert([
         ['id' => 1, 'title' => 'Parent Group', 'parent_id' => 0, 'icon' => 0],
         ['id' => 2, 'title' => 'Sub Group', 'parent_id' => 1, 'icon' => 1],
@@ -153,10 +155,13 @@ it('show: a sub-group with icon=1 renders the bucketed media/anasheed/icons path
 
     $content = $this->get('/var-group-1.htm')->assertOk()->getContent();
 
-    expect($content)->toContain('/media/anasheed/icons/0/2.jpg');
+    expect($content)
+        ->toContain('w2a-subgroup-icon-wrap')
+        ->toContain('fa-folder-open')
+        ->not->toContain('/media/anasheed/icons/0/2.jpg');
 });
 
-it('show: a sub-group with icon=0 falls back to images/pix001.gif, unconditionally — no file_exists() gate', function () {
+it('show: subgroup cards no longer load the legacy pix001 fallback image', function () {
     DB::connection('main')->table('nuke_anasheed_groups')->insert([
         ['id' => 1, 'title' => 'Parent Group', 'parent_id' => 0, 'icon' => 0],
         ['id' => 2, 'title' => 'Sub Group', 'parent_id' => 1, 'icon' => 0],
@@ -164,7 +169,7 @@ it('show: a sub-group with icon=0 falls back to images/pix001.gif, unconditional
 
     $content = $this->get('/var-group-1.htm')->assertOk()->getContent();
 
-    expect($content)->toContain('/images/pix001.gif');
+    expect($content)->toContain('w2a-subgroup-card')->not->toContain('/images/pix001.gif');
 });
 
 it('show: group 98\'s items also include group 16\'s items — the confirmed hardcoded special case', function () {

@@ -126,8 +126,12 @@ class AnasheedGroupController
 
     private function itemsForGroup(int $groupId, ?int $page = null): LengthAwarePaginator
     {
-        return AnasheedItem::inGroup($groupId)
-            ->orderByDesc('mytime')->orderByDesc('order_in_group')
+        return AnasheedItem::query()
+            ->leftJoin('nuke_anasheed_advanced as ad', 'nuke_anasheed_anasheed.id', '=', 'ad.id')
+            ->select(['nuke_anasheed_anasheed.*', 'ad.adur'])
+            ->inGroup($groupId)
+            ->orderByDesc('nuke_anasheed_anasheed.mytime')
+            ->orderByDesc('nuke_anasheed_anasheed.order_in_group')
             ->paginate(30, ['*'], 'page', $page);
     }
 }
