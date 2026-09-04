@@ -39,7 +39,11 @@ body{
 
 
 .w2a-footer{
-	background: url(images/way_bottom_content_bg.png) repeat-x scroll center bottom rgba(0, 0, 0, 0);
+	background-color: #f9ffff;
+	background-image: url("images/way_bottom_content_bg.png");
+	background-repeat: repeat-x;
+	background-position: center bottom;
+	background-attachment: scroll;
 	min-height:220px !important;
 	clear:both !important;
 	content: "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  ";
@@ -1042,9 +1046,6 @@ ul.homecss li {
 	font-size: 13px;
 	font-weight: bold;
 	color: #3a93ee;
-	border-bottom-width: 1px;
-	border-bottom-style: dashed;
-	border-bottom-color: #b4d0d7;
 }
 
 ul.homecss li a {
@@ -1097,8 +1098,6 @@ a:hover {
 }
 .w2a_polls .w2a_submit {
 	display: inline-block;
-	margin: 5px;
-	padding: 3px 13px;
 	border: 1px solid #4081af;
 	border-bottom-color: #20559a;
 	color: white !important;
@@ -1115,12 +1114,9 @@ a:hover {
 	-webkit-box-shadow: inset 0 1px 0 hsla(0,100%,100%,.3) /*Top*/, inset 0 0 2px hsla(0,100%,100%,.3) /*Shine*/, 0 1px 2px hsla(0, 0%, 0%, .29) /*Shadow*/;
 	-moz-box-shadow: inset 0 1px 0 hsla(0,100%,100%,.3) /*Top*/, inset 0 0 2px hsla(0,100%,100%,.3) /*Shine*/, 0 1px 2px hsla(0, 0%, 0%, .29) /*Shadow*/;
 	box-shadow: inset 0 1px 0 hsla(0,100%,100%,.3) /*Top*/, inset 0 0 2px hsla(0,100%,100%,.3) /*Shine*/, 0 1px 2px hsla(0, 0%, 0%, .29) /*Shadow*/;
-	width: 84px;
-	height: 21px;
 	font-weight: bold;
 	font-family: Tahoma, Geneva, sans-serif;
 	font-size: 12px;
-	float: left;
 }
 .w2a_polls form > div > span {
 	display: inline-block;
@@ -1759,6 +1755,8 @@ audio:focus {
 	padding-top: 20px;
 	color: #fff;
 	text-align: center;
+	margin-right: auto;
+	margin-left: auto;
 }
 .app-promo {
 	max-width: 600px;
@@ -2083,7 +2081,7 @@ ul.homecss li {
   transition: background var(--w2a-transition) !important;
 }
 ul.homecss li:hover {
-  background: var(--w2a-primary-100) !important;
+  background: transparent !important;
   padding-right: var(--w2a-space-2) !important;
 }
 

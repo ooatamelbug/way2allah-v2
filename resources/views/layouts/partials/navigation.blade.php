@@ -28,7 +28,7 @@
     target, route, or URL shape changed — only how the browser resolves
     the existing target.
 --}}
-<ul>
+<ul id="w2a-primary-navigation">
     <li>
         <a class="dropdown-toggle" href="/">الرئيسية</a>
     </li>
@@ -141,9 +141,23 @@
     --}}
     <li class="menu-search">
         <span class="sep"></span>
-        <i class="fa fa-search search-btn"></i>
-        <div class="search-box">
-            <script type="text/javascript">
+        <button type="button" class="w2a-search-trigger-btn" aria-label="البحث المتقدم" title="البحث المتقدم">
+            <i class="fa fa-search search-btn" aria-hidden="true"></i>
+        </button>
+        <div class="search-box" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="w2a-search-title">
+            <div class="w2a-search-modal-card">
+                <div class="w2a-search-modal-header">
+                    <div class="w2a-search-modal-title">
+                        <i class="fa fa-search" aria-hidden="true"></i>
+                        <div>
+                            <h3 id="w2a-search-title">البحث المتقدم في المكتبة</h3>
+                            <p>ابحث عن السلاسل والدروس والخطب والأقسام بسهولة</p>
+                        </div>
+                    </div>
+                    <button type="button" class="w2a-search-close-btn" aria-label="إغلاق نافذة البحث">&times;</button>
+                </div>
+                <div class="w2a-search-modal-body">
+                    <script type="text/javascript">
                 var popup_authors_autocomplete_list = {
                     @php
                         $authorsFile = public_path('w2a_autocomplete/authors.txt');
@@ -164,55 +178,52 @@
                         "{{ $index + 1 }}": "{{ $channel }}"@if (!$loop->last),@endif
                     @endforeach
                 }
-            </script>
-            <form class="form-horizontal w2a_advanced_search" name="w2a_search_form" id="w2a_search_form" method="post" action="/search.htm">
-                @csrf
-                <div class="form-group">
-                    <label for="w2a_kh_title" class="col-sm-4 control-label">اسم السلسلة أو المادة :</label>
-                    <div class="col-sm-8">
-                        <input type="text" class="form-control" name="kh_title" id="w2a_kh_title">
+                    </script>
+                    <form class="form-horizontal w2a_advanced_search" name="w2a_search_form" id="w2a_search_form" method="post" action="/search.htm">
+                        @csrf
+                        <div class="w2a-search-grid">
+                            <div class="w2a-search-field">
+                                <label for="w2a_kh_title"><i class="fa fa-font" aria-hidden="true"></i> اسم السلسلة أو المادة :</label>
+                                <input type="text" class="form-control" name="kh_title" id="w2a_kh_title" placeholder="أدخل اسم السلسلة أو المادة...">
                         <span id="w2a_kh_title_msg" class="way_msg"></span>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="w2a_kh_dept" class="col-sm-4 control-label">القسم :</label>
-                    <div class="col-sm-8">
-                        <select class="form-control" id="w2a_kh_dept" name="kh_dept">
-                            <option value="0">إختر</option>
-                        </select>
+                            </div>
+                            <div class="w2a-search-field">
+                                <label for="w2a_kh_dept"><i class="fa fa-th-large" aria-hidden="true"></i> القسم :</label>
+                                <select class="form-control" id="w2a_kh_dept" name="kh_dept">
+                                    <option value="0">إختر القسم</option>
+                                </select>
                         <span id="w2a_kh_dept_msg" class="way_msg"></span>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="w2a_kh_author_name" class="col-sm-4 control-label">الشيخ :</label>
-                    <div class="col-sm-8">
-                        <input type="text" class="form-control" name="kh_author_name" id="w2a_kh_author_name" />
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="w2a_kh_channel" class="col-sm-4 control-label">القناة :</label>
-                    <div class="col-sm-8">
-                        <input type="text" class="form-control" name="kh_channel" id="w2a_kh_channel" />
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="w2a_kh_from" class="col-xs-12 col-sm-4 control-label">تاريخ الإضافة :</label>
-                    <div class="col-xs-6 col-sm-4">
-                        <input type="text" name="kh_from" class="form-control datepikerinput mini-input" id="w2a_kh_from" placeholder="من"/>
-                    </div>
-                    <div class="col-xs-6 col-sm-4">
-                        <input type="text" name="kh_to" class="form-control datepikerinput mini-input" id="w2a_kh_to" placeholder="إلى"/>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <div class="col-md-offset-2 col-sm-8">
-                        <input type="submit" name="kh_search" id="w2a_kh_search" value="بــحــث" style="width:80px; height:30px;"/>
+                            </div>
+                            <div class="w2a-search-field">
+                                <label for="w2a_kh_author_name"><i class="fa fa-user" aria-hidden="true"></i> الشيخ / المحاضر :</label>
+                                <input type="text" class="form-control" name="kh_author_name" id="w2a_kh_author_name" placeholder="ابحث باسم الشيخ...">
+                            </div>
+                            <div class="w2a-search-field">
+                                <label for="w2a_kh_channel"><i class="fa fa-tv" aria-hidden="true"></i> القناة :</label>
+                                <input type="text" class="form-control" name="kh_channel" id="w2a_kh_channel" placeholder="اختر القناة...">
+                            </div>
+                            <div class="w2a-search-field w2a-search-fullwidth">
+                                <span class="w2a-search-label"><i class="fa fa-calendar" aria-hidden="true"></i> تاريخ الإضافة :</span>
+                                <div class="w2a-date-range">
+                                    <label class="sr-only" for="w2a_kh_from">من تاريخ</label>
+                                    <input type="date" name="kh_from" class="form-control datepikerinput mini-input" id="w2a_kh_from">
+                                    <label class="sr-only" for="w2a_kh_to">إلى تاريخ</label>
+                                    <input type="date" name="kh_to" class="form-control datepikerinput mini-input" id="w2a_kh_to">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="w2a-search-actions">
+                            <button type="submit" name="kh_search" id="w2a_kh_search" class="w2a-search-submit-btn">
+                                <i class="fa fa-search" aria-hidden="true"></i> بــحــث
+                            </button>
+                            <button type="button" class="w2a-search-cancel-btn w2a-search-close-btn">إلغاء</button>
                         <noscript>
                             عفوا .. لا يمكنك البحث قبل تفعيل الجافا سكريبت و الكوكيز فى المتصفح
                         </noscript>
-                    </div>
+                        </div>
+                    </form>
                 </div>
-            </form>
+            </div>
         </div>
     </li>
 </ul>

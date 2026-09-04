@@ -27,58 +27,39 @@
     `media/7amlat/slide_*.jpg` path, not a bare filename.
 --}}
 @if($slides->isNotEmpty())
-    @push('styles')
-        <link href="/assets/global/plugins/fancybox/source/jquery.fancybox.css" rel="stylesheet">
-        <link href="/assets/global/plugins/carousel-owl-carousel/owl-carousel/owl.carousel-rtl.css" rel="stylesheet">
-        <link href="/assets/global/plugins/slider-revolution-slider/rs-plugin/css/settings.css" rel="stylesheet">
-    @endpush
-
     @section('slider')
-        <!-- BEGIN SLIDER -->
-        <div class="page-slider">
-            <div class="fullwidthbanner-container revolution-slider">
-                <div class="fullwidthabnner">
-                    <ul id="revolutionul">
-                        @foreach($slides as $slide)
-                            <li data-transition="fade" data-slotamount="8" data-masterspeed="700" data-delay="9400" data-thumb="/{{ $slide->image }}">
-                                <a href="{{ $slide->url }}">
-                                    <img src="/{{ $slide->image }}" alt="{{ $slide->title }}" width="100%">
-                                </a>
-                            </li>
-                        @endforeach
-                    </ul>
-                    <div class="tp-bannertimer tp-bottom"></div>
+        <div class="page-slider container" aria-roledescription="carousel" aria-label="أبرز محتوى الطريق إلى الله">
+            <div class="w2a-hero-slider-wrap">
+                <div class="w2a-hero-slider-track">
+                    @foreach($slides as $slide)
+                        <div class="w2a-hero-slide {{ $loop->first ? 'active' : '' }}" data-slide-index="{{ $loop->index }}" aria-hidden="{{ $loop->first ? 'false' : 'true' }}">
+                            <a href="{{ $slide->url }}" class="w2a-hero-slide-link">
+                                <img src="/{{ $slide->image }}"
+                                     alt="{{ $slide->title }}"
+                                     decoding="async"
+                                     @if($loop->first) fetchpriority="high" @else loading="lazy" @endif>
+                                <div class="w2a-hero-overlay">
+                                    <div class="w2a-hero-caption">
+                                        <h2 class="w2a-hero-title">{{ $slide->title }}</h2>
+                                        <span class="w2a-hero-cta">عرض المزيد <i class="fa fa-arrow-left" aria-hidden="true"></i></span>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    @endforeach
                 </div>
+                @if($slides->count() > 1)
+                    <button type="button" class="w2a-hero-arrow w2a-hero-prev" aria-label="الشريحة السابقة" title="السابق"><i class="fa fa-chevron-right" aria-hidden="true"></i></button>
+                    <button type="button" class="w2a-hero-arrow w2a-hero-next" aria-label="الشريحة التالية" title="التالي"><i class="fa fa-chevron-left" aria-hidden="true"></i></button>
+                    <div class="w2a-hero-dots" aria-label="اختيار الشريحة">
+                        @foreach($slides as $slide)
+                            <button type="button" class="w2a-hero-dot {{ $loop->first ? 'active' : '' }}" data-dot-index="{{ $loop->index }}" aria-label="الشريحة {{ $loop->iteration }}" aria-current="{{ $loop->first ? 'true' : 'false' }}"></button>
+                        @endforeach
+                    </div>
+                @endif
             </div>
         </div>
-        <!-- END SLIDER -->
     @endsection
-
-    @push('scripts')
-        <!-- BEGIN RevolutionSlider -->
-        <script src="/assets/global/plugins/slider-revolution-slider/rs-plugin/js/jquery.themepunch.plugins.min.js" type="text/javascript"></script>
-        <script src="/assets/global/plugins/slider-revolution-slider/rs-plugin/js/jquery.themepunch.revolution.min.js" type="text/javascript"></script>
-        <script src="/assets/global/plugins/slider-revolution-slider/rs-plugin/js/jquery.themepunch.tools.min.js" type="text/javascript"></script>
-        <script src="/assets/frontend/pages/scripts/revo-slider-init.js" type="text/javascript"></script>
-        <!-- END RevolutionSlider -->
-
-        {{--
-            Batch S (homepage slider investigation): index.php's own
-            initialization call, confirmed present live right after the 4
-            RevolutionSlider script tags above but never ported —
-            revo-slider-init.js only *defines* RevosliderInit.initRevoSlider(),
-            it never calls itself. Without this call, jQuery('.fullwidthabnner')
-            .revolution({...}) never runs, so the slider's <li> slides stay in
-            plain document flow (stacked vertically) instead of being
-            initialized into a carousel. This is the entire fix — same
-            @push('scripts') stack, so it still runs after jquery.min.js.
-        --}}
-        <script type="text/javascript">
-            jQuery(document).ready(function() {
-                RevosliderInit.initRevoSlider();
-            });
-        </script>
-    @endpush
 @endif
 
 @section('content')
@@ -86,18 +67,24 @@
     {{-- BEGIN SERVICE BOX (sections 1-2: static text cards + blockquote CTA) --}}
     <div class="row service-box margin-bottom-40">
         <div class="col-md-4 col-sm-4">
-            <div class="service-box-heading"> <em><i class="fa fa-book blue"></i></em> <span>معاني الآيات</span> </div>
-            <p> وَقَالُوا اتَّخَذَ اللَّهُ وَلَدًا ۗ سُبْحَانَهُ ۖ بَل لَّهُ مَا فِي السَّمَاوَاتِ وَالْأَرْضِ ۖ كُلٌّ لَّهُ قَانِتُونَ [البقرة : 116]
-                { وَقَالُوا } أي: اليهود والنصارى والمشركون, وكل من قال ذلك: { اتَّخَذَ اللَّهُ وَلَدًا } فنسبوه إلى ما لا يليق بجلاله, وأساءوا كل الإساءة, وظلموا أنفسهم.</p>
+            <div class="service-box-card">
+                <div class="service-box-heading"> <em><i class="fa fa-book blue"></i></em> <span>معاني الآيات</span> </div>
+                <p> وَقَالُوا اتَّخَذَ اللَّهُ وَلَدًا ۗ سُبْحَانَهُ ۖ بَل لَّهُ مَا فِي السَّمَاوَاتِ وَالْأَرْضِ ۖ كُلٌّ لَّهُ قَانِتُونَ [البقرة : 116]
+                    { وَقَالُوا } أي: اليهود والنصارى والمشركون, وكل من قال ذلك: { اتَّخَذَ اللَّهُ وَلَدًا } فنسبوه إلى ما لا يليق بجلاله, وأساءوا كل الإساءة, وظلموا أنفسهم.</p>
+            </div>
         </div>
         <div class="col-md-4 col-sm-4">
-            <div class="service-box-heading"> <em><i class="fa fa-group blue"></i></em> <span>حديث شريف</span> </div>
-            <p>قال رسول الله صلى الله عليه وسلم: "لا تباغضوا ولا تحاسدوا ولا تدابروا وكونوا عباد الله إخوانًا ولا يحل لمسلم أن يهجر أخاه فوق ثلاثة أيام"</p>
+            <div class="service-box-card">
+                <div class="service-box-heading"> <em><i class="fa fa-group blue"></i></em> <span>حديث شريف</span> </div>
+                <p>قال رسول الله صلى الله عليه وسلم: "لا تباغضوا ولا تحاسدوا ولا تدابروا وكونوا عباد الله إخوانًا ولا يحل لمسلم أن يهجر أخاه فوق ثلاثة أيام"</p>
+            </div>
         </div>
         <div class="col-md-4 col-sm-4">
-            <div class="service-box-heading"> <em><i class="fa fa-comments blue"></i></em> <span>قول مأثور</span> </div>
-            <p>كيف أضحك والأقصى أسير!!!<br />
-                قول ل الناصر صلاح الدين و لم يرى يضحك بعدها إلا حينما حرر القدس وبيت المقدس فى يوم في 11 رجب سنة 583 هـ، وقال : الآن أضحك.</p>
+            <div class="service-box-card">
+                <div class="service-box-heading"> <em><i class="fa fa-comments blue"></i></em> <span>قول مأثور</span> </div>
+                <p>كيف أضحك والأقصى أسير!!!<br>
+                    قول ل الناصر صلاح الدين و لم يرى يضحك بعدها إلا حينما حرر القدس وبيت المقدس فى يوم في 11 رجب سنة 583 هـ، وقال : الآن أضحك.</p>
+            </div>
         </div>
     </div>
     {{-- END SERVICE BOX --}}
@@ -216,68 +203,41 @@
 
     <div class="row service-box">
         {{-- Section 9: جديد التلاوات --}}
-        <x-home.section-card title="جديد التلاوات" icon="fa-quran" color="blue home" width="3" width-sm="6">
-            @foreach ($telawahs as $item)
-                <ul class="homecss">
-                    <li><a href="/recite-item-{{ $item->id }}.htm" class="tt2">
-                            <span class="top_video">{{ LegacyTextTruncator::chars((string) $item->title, 60, ' ...') }}</span>
-                            <span class="tooltip2">
-                                <span class="top2"></span>
-                                @if (strlen((string) $item->title) > 60)
-                                    <span class="middle2">{{ $item->title }}</span>
-                                @endif
-                                <span class="middle2">{{ $item->group_title }}</span>
-                                <span class="bottom2"></span>
-                            </span>
-                        </a>
-                    </li>
-                </ul>
-            @endforeach
+        <x-home.section-card title="جديد التلاوات" icon="fa-quran" color="blue home" width="4" width-sm="6">
+            <ul class="homecss">
+                @forelse ($telawahs as $item)
+                    <x-home.media-link
+                        href="/recite-item-{{ $item->id }}.htm"
+                        :title="$item->title"
+                        :subtitle="$item->group_title"
+                        icon="fa-book"
+                    />
+                @empty
+                    <li class="w2a-empty-state">لا توجد تلاوات مضافة حاليًا</li>
+                @endforelse
+            </ul>
             <div class="mooore"><a href="/recite-news.htm" class="mo">المزيد ..</a></div>
         </x-home.section-card>
 
         {{-- Section 10: جديد الصوتيات --}}
-        <x-home.section-card title="جديد الصوتيات" icon="fa-volume-up" color="blue home" width="3" width-sm="6">
-            @foreach ($audios as $item)
-                <ul class="homecss">
-                    <li><a href="/khotab-item-{{ $item->id }}.htm" class="tt2">
-                            <span class="top_video">{{ LegacyTextTruncator::mixedMultibyte((string) $item->title, 40, 25) }}</span>
-                            <span class="tooltip2">
-                                <span class="top2"></span>
-                                @if (strlen((string) $item->title) > 60)
-                                    <span class="middle2">{{ $item->title }}</span>
-                                @endif
-                                <span class="middle2">{{ $item->title }} - {{ $item->prename }} {{ $item->name }}</span>
-                                <span class="bottom2"></span>
-                            </span>
-                        </a>
-                    </li>
-                </ul>
-            @endforeach
+        <x-home.section-card title="جديد الصوتيات" icon="fa-volume-up" color="blue home" width="4" width-sm="6">
+            <ul class="homecss">
+                @forelse ($audios as $item)
+                    <x-home.media-link
+                        href="/khotab-item-{{ $item->id }}.htm"
+                        :title="$item->title"
+                        :subtitle="trim($item->prename.' '.$item->name)"
+                        icon="fa-volume-up"
+                    />
+                @empty
+                    <li class="w2a-empty-state">لا توجد صوتيات مضافة حاليًا</li>
+                @endforelse
+            </ul>
             <div class="mooore" style="margin-top:-1px;"><a href="/khotab-audio_news.htm" class="mo">المزيد ..</a></div>
         </x-home.section-card>
 
-        {{-- Section 11: التصميمات الدعوية --}}
-        <x-home.section-card title="التصميمات الدعوية" icon="fa-pencil" color="blue home" body-class="nopadding" width="3" width-sm="6">
-            <div class="list_carousel2">
-                <ul id="pics">
-                    @foreach ($album['images'] as $image)
-                        <li><a href="/gallery-{{ $album['album_id'] }}.htm"><img border="0" src="{{ $image->thumb }}"></a></li>
-                    @endforeach
-                </ul>
-                <div class="clearfix"></div>
-            </div>
-        </x-home.section-card>
-
-        {{-- Section 12: إعلان (position 3) --}}
-        <x-home.section-card title="إعلان" icon="fa-location-arrow" color="blue home" body-class="text-center nopadding" width="3" width-sm="6">
-            {!! $ad3 !!}
-        </x-home.section-card>
-    </div>
-
-    <div class="row service-box">
-        {{-- Section 13: جديد الأفلام الوثائقية (parent=12) --}}
-        <x-home.section-card title="جديد الأفلام الوثائقية" icon="fa-film" color="blue home" width="3" width-sm="6">
+        {{-- جديد الأفلام الوثائقية (parent=12) --}}
+        <x-home.section-card title="جديد الأفلام الوثائقية" icon="fa-film" color="blue home" width="4" width-sm="6">
             <ul class="vars">
                 @forelse ($documentary12 as $item)
                     <li>
@@ -295,9 +255,11 @@
             </ul>
             <div class="mooore"><a href="/documentary-news.htm" class="mo">المزيد ..</a></div>
         </x-home.section-card>
+    </div>
 
-        {{-- Section 14: جديد الكارتون (parent=57) --}}
-        <x-home.section-card title="جديد الكارتون" icon="fa-child" color="blue home" width="3" width-sm="6">
+    <div class="row service-box">
+        {{-- جديد الكارتون (parent=57) --}}
+        <x-home.section-card title="جديد الكارتون" icon="fa-child" color="blue home" width="4" width-sm="6">
             <ul class="vars">
                 @forelse ($cartoon57 as $item)
                     <li>
@@ -316,8 +278,8 @@
             <div class="mooore"><a href="/cartoon-news.htm" class="mo">المزيد ..</a></div>
         </x-home.section-card>
 
-        {{-- Section 15: أحدث المواد المفرغة --}}
-        <x-home.section-card title="أحدث المواد المفرغة" icon="fa-book" color="blue home" width="3" width-sm="6">
+        {{-- أحدث المواد المفرغة --}}
+        <x-home.section-card title="أحدث المواد المفرغة" icon="fa-book" color="blue home" width="4" width-sm="6">
             <ul class="vars">
                 @foreach ($dumpFiles as $item)
                     <li>
@@ -332,83 +294,65 @@
             <div class="mooore"><a href="/dumped-lectures.htm" class="mo">المزيد ..</a></div>
         </x-home.section-card>
 
-        {{-- Section 16: التصويت --}}
-        <x-home.section-card title="التصويت" icon="fa-check-square-o" color="blue home w2a_polls" body-class="nopadding" width="3" width-sm="6">
+        {{-- التصويت --}}
+        <x-home.section-card title="التصويت" icon="fa-check-square-o" color="blue home w2a_polls" body-class="nopadding" width="4" width-sm="6">
             @if ($pollData)
-                <form action="/survey-vote-{{ $pollData['poll']->pollID }}.htm" method="post">
+                <form action="/survey-vote-{{ $pollData['poll']->pollID }}.htm" method="post" class="w2a-poll-form">
                     <input type="hidden" name="pollID" value="{{ $pollData['poll']->pollID }}" />
-                    <p id="title"><a href="/survey-results-{{ $pollData['poll']->pollID }}.htm">{{ $pollData['poll']->pollTitle }}</a></p>
-                    <ul class="homecss" style="margin-top:0px;">
+                    <p id="title" class="w2a-poll-title"><a href="/survey-results-{{ $pollData['poll']->pollID }}.htm">{{ $pollData['poll']->pollTitle }}</a></p>
+                    <ul class="homecss w2a-poll-options">
                         @foreach ($pollData['options'] as $option)
-                            <li><a style="background-image:none; padding-right:0;padding-top:0px;"><input type="radio" name="voteID" id="vot{{ $option->voteID }}" value="{{ $option->voteID }}" />&nbsp;&nbsp;<label for="vot{{ $option->voteID }}" class="mylabel">{{ $option->optionText }}</label></a></li>
+                            <li class="w2a-poll-item">
+                                <label for="vot{{ $option->voteID }}" class="w2a-poll-label">
+                                    <input type="radio" name="voteID" id="vot{{ $option->voteID }}" value="{{ $option->voteID }}" class="w2a-poll-radio">
+                                    <span>{{ $option->optionText }}</span>
+                                </label>
+                            </li>
                         @endforeach
                     </ul>
-                    <input class="w2a_submit" value="تصــويت" type="submit">
-                    <br />
-                    <div><span>عدد المشاركين : {{ $pollData['totalVotes'] }}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;عدد التعليقات: {{ $pollData['commentsDisplay'] }}</span></div>
+                    <div class="w2a-poll-action">
+                        <button class="w2a_submit w2a-poll-submit-btn" type="submit">تصــويت</button>
+                    </div>
+                    <div class="w2a-poll-meta">
+                        <span><i class="fa fa-users" aria-hidden="true"></i> عدد المشاركين : {{ $pollData['totalVotes'] }}</span>
+                        <span><i class="fa fa-comments" aria-hidden="true"></i> عدد التعليقات: {{ $pollData['commentsDisplay'] }}</span>
+                    </div>
                 </form>
             @endif
         </x-home.section-card>
     </div>
 
-    {{-- BEGIN CLIENTS (Section 17: تشاهدون الآن) --}}
-    <div class="row our-clients">
-        <div class="col-md-3">
-            <h2><a href="#">تشاهدون الآن</a></h2>
-            <p>قائمة بأكثر المواد مشاهدة في الوقت الحالي على موقعناً.</p>
+    {{-- BEGIN NOW WATCHING --}}
+    <div class="row w2a-now-watching">
+        <div class="col-md-3 w2a-now-watching-header">
+            <h2>أكثر المواد مشاهدة</h2>
+            <p>قائمة بأكثر المواد تفاعلاً ومشاهدة في الوقت الحالي على موقع الطريق إلى الله</p>
+            <div class="w2a-rail-nav">
+                <button type="button" class="w2a-rail-btn w2a-rail-prev" aria-label="المواد السابقة" title="السابق"><i class="fa fa-chevron-right" aria-hidden="true"></i></button>
+                <button type="button" class="w2a-rail-btn w2a-rail-next" aria-label="المواد التالية" title="التالي"><i class="fa fa-chevron-left" aria-hidden="true"></i></button>
+            </div>
         </div>
-        <div class="col-md-9">
-            <div class="owl-carousel owl-carousel6-brands">
-                @foreach ($trending as $item)
+        <div class="col-md-9 w2a-now-watching-body">
+            <div class="w2a-now-watching-rail" tabindex="0" aria-label="أكثر المواد مشاهدة">
+                @forelse ($trending as $item)
                     @php $title = str_replace('"', "''", (string) $item->title); @endphp
-                    <div class="client-item">
-                        <a href="/var-item-{{ $item->id }}.htm">
-                            <img src="{{ $item->thumb }}" class="img-responsive" alt="{{ $title }}" width="100%">
-                            <div class="client-item-overlay"></div>
-                            <div class="client-item-title">{{ $title }}</div>
+                    <article class="w2a-watching-card">
+                        <a href="/var-item-{{ $item->id }}.htm" class="w2a-watching-thumb-link">
+                            <span class="w2a-watching-thumb-wrap">
+                                <img src="{{ $item->thumb }}" alt="{{ $title }}" width="280" height="180" loading="lazy" decoding="async">
+                                <span class="w2a-watching-play-badge" aria-hidden="true"><i class="fa fa-play"></i></span>
+                            </span>
+                            <span class="w2a-watching-info">
+                                <span class="w2a-watching-title">{{ $title }}</span>
+                            </span>
                         </a>
-                    </div>
-                @endforeach
+                    </article>
+                @empty
+                    <p class="w2a-empty-state">لا توجد مواد متاحة حاليًا</p>
+                @endforelse
             </div>
         </div>
     </div>
-    {{-- END CLIENTS --}}
+    {{-- END NOW WATCHING --}}
 
-    {{--
-        `index.php`'s footer JS registers `carouFredSel` for `#pics` (this
-        section's own live carousel) and `#cds` (the dead `list_latest_cds()`
-        carousel — not reproduced, matching the Blueprint's §8/§14 decision:
-        no `#cds` element exists on this page to init against).
-
-        Visual parity audit finding (2026-08-18): this block was previously
-        placed directly in `@section('content')`, which renders inside
-        `<div class="main">` — well before `layouts/app.blade.php` loads
-        `jquery.min.js` near the end of `<body>`. `$(function () {...})`
-        calls `$` immediately (not deferred), so it threw "$ is not defined"
-        and silently prevented `#pics` from ever initializing. Moved into
-        `@push('scripts')` (already used by this same file for the
-        RevolutionSlider scripts above), which `layouts/app.blade.php`
-        renders via `@stack('scripts')` right before `</body>`, after
-        `jquery.min.js` has loaded — matching legacy's own script order
-        (`jquery.min.js` in `<head>`, `jquery.carouFredSel.js` + its init
-        near the very end of the page). Script contents, options, and
-        selectors are unchanged from before this fix.
-    --}}
-    @push('scripts')
-        <script src="/assets/plugins/jquery.carouFredSel.js"></script>
-        <script>
-            $(function () {
-                jQuery('#pics').carouFredSel({
-                    scroll: 1,
-                    direction: "up",
-                    auto: {pauseDuration: 3000},
-                    scroll: {
-                        items: 1,
-                        effect: "easeOutBounce",
-                        pauseOnHover: true
-                    }
-                });
-            });
-        </script>
-    @endpush
 @endsection

@@ -2,6 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     {{-- Batch 4 (media player, khotab-item-298784.htm): not in legacy —
          legacy has no CSRF concept at all. Laravel's CSRF protection is
          active for the new /media-player POST endpoint (no route
@@ -10,6 +11,7 @@
          reused from here rather than duplicated per page. --}}
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title') - {{ config('app.name') }}</title>
+    <meta name="description" content="@yield('meta_description', 'شبكة الطريق إلى الله: مكتبة إسلامية مرئية وصوتية شاملة.')">
 
     {{--
         Business Demo wiring only — reproduces header.php's own stylesheet
@@ -24,10 +26,6 @@
         equivalent for yet.
     --}}
     <link rel="shortcut icon" href="/css/images/favicon.ico">
-
-    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700|PT+Sans+Narrow|Source+Sans+Pro:200,300,400,600,700,900&amp;subset=all"
-          rel="stylesheet" type="text/css">
-    <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&display=swap" rel="stylesheet">
 
     <link href="/assets/global/plugins/font-awesome/css/font-awesome.min.css" rel="stylesheet">
     <link href="/assets/global/plugins/bootstrap/css/bootstrap-rtl.min.css" rel="stylesheet">
@@ -63,8 +61,10 @@
         <head> is unaffected, matching legacy's own per-page conditional.
     --}}
     @stack('styles')
+    <link href="/assets/frontend/layout/css/premium-ui.css" rel="stylesheet" type="text/css">
 </head>
 <body class="corporate">
+<a class="w2a-skip-link" href="#main-content">انتقل إلى المحتوى الرئيسي</a>
 {{--
     Global Chrome step — ported from legacy header.php (pre-header/header/
     nav/search) and footer.php (pre-footer/footer/scripts), reusing the
@@ -107,7 +107,9 @@
         {{-- legacy: href="/index.php" — adapted to "/", Laravel's own root route, not the unported legacy home page --}}
         <a class="site-logo" href="/"><img id="logo-light" src="/logo-light.png" alt="الطريق إلى الله"></a>
 
-        <a href="javascript:void(0);" class="mobi-toggler"><i class="fa fa-bars"></i></a>
+        <button type="button" class="mobi-toggler" aria-controls="w2a-primary-navigation" aria-expanded="false" aria-label="فتح القائمة الرئيسية">
+            <i class="fa fa-bars" aria-hidden="true"></i>
+        </button>
 
         <!-- BEGIN NAVIGATION -->
         <div class="header-navigation pull-right font-transform-inherit">
@@ -126,7 +128,7 @@
 --}}
 @yield('slider')
 
-<div class="main">
+<main class="main" id="main-content" tabindex="-1">
     <div class="container">
         {{--
             AddThis widget investigation (visual/CSS parity phase) —
@@ -149,7 +151,7 @@
 
         @yield('content')
     </div>
-</div>
+</main>
 
 <div class="w2a-footer"></div>
 
@@ -221,5 +223,6 @@
 <!-- END CORE PLUGINS -->
 {{-- G-13-06: footer.php:84-91's `$footer['js']['slider']==true` RevolutionSlider scripts — same index.php-only condition as the styles/slider-markup stacks above. --}}
 @stack('scripts')
+<script src="/assets/frontend/layout/scripts/premium-ui.js" defer></script>
 </body>
 </html>
