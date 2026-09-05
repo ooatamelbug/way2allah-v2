@@ -114,6 +114,35 @@ it('/: keeps equal-height content rows horizontal while stretching their card co
         ->toMatch('/\.row\.service-box\.w2a-equal-height-row\s*>\s*\[class\*="col-"\][^{]*\{[^}]*flex-direction:\s*column\s*!important;/s');
 });
 
+it('/: groups video and fatwa copy so title metadata does not compete as separate flex items', function () {
+    DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'العدوي', 'prename' => 'الشيخ']);
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1,
+        'author' => 1,
+        'vedio' => 1,
+        'newslist' => 1,
+        'title' => 'عنوان مرئي طويل',
+        'time' => 1_788_356_760,
+    ]);
+    DB::connection('main')->table('nuke_fatwa_questions')->insert([
+        'id' => 1,
+        'auther_id' => 1,
+        'question_text' => 'عنوان فتوى مرئية',
+        'general_question_id' => '1',
+    ]);
+
+    $content = $this->get('/')->assertOk()->getContent();
+
+    expect(substr_count($content, '<div class="w2a-var-copy">'))->toBe(2)
+        ->and($content)->toMatch('/<div class="w2a-var-copy">\s*<span>عنوان مرئي طويل<\/span><br>\s*<small>الشيخ العدوي<\/small>/')
+        ->toMatch('/<div class="w2a-var-copy">\s*<span>عنوان فتوى مرئية<\/span><br>\s*<small>الشيخ العدوي<\/small>/')
+        ->and($content)->toContain('3:46م');
+});
+
+it('/: uses the legacy Cairo timezone for homepage publication times', function () {
+    expect(config('app.timezone'))->toBe('Africa/Cairo');
+});
+
 it('/: exposes keyboard-accessible global navigation and advanced search controls', function () {
     $content = $this->get('/')->assertOk()->getContent();
 

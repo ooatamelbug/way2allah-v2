@@ -845,6 +845,11 @@ ul.recent_list li a:hover {
   color: var(--w2a-primary-600) !important;
 }
 
+ul.vars li a .w2a-var-copy {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+
 /* Real Content Images in Rows: Circular, fixed 38px diameter, object-fit: cover */
 ul.vars img,
 ul.downloaded_list img,

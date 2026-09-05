@@ -104,11 +104,13 @@
                     <li>
                         <a href="/khotab-item-{{ $item->id }}.htm" title="{{ $item->title }}" class="tt">
                             <img src="{{ $item->thumb }}" title="{{ $item->title }}" alt="{{ $item->title }}" width="72" height="50">
-                            <span>{{ LegacyTextTruncator::words((string) $item->title, 90) }}</span><br>
-                            <small>{{ $item->prename }} {{ $item->name }}</small>
-                            @if (isset($item->timeLabel))
-                                <span class="var_time">{{ $item->timeLabel }}</span>
-                            @endif
+                            <div class="w2a-var-copy">
+                                <span>{{ LegacyTextTruncator::words((string) $item->title, 90) }}</span><br>
+                                <small>{{ $item->prename }} {{ $item->name }}</small>
+                                @if (isset($item->timeLabel))
+                                    <span class="var_time">{{ $item->timeLabel }}</span>
+                                @endif
+                            </div>
                         </a>
                     </li>
                 @endforeach
@@ -153,8 +155,10 @@
                     <li>
                         <a href="/fatawa-all-{{ $item->linkId }}.htm" title="{{ $item->question_text }}" class="tt">
                             <img src="/images/tvnoise.gif" title="{{ $item->question_text }}" alt="{{ $item->question_text }}" width="72" height="50">
-                            <span>{{ LegacyTextTruncator::chars((string) $item->question_text, 110, '..') }}</span><br>
-                            <small>{{ $item->prename }} {{ $item->name }}</small>
+                            <div class="w2a-var-copy">
+                                <span>{{ LegacyTextTruncator::chars((string) $item->question_text, 110, '..') }}</span><br>
+                                <small>{{ $item->prename }} {{ $item->name }}</small>
+                            </div>
                         </a>
                     </li>
                 @endforeach
