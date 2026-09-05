@@ -59,8 +59,7 @@
                 @foreach ($channels as $channel)
                     <a href="/fatawa-channel-{{ $channel->id }}.htm" class="w2a-channel-card">
                         <span class="w2a-channel-card__logo">
-                            <img src="/images/channels/{{ $channel->id }}.png" width="120" height="120"
-                                alt="{{ $channel->title }}" loading="lazy" decoding="async">
+                            <img src="/images/channels/{{ $channel->id }}.png" width="120" height="120" alt="{{ $channel->title }}" loading="lazy" decoding="async">
                         </span>
                         <span class="w2a-channel-card__content">
                             <strong>{{ $channel->title }}</strong>
@@ -70,7 +69,7 @@
                 @endforeach
             </div>
             <div class="w2a-refresh-pagination" aria-label="صفحات القنوات">
-                {{ $channels->links() }}
+                {{ $channels->onEachSide(1)->links('components.content.premium-pagination') }}
             </div>
         </x-content.premium-panel>
     </div>

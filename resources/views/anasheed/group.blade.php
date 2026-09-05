@@ -88,7 +88,7 @@
                     </div>
                     <div class="portlet-body">
                         <x-content.anasheed-media-grid :items="$items" />
-                        {{ $items->links() }}
+                        {{ $items->onEachSide(1)->links('components.content.premium-pagination') }}
                     </div>
                 </div>
             </div>

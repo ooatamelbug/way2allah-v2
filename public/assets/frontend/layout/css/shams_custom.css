@@ -22,7 +22,7 @@ body {
 }
 
 .main {
-    background: url("https://way2allah.com/assets/frontend/layout/css/images/way_content_bg.jpg")
+    background: url("images/way_content_bg.jpg")
         repeat-x scroll center top rgba(0, 0, 0, 0);
     padding-top: 23px !important;
 }
@@ -32,7 +32,7 @@ body {
 }
 
 .w2a-footer {
-    background: url("https://way2allah.com/assets/frontend/layout/css/images/way_bottom_content_bg.png")
+    background: url("images/way_bottom_content_bg.png")
         repeat-x scroll center bottom rgba(0, 0, 0, 0);
     min-height: 150px !important;
     clear: both !important;
@@ -40,7 +40,7 @@ body {
 }
 
 .pre-footer {
-    background: url("https://way2allah.com/assets/frontend/layout/css/images/way_footer_bg.jpg")
+    background: url("images/way_footer_bg.jpg")
         repeat scroll center top rgba(0, 0, 0, 0);
     color: #fff !important;
     height: 120px !important;

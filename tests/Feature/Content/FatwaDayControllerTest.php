@@ -184,8 +184,8 @@ it('Fatwa Date Route Completion: page 2 of a historical date renders the correct
     $page1->assertOk()
         ->assertSee('Question 1')
         ->assertDontSee('Question 26')
-        // Real legacy pagination markup/classes, correct pretty-URL shape.
-        ->assertSee('class="pagination"', false)
+        // Shared premium presentation, with the real pretty-URL shape preserved.
+        ->assertSee('class="w2a-pagination"', false)
         ->assertSee('/fatwa-date-16-8-2026-2.htm', false)
         ->assertDontSee('?page=', false);
 

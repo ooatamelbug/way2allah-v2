@@ -210,7 +210,7 @@
                             @endif
                         </tbody>
                     </table>
-                    <div class="row"><div class="col-xs-12">{{ $series->links() }}</div></div>
+                    <div class="row"><div class="col-xs-12">{{ $series->onEachSide(1)->links('components.content.premium-pagination') }}</div></div>
                 </div>
             </div>
         </div>
@@ -284,7 +284,7 @@
                             @endif
                         </tbody>
                     </table>
-                    <div class="row"><div class="col-xs-12">{{ $items->links() }}</div></div>
+                    <div class="row"><div class="col-xs-12">{{ $items->onEachSide(1)->links('components.content.premium-pagination') }}</div></div>
                 </div>
             </div>
         </div>

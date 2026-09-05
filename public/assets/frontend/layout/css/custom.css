@@ -40,7 +40,7 @@ body{
 
 .w2a-footer{
 	background-color: #f9ffff;
-	background-image: url("https://way2allah.com/assets/frontend/layout/css/images/way_bottom_content_bg.png");
+	background-image: url("images/way_bottom_content_bg.png");
 	background-repeat: repeat-x;
 	background-position: center bottom;
 	background-attachment: scroll;
@@ -50,7 +50,7 @@ body{
 }
 
 .pre-footer{
-    background: url("https://way2allah.com/assets/frontend/layout/css/images/way_footer_bg.jpg") repeat scroll center top rgba(0, 0, 0, 0);
+    background: url("images/way_footer_bg.jpg") repeat scroll center top rgba(0, 0, 0, 0);
     color: #fff !important;
     height: 120px !important;
     padding-top: 5px !important;
@@ -68,7 +68,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .portlet-title{
-	background: url("https://way2allah.com/assets/frontend/layout/css/images/block_bg.png") repeat-x scroll right top transparent;
+	background: url("images/block_bg.png") repeat-x scroll right top transparent;
 }
 
 .blue .portlet-body{
@@ -212,7 +212,7 @@ ul.vars img{
 	border:1px solid #f5fdff;
 	display: block;
 	vertical-align: middle;
-	background-image: url("https://way2allah.com/assets/frontend/layout/css/images/tv.png");
+	background-image: url("images/tv.png");
 	background-repeat: no-repeat;
 	background-position: center 10px;
 	margin: 3px;
@@ -222,7 +222,7 @@ ul.vars img{
 	text-align: center;
 }
 .var_item a.cd_bg_img{
-	background-image: url("https://way2allah.com/assets/frontend/layout/css/images/tv_cd.png");
+	background-image: url("images/tv_cd.png");
 	height: 175px;
 }
 .var_item a.cd_bg_img img {

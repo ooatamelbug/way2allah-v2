@@ -200,7 +200,7 @@ it('index: pagination uses the premium accessible navigation while preserving ge
 
     expect($content)
         ->toContain('class="w2a-pagination"')
-        ->toContain('aria-label="التنقل بين صفحات الإسطوانات"')
+        ->toContain('aria-label="التنقل بين الصفحات"')
         ->toContain('aria-current="page"')
         ->toContain('aria-label="الصفحة التالية"')
         ->toContain('cds-main.htm?page=2')

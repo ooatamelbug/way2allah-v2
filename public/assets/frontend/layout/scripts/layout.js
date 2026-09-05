@@ -1,9 +1,21 @@
 $('.mobi-toggler').on('click', function(event){
     event.preventDefault();
-    if($('.header .header-navigation').css('display') == 'block'){
-        $('.header .header-navigation').slideUp();
-    } else {
-        $('.header .header-navigation').slideDown();
+
+    var $toggle = $(this);
+    var $navigation = $('.header .header-navigation');
+    var isOpen = !$navigation.hasClass('is-open');
+
+    $navigation.toggleClass('is-open', isOpen);
+    $toggle.attr('aria-expanded', isOpen ? 'true' : 'false');
+    $toggle.attr('aria-label', isOpen ? 'إغلاق القائمة الرئيسية' : 'فتح القائمة الرئيسية');
+});
+
+$(window).on('resize.w2aNavigation', function(){
+    if ($(window).width() > 1024) {
+        $('.header .header-navigation').removeClass('is-open');
+        $('.mobi-toggler')
+            .attr('aria-expanded', 'false')
+            .attr('aria-label', 'فتح القائمة الرئيسية');
     }
 });
 
@@ -504,5 +516,4 @@ var Layout = function () {
 
     };
 }();
-
 

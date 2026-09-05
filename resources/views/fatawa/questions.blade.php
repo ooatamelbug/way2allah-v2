@@ -85,7 +85,7 @@
                         </div>
                         <div class="portlet-body series-overflow">
                             <div class="portlet-body">
-                                {{ $generalQuestions->links() }}
+                                {{ $generalQuestions->onEachSide(1)->links('components.content.premium-pagination') }}
                                 <table class="table table-striped table-hover" id="sample_5">
                                     <tbody>
                                         @foreach ($generalQuestions as $question)
@@ -119,7 +119,7 @@
                                         @endforeach
                                     </tbody>
                                 </table>
-                                {{ $generalQuestions->links() }}
+                                {{ $generalQuestions->onEachSide(1)->links('components.content.premium-pagination') }}
                             </div>
                         </div>
                     </div>

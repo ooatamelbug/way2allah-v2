@@ -92,11 +92,11 @@
             <x-content.media-player-script />
 
             {{-- item.php:86 post_comment_modal() (functions.php:504-536) — the modal itself, previously entirely absent. --}}
-            <div class="modal fade" id="commentsModal" tabindex="-1" role="dialog" aria-labelledby="commentsModalLabel">
+            <div class="modal fade" id="commentsModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="commentsModalLabel">
                 <div class="modal-dialog" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="إغلاق النافذة"><span aria-hidden="true">&times;</span></button>
                             <h4 class="modal-title" id="commentsModalLabel">اضافة تعليق على : {{ $anasheedItem->title }}</h4>
                         </div>
                         <div class="modal-body" id="modal-comment-body">
@@ -123,11 +123,11 @@
             </div>
 
             {{-- item.php:87 send_friend_modal() (functions.php:599-646) — the modal itself, previously entirely absent. --}}
-            <div class="modal fade" id="sendFriendModal" tabindex="-1" role="dialog" aria-labelledby="sendFriendModalLabel">
+            <div class="modal fade" id="sendFriendModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="sendFriendModalLabel">
                 <div class="modal-dialog" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="إغلاق النافذة"><span aria-hidden="true">&times;</span></button>
                             <h4 class="modal-title" id="sendFriendModalLabel">ارسل مادة : {{ $anasheedItem->title }}</h4>
                         </div>
                         <div class="modal-body" id="modal-sendFriend-body">

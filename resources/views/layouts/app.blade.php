@@ -42,14 +42,6 @@
     <link href="/assets/frontend/layout/scripts/w2a/styles.css" rel="stylesheet" />
 
     {{--
-        AddThis widget investigation (visual/CSS parity phase) —
-        header.php:147-148's AddThis script: unconditional, sitewide,
-        no `if` gate of any kind — confirmed by direct reading. Confirmed
-        missing from Laravel entirely prior to this change.
-    --}}
-    <script type="text/javascript" src="//s7.addthis.com/js/300/addthis_widget.js#pubid=ra-6320ffadd9bb2e6e"></script>
-
-    {{--
         G-13-06 (media/visual parity phase): header.php:103-109's
         `$header['css']['slider']==true` plugin styles — previously
         undocumented as *conditional*, not unconditionally skipped. Only
@@ -131,25 +123,6 @@
 
 <main class="main" id="main-content" tabindex="-1">
     <div class="container">
-        {{--
-            AddThis widget investigation (visual/CSS parity phase) —
-            functions.php:749-757's `share()`, exact markup (including its
-            `style=" float: left;"` spacing, byte-matched against live
-            production). Confirmed via 7 live page types (homepage,
-            khotab listing/detail, fatawa-categories, gallery, anasheed
-            group, channels) to render at this exact position — immediately
-            inside .main .container, before any page-specific content —
-            on every page, not just the homepage. No local caller for
-            `share()` was ever found (exhaustive search); rendered here
-            unconditionally in the shared layout instead, matching the
-            confirmed real position rather than guessing a per-page call.
-        --}}
-        <div class="row">
-            <div class="col-sm-12">
-                <div style=" float: left;" class="addthis_inline_share_toolbox addthis_sharing_toolbox"></div>
-            </div>
-        </div>
-
         @yield('content')
     </div>
 </main>

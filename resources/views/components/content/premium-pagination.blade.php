@@ -1,11 +1,10 @@
 @if ($paginator->hasPages())
-    <nav class="w2a-pagination" role="navigation" aria-label="التنقل بين صفحات الإسطوانات">
+    <nav class="w2a-pagination" role="navigation" aria-label="التنقل بين الصفحات">
         <p class="w2a-pagination__summary">
             عرض
             <strong>{{ $paginator->firstItem() }}–{{ $paginator->lastItem() }}</strong>
             من
             <strong>{{ $paginator->total() }}</strong>
-            إسطوانة
         </p>
 
         <ul class="w2a-pagination__list">

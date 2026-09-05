@@ -254,11 +254,11 @@
                     form POST) rather than the unreachable w2a_play.js's
                     sendemail() — see this file's top docblock.
                 --}}
-                <div class="modal fade" id="sendFriendModal{{ $answer->id }}" tabindex="-1" role="dialog" aria-labelledby="sendFriendModalLabel{{ $answer->id }}">
+                <div class="modal fade" id="sendFriendModal{{ $answer->id }}" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="sendFriendModalLabel{{ $answer->id }}">
                     <div class="modal-dialog" role="document">
                         <div class="modal-content">
                             <div class="modal-header">
-                                <button type="button" class="close" data-dismiss="modal" aria-label="Close"> <span aria-hidden="true">&times;</span> </button>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="إغلاق النافذة"> <span aria-hidden="true">&times;</span> </button>
                                 <h4 class="modal-title" id="sendFriendModalLabel{{ $answer->id }}">ارسال مادة : {{ $answer->question_text }}</h4>
                             </div>
                             <form action="{{ route('fatawa.question.send-to-friend', $answer->id) }}" method="post">

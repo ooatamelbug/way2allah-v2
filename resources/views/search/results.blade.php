@@ -104,7 +104,7 @@
                             @endforeach
                         @endif
                     </ul>
-                    {{ $mawad->links() }}
+                    {{ $mawad->onEachSide(1)->links('components.content.premium-pagination') }}
                 </section>
             @endif
 
@@ -152,7 +152,7 @@
                             @endforeach
                         @endif
                     </ul>
-                    {{ $series->links() }}
+                    {{ $series->onEachSide(1)->links('components.content.premium-pagination') }}
                 </section>
             @endif
 
@@ -168,7 +168,7 @@
                             </li>
                         @endforeach
                     </ul>
-                    {{ $topics->links() }}
+                    {{ $topics->onEachSide(1)->links('components.content.premium-pagination') }}
                 </section>
             @endif
         </section>

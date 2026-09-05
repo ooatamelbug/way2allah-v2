@@ -53,5 +53,5 @@
         @endforeach
     </div>
 
-    {{ $comments->links() }}
+    {{ $comments->onEachSide(1)->links('components.content.premium-pagination') }}
 </div>

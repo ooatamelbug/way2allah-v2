@@ -293,8 +293,8 @@
       });
       moreLi.style.display = "none";
 
-      // On mobile screens (< 992px), Metronic sidebar drawer handles navigation
-      if (window.innerWidth < 992) return;
+      // Tablet/mobile screens use the full-width collapsible navigation.
+      if (window.innerWidth <= 1024) return;
 
       // Available width for top nav items
       var containerWidth = container.clientWidth;
