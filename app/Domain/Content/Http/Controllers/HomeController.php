@@ -28,6 +28,8 @@ use Illuminate\Support\Facades\DB;
  */
 class HomeController
 {
+    private const MEDIA_WIDGET_ITEM_LIMIT = 3;
+
     public function index(ContentListingService $listing): View
     {
         return view('home', [
@@ -37,15 +39,28 @@ class HomeController
             'exclusive158' => $this->withAnasheedThumbs($listing->homeAnasheedByParent(158), 72, 50),
             'youtube' => $this->resolveYoutube(),
             'soundcloud' => $this->resolveSoundcloud(),
-            'telawahs' => $listing->homeLatestTelawahs(),
-            'audios' => $listing->homeLatestAudios(),
-            'documentary12' => $this->withAnasheedThumbs($listing->homeAnasheedByParent(12), 72, 50),
+            'telawahs' => $this->limitMediaWidgetItems($listing->homeLatestTelawahs()),
+            'audios' => $this->limitMediaWidgetItems($listing->homeLatestAudios()),
+            'documentary12' => $this->withAnasheedThumbs(
+                $this->limitMediaWidgetItems($listing->homeAnasheedByParent(12)),
+                72,
+                50,
+            ),
             'cartoon57' => $this->withAnasheedThumbs($listing->homeAnasheedByParent(57), 72, 50),
             'dumpFiles' => $this->withVideoThumbs($listing->homeLatestDumpFiles()),
             'pollData' => $this->resolvePollViewData(),
             'trending' => $this->withAnasheedThumbs($listing->homeTrendingAnasheed(), 100, 75),
             'slides' => $listing->homeSliderItems(),
         ]);
+    }
+
+    /**
+     * Keep the homepage card contract stable even when an older, larger
+     * collection is still present in a persistent production cache.
+     */
+    private function limitMediaWidgetItems(Collection $items): Collection
+    {
+        return $items->take(self::MEDIA_WIDGET_ITEM_LIMIT)->values();
     }
 
     /**

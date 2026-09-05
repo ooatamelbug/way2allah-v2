@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Tests\Support\Fixtures\MainSchema;
 use Tests\Support\InMemoryConnection;
 
@@ -97,6 +98,31 @@ it('/: loads the premium UI globally and renders the lightweight media rail with
         ->toContain('/assets/frontend/layout/scripts/premium-ui.js')
         ->toContain('w2a-now-watching-rail')
         ->not->toContain('jquery.carouFredSel.js');
+});
+
+it('/: caps homepage media widgets at three items even when a stale audio cache contains more', function () {
+    Cache::put('home-latest-audios', collect(range(1, 7))->map(fn ($id) => [
+        'id' => $id,
+        'title' => "Cached audio {$id}",
+        'time' => 1_788_356_760,
+        'prename' => 'الشيخ',
+        'name' => 'اختبار',
+    ])->all(), 300);
+
+    try {
+        $response = $this->get('/')->assertOk();
+
+        $response
+            ->assertViewHas('telawahs', fn ($items) => $items->count() <= 3)
+            ->assertViewHas('audios', fn ($items) => $items->count() === 3)
+            ->assertViewHas('documentary12', fn ($items) => $items->count() <= 3)
+            ->assertSee('Cached audio 1')
+            ->assertSee('Cached audio 3')
+            ->assertDontSee('Cached audio 4')
+            ->assertDontSee('Cached audio 7');
+    } finally {
+        Cache::forget('home-latest-audios');
+    }
 });
 
 it('/: scopes the equal-width presentation-card layout to the introductory section', function () {
