@@ -345,11 +345,107 @@
 .w2a-refresh-pagination {
     clear: both;
     padding-top: 24px;
-    text-align: center;
 }
 
-.w2a-refresh-pagination .pagination {
+.w2a-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 16px;
+    border: 1px solid var(--w2a-border);
+    border-radius: 15px;
+    background: linear-gradient(135deg, var(--w2a-surface-alt), #fff);
+}
+
+.w2a-pagination__summary {
+    flex: 0 0 auto;
     margin: 0;
+    color: var(--w2a-ink-500);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.w2a-pagination__summary strong {
+    color: var(--w2a-ink-800);
+    font-weight: 800;
+}
+
+.w2a-pagination__list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.w2a-pagination__list > li {
+    display: flex;
+    margin: 0;
+    padding: 0;
+}
+
+.w2a-pagination__control,
+.w2a-pagination__page,
+.w2a-pagination__ellipsis {
+    display: inline-flex;
+    min-width: 44px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--w2a-border-dark);
+    border-radius: 11px;
+    color: var(--w2a-ink-700);
+    background: #fff;
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.w2a-pagination__control {
+    gap: 8px;
+    padding: 0 14px;
+}
+
+.w2a-pagination__page {
+    padding: 0 10px;
+}
+
+a.w2a-pagination__control,
+a.w2a-pagination__page {
+    box-shadow: var(--w2a-shadow-xs);
+    transition: color var(--w2a-motion-fast), background-color var(--w2a-motion-fast), border-color var(--w2a-motion-fast), box-shadow var(--w2a-motion-fast), transform var(--w2a-motion-fast);
+}
+
+a.w2a-pagination__control:hover,
+a.w2a-pagination__page:hover {
+    border-color: var(--w2a-primary-300);
+    color: var(--w2a-primary-700);
+    background: var(--w2a-primary-50);
+    box-shadow: var(--w2a-shadow-sm);
+    transform: translateY(-2px);
+}
+
+.w2a-pagination__page.is-current {
+    border-color: var(--w2a-primary-700);
+    color: #fff;
+    background: linear-gradient(135deg, var(--w2a-primary-700), var(--w2a-primary-500));
+    box-shadow: 0 8px 18px rgba(17, 96, 151, .22);
+}
+
+.w2a-pagination__control.is-disabled {
+    color: var(--w2a-ink-400);
+    background: var(--w2a-surface-alt);
+    cursor: not-allowed;
+    opacity: .7;
+}
+
+.w2a-pagination__ellipsis {
+    border-color: transparent;
+    background: transparent;
 }
 
 /* Fatwa today */
@@ -996,6 +1092,37 @@
     .w2a-cd-card__content {
         min-height: 98px;
         padding: 12px;
+    }
+
+    .w2a-pagination {
+        align-items: stretch;
+        flex-direction: column;
+        padding: 14px;
+    }
+
+    .w2a-pagination__summary {
+        text-align: center;
+    }
+
+    .w2a-pagination__list {
+        gap: 6px;
+    }
+
+    .w2a-pagination__control {
+        width: 44px;
+        padding: 0;
+    }
+
+    .w2a-pagination__control > span {
+        position: absolute;
+        overflow: hidden;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        border: 0;
+        margin: -1px;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
     }
 
     .w2a-social-intro {

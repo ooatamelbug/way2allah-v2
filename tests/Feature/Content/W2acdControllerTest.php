@@ -191,6 +191,22 @@ it('index: each CD uses a semantic premium card with descriptive image text and 
         ->toContain('عرض محتويات الإسطوانة');
 });
 
+it('index: pagination uses the premium accessible navigation while preserving generated page URLs', function () {
+    DB::connection('main')->table('nuke_w2acd_w2acd')->insert(
+        collect(range(1, 30))->map(fn ($i) => ['id' => $i, 'title' => "Item $i", 'group_id' => 0])->all()
+    );
+
+    $content = $this->get('/cds-main.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('class="w2a-pagination"')
+        ->toContain('aria-label="التنقل بين صفحات الإسطوانات"')
+        ->toContain('aria-current="page"')
+        ->toContain('aria-label="الصفحة التالية"')
+        ->toContain('cds-main.htm?page=2')
+        ->not->toContain('sm:hidden');
+});
+
 // Legacy-Source Reconstruction (cds-main.htm) supersedes the two tests
 // that previously stood here: `cds.php` (read in full, and confirmed
 // against a live raw fetch of `w2acd/cds.php`) never calls

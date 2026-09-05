@@ -52,7 +52,7 @@
                 @endforelse
             </div>
             <div class="w2a-refresh-pagination" aria-label="صفحات الإسطوانات">
-                {{ $items->links() }}
+                {{ $items->onEachSide(1)->links('components.content.premium-pagination') }}
             </div>
         </x-content.premium-panel>
     </div>
