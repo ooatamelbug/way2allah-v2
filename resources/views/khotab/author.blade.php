@@ -22,18 +22,15 @@
         both point at `/khotab-{op}.htm`, final segment uses `href=""`
         (author.php:55 sets `'url'=>''` explicitly, not omitted).
     --}}
-    <x-page-chrome
-        :heading="$pageTitle"
-        :breadcrumb="[
-            ['title' => $opTitle, 'url' => '/khotab-'.$op.'.htm'],
-            ['title' => 'قائمة الدعاة', 'url' => '/khotab-'.$op.'.htm'],
-            ['title' => trim(($authorModel->prename ?? '').' '.($authorModel->name ?? '')), 'url' => ''],
-        ]"
-    />
+    <x-page-chrome :heading="$pageTitle" :breadcrumb="[
+        ['title' => $opTitle, 'url' => '/khotab-' . $op . '.htm'],
+        ['title' => 'قائمة الدعاة', 'url' => '/khotab-' . $op . '.htm'],
+        ['title' => trim(($authorModel->prename ?? '') . ' ' . ($authorModel->name ?? '')), 'url' => ''],
+    ]" />
 
     <div class="row service-box margin-bottom-40">
         <div class="col-lg-9 col-md-8 col-sm-7 nopadding">
-            @if($op !== 'pdf')
+            @if ($op !== 'pdf')
                 {{--
                     Visual parity audit (khotab-video-17.htm, 2026-08-18)
                     Batch 2: ListGroup()'s exact row markup
@@ -115,7 +112,7 @@
                 portlet-title/caption/icon header, just the bare
                 .portlet.box.blue > .portlet-body wrapper.
             --}}
-            @if(!empty($authorModel->description))
+            @if (!empty($authorModel->description))
                 <div class="col-md-12 col-sm-12">
                     <div class="portlet box blue">
                         <div class="portlet-body">
@@ -152,7 +149,7 @@
                 pdf op has no such banner in legacy (only video/audio
                 branches exist), reproduced as the same @if/@elseif shape.
             --}}
-            @if($op === 'video')
+            @if ($op === 'video')
                 <div class="col-md-12 col-sm-12">
                     <div class="portlet box blue">
                         <div class="portlet-title">

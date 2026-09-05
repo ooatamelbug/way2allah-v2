@@ -47,10 +47,10 @@
 @php
     $calDate = \Carbon\Carbon::parse($date);
     // Fatwa Date Route Completion (decision-log #46): legacy's own
-    // fatwa-today.php:176 computes this cutoff from bare `date('m-d-Y')`
-    // — always the REAL current date, never the page's own `$date` — to
+// fatwa-today.php:176 computes this cutoff from bare `date('m-d-Y')`
+// — always the REAL current date, never the page's own `$date` — to
     // block future-dated calendar cells regardless of which date's page
-    // is being viewed. Previously this used `$calDate` (the page's own
+// is being viewed. Previously this used `$calDate` (the page's own
     // date), which was silently correct only because "today" was the
     // only date this page could ever represent; now that `/fatwa-date-*`
     // exists, that would incorrectly block every day past whatever
@@ -61,18 +61,16 @@
 @section('content')
     <div class="w2a-refresh-page w2a-fatwa-day-page">
         <div class="w2a-fatwa-day-hero">
-            <x-content.premium-panel
-                title="فتاوى مختارة"
-                icon="fa-hand-pointer-o"
-                description="إجابات مختارة بعناية عن أسئلة تهم المسلم في حياته اليومية."
-                class="w2a-featured-fatwas"
-            >
+            <x-content.premium-panel title="فتاوى مختارة" icon="fa-hand-pointer-o"
+                description="إجابات مختارة بعناية عن أسئلة تهم المسلم في حياته اليومية." class="w2a-featured-fatwas">
                 <div class="w2a-featured-fatwa-grid">
                     @forelse ($featured as $item)
-                        <a class="w2a-featured-fatwa-card" href="/fatawa-all-{{ str_replace('|', '', $item->general_question_id) }}.htm#{{ $item->id }}">
-                            <span class="w2a-featured-fatwa-card__icon" aria-hidden="true"><i class="fa fa-question"></i></span>
+                        <a class="w2a-featured-fatwa-card"
+                            href="/fatawa-all-{{ str_replace('|', '', $item->general_question_id) }}.htm#{{ $item->id }}">
+                            <span class="w2a-featured-fatwa-card__icon" aria-hidden="true"><i
+                                    class="fa fa-question"></i></span>
                             <strong>{{ $item->question_text }}</strong>
-                            <span>اقرأ الفتوى <i class="fa fa-angle-left" aria-hidden="true"></i></span>
+                            <span>اقرأ الفتوى <i class="fa fa-angle-right" aria-hidden="true"></i></span>
                         </a>
                     @empty
                         <p class="w2a-empty-state">لا توجد فتاوى مختارة حالياً.</p>
@@ -80,12 +78,8 @@
                 </div>
             </x-content.premium-panel>
 
-            <x-content.premium-panel
-                title="تقويم الطريق إلى الله"
-                icon="fa-calendar"
-                description="اختر يوماً للاطلاع على الفتاوى التي أضيفت فيه."
-                class="w2a-fatwa-calendar-panel"
-            >
+            <x-content.premium-panel title="تقويم الطريق إلى الله" icon="fa-calendar"
+                description="اختر يوماً للاطلاع على الفتاوى التي أضيفت فيه." class="w2a-fatwa-calendar-panel">
                 <div class="calendar" aria-label="تقويم الفتاوى">
                     <div class="group calendar-header">
                         <p class="pointer center monthname" aria-live="polite">&nbsp;</p>
@@ -109,27 +103,29 @@
             </x-content.premium-panel>
         </div>
 
-        <x-content.premium-panel
-            :title="'الفتاوى المضافة بتاريخ '.$displayDate"
-            icon="fa-calendar-check-o"
-            description="أحدث الأسئلة والإجابات المنشورة في التاريخ المحدد."
-            class="w2a-fatwa-results"
-        >
+        <x-content.premium-panel :title="'الفتاوى المضافة بتاريخ ' . $displayDate" icon="fa-calendar-check-o"
+            description="أحدث الأسئلة والإجابات المنشورة في التاريخ المحدد." class="w2a-fatwa-results">
             @include('fatawa.partials.pagination')
             <div class="w2a-fatwa-list" id="sample_5">
                 @forelse ($questions as $question)
                     <article class="w2a-fatwa-row">
                         <span class="w2a-fatwa-row__icon" aria-hidden="true"><i class="fa fa-commenting-o"></i></span>
                         <div class="w2a-fatwa-row__main">
-                            <a class="w2a-fatwa-row__question" href="/fatawa-all-{{ str_replace('|', '', $question->general_question_id) }}.htm#{{ $question->id }}">{{ $question->question_text }}</a>
+                            <a class="w2a-fatwa-row__question"
+                                href="/fatawa-all-{{ str_replace('|', '', $question->general_question_id) }}.htm#{{ $question->id }}">{{ $question->question_text }}</a>
                             <div class="w2a-fatwa-row__meta">
-                                <span><i class="fa fa-user" aria-hidden="true"></i> الشيخ: <a href="/auther-questions-{{ $question->auther_id }}.htm">{{ $question->auth_prename }} {{ $question->auth_name }}</a></span>
+                                <span><i class="fa fa-user" aria-hidden="true"></i> الشيخ: <a
+                                        href="/auther-questions-{{ $question->auther_id }}.htm">{{ $question->auth_prename }}
+                                        {{ $question->auth_name }}</a></span>
                                 <span>
                                     <i class="fa fa-television" aria-hidden="true"></i>
                                     مكان إصدار الفتوى:
                                     @if ($question->channel_exists_id)
-                                        <a class="w2a-fatwa-channel" href="/fatawa-channel-{{ $question->channel_id }}.htm" aria-label="عرض فتاوى القناة">
-                                            <img width="28" height="28" src="/images/channels/{{ $question->channel_id }}.png" alt="شعار القناة" loading="lazy" decoding="async">
+                                        <a class="w2a-fatwa-channel" href="/fatawa-channel-{{ $question->channel_id }}.htm"
+                                            aria-label="عرض فتاوى القناة">
+                                            <img width="28" height="28"
+                                                src="/images/channels/{{ $question->channel_id }}.png" alt="شعار القناة"
+                                                loading="lazy" decoding="async">
                                         </a>
                                     @else
                                         <a href="/fatawa-channel-0.htm">بدون قناة</a>
@@ -137,7 +133,9 @@
                                 </span>
                             </div>
                         </div>
-                        <a class="w2a-fatwa-row__action" href="/fatawa-all-{{ str_replace('|', '', $question->general_question_id) }}.htm#{{ $question->id }}" aria-label="قراءة الفتوى">
+                        <a class="w2a-fatwa-row__action"
+                            href="/fatawa-all-{{ str_replace('|', '', $question->general_question_id) }}.htm#{{ $question->id }}"
+                            aria-label="قراءة الفتوى">
                             <i class="fa fa-angle-left" aria-hidden="true"></i>
                         </a>
                     </article>
@@ -291,13 +289,16 @@
                     for (i = 1; i <= days; i++) {
 
                         //get day url
-                        var getdate = 'href="' + url + i + '-' + (this.themonth + 1) + '-' + this.theyear + '-' + 1 + '.htm"';
+                        var getdate = 'href="' + url + i + '-' + (this.themonth + 1) + '-' + this.theyear + '-' + 1 +
+                            '.htm"';
                         //get current day
                         var newdate = new Date((this.themonth + 1) + '/' + i + '/' + this.theyear).getTime();
                         //check if date in future
-                        if (newdate > new Date("{{ $calCutoff }}").getTime()) getdate = 'style="pointer-events: none;color: #ccc;"';
+                        if (newdate > new Date("{{ $calCutoff }}").getTime()) getdate =
+                            'style="pointer-events: none;color: #ccc;"';
                         //check if date in past
-                        if (newdate < new Date('2011-9-30').getTime()) getdate = 'style="pointer-events: none;color: #ccc;"';
+                        if (newdate < new Date('2011-9-30').getTime()) getdate =
+                            'style="pointer-events: none;color: #ccc;"';
 
                         if (this.today[0] == this.selectedDate[0] &&
                             this.today[1] == this.selectedDate[1] &&

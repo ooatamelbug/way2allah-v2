@@ -41,38 +41,47 @@
             <table class="table table-striped table-hover" id="tabelkht">
                 <tbody>
                     @foreach ($items as $item)
-                        <tr><td class="">
-                            <div class="row"><div class="col-lg-12">
-                                <h5>
-                                    <div class="row">
-                                        <div class="col-sm-12 col-lg-6">
-                                            <a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a>
-                                        </div>
-                                        @if ($showAuthorLinks)
-                                            <div class="col-sm-12 col-lg-6">
-                                                الداعية:
-                                                <a href="/channel-{{ $channelModel->id }}-{{ $item->author_id }}.htm">{{ $item->author }}</a>
+                        <tr>
+                            <td class="">
+                                <div class="row">
+                                    <div class="col-lg-12">
+                                        <h5>
+                                            <div class="row">
+                                                <div class="col-sm-12 col-lg-6">
+                                                    <a
+                                                        href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a>
+                                                </div>
+                                                @if ($showAuthorLinks)
+                                                    <div class="col-sm-12 col-lg-6">
+                                                        الداعية:
+                                                        <a
+                                                            href="/channel-{{ $channelModel->id }}-{{ $item->author_id }}.htm">{{ $item->author }}</a>
+                                                    </div>
+                                                @endif
                                             </div>
-                                        @endif
-                                    </div>
-                                </h5>
-                                <div class="row page-header color_00a">
-                                    <div class="col-md-3 col-xs-6 text-blue">
-                                        <span><i class="fa fa-calendar"></i> {{ date('Y-m-d', $item->time) }}</span>
-                                    </div>
-                                    @php($duration = \App\Domain\Content\Support\LegacyDurationFormatter::format((int) ($item->adur ?? 0)))
-                                    <div class="col-md-3 col-xs-6 text-blue">
-                                        <span><i class="fa fa-clock-o"></i> {{ $duration }}</span>
-                                    </div>
-                                    <div class="col-md-3 col-xs-6 text-blue">
-                                        <span><i class="fa fa-commenting-o"></i> التعليقات: {{ $item->comments }}</span>
-                                    </div>
-                                    <div class="col-md-3 col-xs-6 text-blue">
-                                        <span><i class="fa fa-eye"></i> مشاهدات: {{ number_format($item->hits) }}</span>
+                                        </h5>
+                                        <div class="row page-header color_00a">
+                                            <div class="col-md-3 col-xs-6 text-blue">
+                                                <span><i class="fa fa-calendar"></i>
+                                                    {{ date('Y-m-d', $item->time) }}</span>
+                                            </div>
+                                            @php($duration = \App\Domain\Content\Support\LegacyDurationFormatter::format((int) ($item->adur ?? 0)))
+                                            <div class="col-md-3 col-xs-6 text-blue">
+                                                <span><i class="fa fa-clock-o"></i> {{ $duration }}</span>
+                                            </div>
+                                            <div class="col-md-3 col-xs-6 text-blue">
+                                                <span><i class="fa fa-commenting-o"></i> التعليقات:
+                                                    {{ $item->comments }}</span>
+                                            </div>
+                                            <div class="col-md-3 col-xs-6 text-blue">
+                                                <span><i class="fa fa-eye"></i> مشاهدات:
+                                                    {{ number_format($item->hits) }}</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div></div>
-                        </td></tr>
+                            </td>
+                        </tr>
                     @endforeach
                 </tbody>
             </table>

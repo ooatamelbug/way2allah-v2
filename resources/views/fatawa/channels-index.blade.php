@@ -36,17 +36,16 @@
     <h1 style=""></h1>
     <div class="page-bar">
         <ul class="page-breadcrumb">
-            <li><i class="fa fa-home"></i><a href="/"> الرئيسية</a></li><li> <i class="fa fa-angle-right"></i><a href="/fatawa.htm">الفتاوى </a></li><li> <i class="fa fa-angle-right"></i><a href="/fatawa-channels.htm">قائمة القنوات الفضائية</a></li>
+            <li><i class="fa fa-home"></i><a href="/"> الرئيسية</a></li>
+            <li> <i class="fa fa-angle-right"></i><a href="/fatawa.htm">الفتاوى </a></li>
+            <li> <i class="fa fa-angle-right"></i><a href="/fatawa-channels.htm">قائمة القنوات الفضائية</a></li>
         </ul>
     </div>
 
     {{-- The unconditional no-channel entry remains first; paginated channel data follows. --}}
     <div class="w2a-refresh-page w2a-fatawa-channels-page">
-        <x-content.premium-panel
-            title="قائمة القنوات الفضائية"
-            icon="fa-television"
-            description="تصفّح الفتاوى حسب القناة الفضائية التي عُرضت عليها."
-        >
+        <x-content.premium-panel title="قائمة القنوات الفضائية" icon="fa-television"
+            description="تصفّح الفتاوى حسب القناة الفضائية التي عُرضت عليها.">
             <div class="w2a-channel-grid">
                 <a href="/fatawa-channel-0.htm" class="w2a-channel-card">
                     <span class="w2a-channel-card__logo">
@@ -54,17 +53,18 @@
                     </span>
                     <span class="w2a-channel-card__content">
                         <strong>فتاوى بدون قناة</strong>
-                        <span>استعرض الفتاوى <i class="fa fa-angle-left" aria-hidden="true"></i></span>
+                        <span>استعرض الفتاوى <i class="fa fa-angle-right" aria-hidden="true"></i></span>
                     </span>
                 </a>
                 @foreach ($channels as $channel)
                     <a href="/fatawa-channel-{{ $channel->id }}.htm" class="w2a-channel-card">
                         <span class="w2a-channel-card__logo">
-                            <img src="/images/channels/{{ $channel->id }}.png" width="120" height="120" alt="{{ $channel->title }}" loading="lazy" decoding="async">
+                            <img src="/images/channels/{{ $channel->id }}.png" width="120" height="120"
+                                alt="{{ $channel->title }}" loading="lazy" decoding="async">
                         </span>
                         <span class="w2a-channel-card__content">
                             <strong>{{ $channel->title }}</strong>
-                            <span>استعرض الفتاوى <i class="fa fa-angle-left" aria-hidden="true"></i></span>
+                            <span>استعرض الفتاوى <i class="fa fa-angle-right" aria-hidden="true"></i></span>
                         </span>
                     </a>
                 @endforeach
