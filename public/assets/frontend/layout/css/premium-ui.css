@@ -2268,6 +2268,7 @@ div.w2a-poll-meta i.fa {
 }
 
 .w2a-watching-thumb-wrap {
+  display: block !important;
   position: relative !important;
   width: 100% !important;
   padding-top: 56.25% !important;
