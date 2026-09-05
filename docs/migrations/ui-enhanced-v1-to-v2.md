@@ -1,0 +1,53 @@
+# UI Enhanced V1 to V2 Migration Ledger
+
+This ledger maps each UI commit from the legacy `ui-enhanced-v1` branch to its
+Laravel adaptation on `ui-enhanced-v2`. Source commits are replayed in
+chronological order as behavioral specifications, not cherry-picked, so the
+Laravel backend, routes, query shapes, security controls, and performance
+optimizations remain authoritative.
+
+## Baselines
+
+- V1 repository: `/Users/dash/work/way2allah`
+- V1 branch: `ui-enhanced-v1`
+- V1 parent baseline: `dc6a7a8e1ac711c57d685564a8ce03383600bd59`
+- V2 repository: `/Users/dash/work/way2allah-v2`
+- V2 branch: `ui-enhanced-v2`
+- V2 parent baseline: `d664512ecfc9a0191b65eb1c82ebd398829676a9`
+
+## Rules
+
+- Preserve the one-source-commit-to-one-target-commit mapping.
+- Port visible behavior and required assets; do not copy legacy database,
+  Docker, Apache, error-suppression, raw-SQL, or remote-fetch behavior.
+- Prefer anonymous Blade components for repeated interface structures.
+- Keep output escaped, links and forms compatible, and controls accessible by
+  keyboard and touch.
+- Preserve Laravel's grouped category data, batched gallery thumbnails,
+  cached sidebar collections, and media security policy.
+- Record intentional no-op adaptations explicitly.
+
+## Commit map
+
+| # | V1 commit | V2 commit | Classification | Result |
+|---:|---|---|---|---|
+| 1 | `6feaca9422905b6948b8b41c94d9c5d03cb097ad` | `6ea6820` | Direct asset adaptation | Added the v1 design-token and global CSS foundation as a tracked public asset. |
+| 2 | `3afc6bc6e8dc8dc2eecb98c03b6873f32a2ae74a` | `81be956` | Intentional safety adaptation | Retained Laravel environment configuration, database connections, local-only thumbnail policy, and current deployment infrastructure. The legacy Docker stack, hardcoded credentials/URLs, Apache media redirect, and remote TimThumb fallback are intentionally excluded. |
+| 3 | `0babaea367d59e6ae047f7a1bc23a5c9a6901b74` | `b7b3e2e` | Blade and asset adaptation | Added the premium stylesheet/JavaScript, the five used Thmanyah Sans weights, accessible global chrome/search, lightweight hero and media rails, reusable homepage media links, premium poll markup, and removed queries for the two homepage cards retired by v1. Unreferenced Serif font families and formatting-only CSS churn are excluded. |
+| 4 | `e2060207f8692e3f84e27a381bb138f19a765aa7` | `2eebfcc` | Blade component adaptation | Added a reusable recursive category tree over `$categoriesByParent`, accessible expand/collapse/search controls, and the searchable alphabetical preacher card directory. No new queries are introduced. |
+| 5 | `9c1102e4de87f8edcfc5de2da3cee86cd3cc970e` | `9e59b1f` | Blade component and routing adaptation | Added searchable premium channel cards and a native, dependency-free date archive form. Valid dates redirect to canonical Laravel routes; invalid input is ignored safely. |
+| 6 | `40d613a35bc40054713618c3777e46e6ae569580` | `af0d21e` | Intentional Laravel no-op | V2 already uses standard PHP tags and Laravel's parameter-bound query builder. Existing tests verify conditional author/series/group filters and the half-open daily timestamp range, so the legacy raw-SQL rewrite is intentionally not imported. |
+| 7 | `7ce48a2898532dddf401568ac6bb6ca3f24f28f0` | `507e3d4` | Blade component adaptation | Replaced repeated legacy item tables and top-item rows with responsive, accessible cards; moved date results and recommendations into the source design's full-width layout. Laravel query services remain unchanged. |
+| 8 | `0e7838fc099f716ba62fee5435c55c07bc8fa288` | `e5e2bf8` | Blade component adaptation | Added a reusable searchable reciter/subgroup directory with responsive cards, lazy fixed-size imagery, counts, descriptions, and accessible live result feedback. |
+| 9 | `b2d15525ad00107b66587c085d7bfc8bc6faf839` | `8541c29` | Blade and query adaptation | Added premium subgroup, download, and searchable media-card components. The existing paginated query gains one left join for source-required duration metadata while retaining its filters, ordering, and page size. |
+| 10 | `2820ada64bd454acb55ec940e5069774f1f8c9be` | `7367f6b` | Blade and asset adaptation | Added the premium live-radio banner, player, controls, and playlist while retaining every selector and data attribute required by the existing audio player. Reused Laravel playlist services and shared sidebar cards without adding queries. |
+| 11 | `bd88261abab747ca24be9db42c26f115f4f56a59` | `2651491` | Blade and asset adaptation | Added a searchable, numbered playlist with active-track styling and accessible result feedback. Preserved the legacy player API and made its title extraction use the new structured track metadata. |
+| 12 | `b4c8fe14ed7f5b5e084427417c078c8019296f0d` | `775f287` | Blade and asset adaptation | Added the searchable responsive gallery-album grid with fixed-size lazy imagery, metadata, and conditional download actions while preserving Laravel's single batched thumbnail lookup. |
+| 13 | `2dd88b4d3b7325335af6c52cf22b696fcb8fd00e` | `a2a3ce6` | Blade and asset adaptation | Replaced category 487's legacy thumbnails with responsive premium program cards, local lazy-loaded artwork fallbacks, and a single semantic link per card. Formatting-only legacy PHP changes are excluded. |
+| 14 | `5f877dd395d3bea72faf7e4bdd0711b05cfc3f7f` | `0e4ff2d` | Blade component and asset adaptation | Added reusable category-series, searchable media, and featured-item cards. Applied the global featured-card change across existing Laravel consumers and removed category-page DataTables assets made obsolete by the new grid. |
+| 15 | `128cb5a0a4307505c704778a5ea67edddb691c14` | `6fc1c3f` | Blade component adaptation | Added a shared group/series card grid across preacher, group, and channel listings. Preserved route targets, counts, and contextual author/channel labels without nested anchors; removed DataTables from the now table-free group page. |
+| 16 | `fbb10d8a9176be533ac38fa6a4c25e535722eb75` | `51e945e` | Focused Blade and asset adaptation | Ported the source commit's semantic UI changes: a dedicated homepage introduction layout hook and equal-height portlets. Excluded its broad PHP auto-formatting and unrelated whitespace churn. |
+| 17 | `a7b8d01fb3b3b663049f02be41b043bda057dfaa` | `53fb929` | Intentional Laravel no-op | V2 already uses optional named database connections and exception-driven error handling. The source's FlashChat credential reuse is unnecessary because live rooms are deliberately retired, and its `topitems()` replacement already has typed, explicit defaults in Laravel services. |
+| 18 | `75b7557b9560857a91b9b7df6e1e205ea564d7c0` | `47bb764` | Blade component and asset adaptation | Added responsive cards for active recorded-lesson preachers and reusable sidebar lesson cards across chat pages. Excluded CSS and markup for the deliberately retired live-room and live-schedule features. |
+| 19 | `316b08d9b2c7454cfa9be280659b57fbb0e348bd` | `62f430f` | Blade component, service, and asset adaptation | Added reusable media details/actions, quality cards, and player chrome for khotab and anasheed. Enhanced the existing secure Laravel player responses with responsive audio/video wrappers and accessible titles; modernized anasheed sidebars without adding queries. |
+| 20 | `60b060eb6b6d2d7b1cc59d6c45eb325fe7bfe38d` | `HEAD` | Blade component, service, and asset adaptation | Added the final gallery detail grid, reusable visitor comments, equal-height homepage rows, PDF cards, recorded-lesson cards/navigation, and full telawah details/list/sidebar/player experience. Extended the existing secure player service for telawah and selected required sidebar metadata without adding requests or duplicate queries. (`HEAD` denotes this final self-referential mapping commit.) |

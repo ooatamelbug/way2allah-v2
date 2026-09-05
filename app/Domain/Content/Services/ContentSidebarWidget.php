@@ -4,6 +4,7 @@ namespace App\Domain\Content\Services;
 
 use App\Domain\Content\Models\Channel;
 use App\Domain\Content\Support\MediaPathResolver;
+use App\Domain\Content\Support\MediaUrl;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -191,8 +192,8 @@ class ContentSidebarWidget
             // Confirmed against live production, not assumed from the
             // frame==1 branch's own convention.
             $item->thumb = ((int) $item->frame) === 1
-                ? '/thumbnails.php?h=50&w=72&src='.MediaPathResolver::path('anasheed/frame', (int) $item->id, 'jpg')
-                : '/thumbnails.php?h=50&w=72&src=images/tvnoise.gif';
+                ? MediaUrl::thumbnail('h=50&w=72&src='.MediaPathResolver::path('anasheed/frame', (int) $item->id, 'jpg'))
+                : MediaUrl::thumbnail('h=50&w=72&src=images/tvnoise.gif');
 
             return $item;
         });
@@ -214,12 +215,12 @@ class ContentSidebarWidget
 
     public function telawahMostDownloaded(): Collection
     {
-        return $this->query('nuke_telawah_telawah', ['id', 'title'], null, null, 'hits', 10);
+        return $this->query('nuke_telawah_telawah', ['id', 'title', 'downcount'], null, null, 'hits', 10);
     }
 
     public function telawahMostRecent(): Collection
     {
-        return $this->query('nuke_telawah_telawah', ['id', 'title'], null, null, 'mytime', 10);
+        return $this->query('nuke_telawah_telawah', ['id', 'title', 'mytime'], null, null, 'mytime', 10);
     }
 
     // ---- live-stream (queries khotab's own table; filters by channel, not group) ----
@@ -521,7 +522,12 @@ class ContentSidebarWidget
             ->select(['kh.id', 'kh.title', 'kh.author', 'kh.frame', 'kh.hits', 'kh.downcount', 'kh.time'])
             ->orderByDesc('kh.hits')
             ->limit(5)
-            ->get();
+            ->get()
+            ->map(function ($item) {
+                $item->thumb = $this->topitemsThumb((int) $item->frame, (int) $item->id);
+
+                return $item;
+            });
     }
 
     /** "Newest" counterpart to `khotabMostDownloadedByCategoryForSeries()` above — same no-`hidden`-filter difference, `categories/series.php:130`. */
@@ -535,7 +541,12 @@ class ContentSidebarWidget
             ->select(['kh.id', 'kh.title', 'kh.author', 'kh.frame', 'kh.hits', 'kh.downcount', 'kh.time'])
             ->orderByDesc('kh.time')
             ->limit(5)
-            ->get();
+            ->get()
+            ->map(function ($item) {
+                $item->thumb = $this->topitemsThumb((int) $item->frame, (int) $item->id);
+
+                return $item;
+            });
     }
 
     // ---- Wave 4 (post-Wave-4 addition): radio/index.php ----
@@ -876,7 +887,7 @@ class ContentSidebarWidget
         if ($frame === 1) {
             $rel = MediaPathResolver::path('khotab_frames', $id, 'jpg');
             if (file_exists(public_path($rel))) {
-                return '/'.$rel;
+                return MediaUrl::asset($rel);
             }
         }
 

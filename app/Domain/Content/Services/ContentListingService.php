@@ -160,7 +160,9 @@ class ContentListingService
             ->groupBy('grp.id')
             ->orderByDesc('grp.title')
             ->select([
-                'grp.id', 'grp.channel_id', 'grp.title',
+                'grp.id',
+                'grp.channel_id',
+                'grp.title',
                 'ch.title as channel',
                 DB::raw('COUNT(kh.id) as count'),
                 DB::raw('grp.count as stored_group_count'),
@@ -231,8 +233,16 @@ class ContentListingService
             ->where('ser.count', '>', 0)
             ->orderByDesc('ser.lastupdate')
             ->select([
-                'ser.id', 'ser.channel_id', 'ser.title', 'ser.time', 'ser.lastupdate', 'ser.count',
-                'ch.title as channel', 'auth.name', 'auth.prename', 'auth.id as authID',
+                'ser.id',
+                'ser.channel_id',
+                'ser.title',
+                'ser.time',
+                'ser.lastupdate',
+                'ser.count',
+                'ch.title as channel',
+                'auth.name',
+                'auth.prename',
+                'auth.id as authID',
             ])
             ->get();
     }
@@ -256,8 +266,18 @@ class ContentListingService
             ->orderByDesc('kh.weight')->orderByDesc('kh.time')
             ->limit(50)
             ->select([
-                'kh.id', 'kh.author', 'kh.channel_id', 'ch.title as channel', 'kh.title', 'kh.comments',
-                'kh.time', 'kh.hits', 'kh.weight', 'ad.adur', 'ath.name', 'ath.prename',
+                'kh.id',
+                'kh.author',
+                'kh.channel_id',
+                'ch.title as channel',
+                'kh.title',
+                'kh.comments',
+                'kh.time',
+                'kh.hits',
+                'kh.weight',
+                'ad.adur',
+                'ath.name',
+                'ath.prename',
             ]);
 
         if ($authorId > 0) {
@@ -307,8 +327,18 @@ class ContentListingService
             // functions.php:662 uses $item->author (the raw FK column), not an
             // aliased id — kh.author was missing here, added for that link.
             ->select([
-                'kh.id', 'kh.channel_id', 'ch.title as channel', 'kh.title', 'kh.comments',
-                'kh.time', 'kh.hits', 'kh.weight', 'ad.adur', 'kh.author', 'ath.name', 'ath.prename',
+                'kh.id',
+                'kh.channel_id',
+                'ch.title as channel',
+                'kh.title',
+                'kh.comments',
+                'kh.time',
+                'kh.hits',
+                'kh.weight',
+                'ad.adur',
+                'kh.author',
+                'ath.name',
+                'ath.prename',
             ]);
 
         if (! $includeHidden) {
@@ -328,8 +358,18 @@ class ContentListingService
             ->where('kh.pdf', '>', 0)
             ->orderByDesc('kh.weight')->orderByDesc('kh.pdf_time')
             ->select([
-                'kh.id', 'kh.channel_id', 'ch.title as channel', 'kh.title', 'kh.comments',
-                'kh.pdf_time as time', 'kh.hits', 'kh.weight', 'ad.adur', 'ath.name', 'ath.prename',
+                'kh.id',
+                'kh.author',
+                'kh.channel_id',
+                'ch.title as channel',
+                'kh.title',
+                'kh.comments',
+                'kh.pdf_time as time',
+                'kh.hits',
+                'kh.weight',
+                'ad.adur',
+                'ath.name',
+                'ath.prename',
             ]);
 
         if (! $includeHidden) {
@@ -417,8 +457,17 @@ class ContentListingService
             ->where('kh.hidden', '0')
             ->orderByDesc('kh.time')
             ->select([
-                'kh.id', 'kh.channel_id', 'ch.title as channel', 'kh.title', 'kh.comments',
-                'kh.time', 'kh.hits', 'ad.adur', 'auth.name', 'auth.prename', 'auth.id as authID',
+                'kh.id',
+                'kh.channel_id',
+                'ch.title as channel',
+                'kh.title',
+                'kh.comments',
+                'kh.time',
+                'kh.hits',
+                'ad.adur',
+                'auth.name',
+                'auth.prename',
+                'auth.id as authID',
             ])
             ->get();
     }
@@ -480,11 +529,17 @@ class ContentListingService
         return DB::connection('main')->table('nuke_anasheed_anasheed as ana')
             ->leftJoin('nuke_anasheed_advanced as ad', 'ana.id', '=', 'ad.id')
             ->leftJoin('nuke_sat_channels as ch', 'ana.channel_id', '=', 'ch.id')
-            ->where('ana.cat_id', 'like', '%|'.$categoryId.'|%')
+            ->where('ana.cat_id', 'like', '%|' . $categoryId . '|%')
             ->where('ana.hidden', '0')
             ->select([
-                'ana.id', 'ana.channel_id', 'ch.title as channel', 'ana.title', 'ana.comments',
-                'ana.mytime as time', 'ana.hits', 'ad.adur',
+                'ana.id',
+                'ana.channel_id',
+                'ch.title as channel',
+                'ana.title',
+                'ana.comments',
+                'ana.mytime as time',
+                'ana.hits',
+                'ad.adur',
             ])
             ->get();
     }
@@ -597,8 +652,15 @@ class ContentListingService
             ->where('kh.pdf', '>', 0)
             ->orderByDesc('kh.pdf_time')
             ->select([
-                'kh.id', 'kh.ser_id', 'kh.channel_id', 'ser.title as series', 'ch.title as channel',
-                'kh.title', 'kh.comments', 'kh.pdf_time as time', 'kh.hits',
+                'kh.id',
+                'kh.ser_id',
+                'kh.channel_id',
+                'ser.title as series',
+                'ch.title as channel',
+                'kh.title',
+                'kh.comments',
+                'kh.pdf_time as time',
+                'kh.hits',
             ]);
 
         if ($authorId > 0) {
@@ -677,8 +739,14 @@ class ContentListingService
             ->where('kh.hidden', '0')
             ->orderByDesc('kh.time')
             ->select([
-                'kh.id', 'kh.author as author_id', 'ath.name as author', 'kh.title',
-                'kh.comments', 'kh.time', 'kh.hits', 'ad.adur',
+                'kh.id',
+                'kh.author as author_id',
+                'ath.name as author',
+                'kh.title',
+                'kh.comments',
+                'kh.time',
+                'kh.hits',
+                'ad.adur',
             ]);
 
         if ($authorId > 0) {
@@ -893,7 +961,7 @@ class ContentListingService
     public function fatwaGeneralQuestionCountForTopic(int $topicId): int
     {
         return DB::connection('main')->table('nuke_fatwa_general_questions')
-            ->where('topic_id', 'like', '%|'.$topicId.'|%')
+            ->where('topic_id', 'like', '%|' . $topicId . '|%')
             ->count();
     }
 
@@ -942,7 +1010,7 @@ class ContentListingService
         return DB::connection('main')->table('nuke_fatwa_questions as q')
             ->join('nuke_islamic_authors as auth', 'auth.id', '=', 'q.auther_id')
             ->where('q.general_question_id', "|{$generalQuestionId}|")
-            ->when($autherId !== null, fn ($query) => $query->where('q.auther_id', $autherId))
+            ->when($autherId !== null, fn($query) => $query->where('q.auther_id', $autherId))
             ->select(['q.*', 'auth.name as author_name', 'auth.prename as author_prename'])
             ->get();
     }
@@ -1116,8 +1184,8 @@ class ContentListingService
             ->paginate(25, ['*'], 'page', $page);
 
         $generalQuestionIds = $answers->getCollection()
-            ->map(fn ($row) => (int) str_replace('|', '', (string) $row->general_question_id))
-            ->filter(fn ($id) => $id > 0)
+            ->map(fn($row) => (int) str_replace('|', '', (string) $row->general_question_id))
+            ->filter(fn($id) => $id > 0)
             ->unique()
             ->values();
 
@@ -1157,8 +1225,8 @@ class ContentListingService
     private function fatwaTopicsKeyedById(\Illuminate\Support\Collection $generalQuestions): \Illuminate\Support\Collection
     {
         $topicIds = $generalQuestions
-            ->map(fn ($question) => (int) str_replace('|', '', (string) $question->topic_id))
-            ->filter(fn ($id) => $id > 0)
+            ->map(fn($question) => (int) str_replace('|', '', (string) $question->topic_id))
+            ->filter(fn($id) => $id > 0)
             ->unique()
             ->values();
 
@@ -1210,7 +1278,7 @@ class ContentListingService
         }
 
         // Legacy matches the pipe-wrapped literal (`'|123|'`), not a LIKE.
-        $pipedIds = $generalQuestions->map(fn ($question) => '|'.$question->id.'|')->all();
+        $pipedIds = $generalQuestions->map(fn($question) => '|' . $question->id . '|')->all();
 
         return DB::connection('main')->table('nuke_fatwa_questions as q')
             ->join('nuke_islamic_authors as a', 'a.id', '=', 'q.auther_id')
@@ -1219,7 +1287,7 @@ class ContentListingService
             ->orderBy('q.id')
             ->select(['q.general_question_id as fatwa_general_question_id', 'a.*'])
             ->get()
-            ->groupBy(fn ($row) => (int) str_replace('|', '', (string) $row->fatwa_general_question_id))
+            ->groupBy(fn($row) => (int) str_replace('|', '', (string) $row->fatwa_general_question_id))
             // `orderBy('q.id')` above means the first row of each group is
             // the lowest-id match — the winner rule proven in the docblock.
             ->map(function ($rows) {
@@ -1248,8 +1316,8 @@ class ContentListingService
         $generalQuestionIds = DB::connection('main')->table('nuke_fatwa_questions')
             ->where('auther_id', $autherId)
             ->pluck('general_question_id')
-            ->map(fn ($id) => (int) str_replace('|', '', (string) $id))
-            ->filter(fn ($id) => $id > 0)
+            ->map(fn($id) => (int) str_replace('|', '', (string) $id))
+            ->filter(fn($id) => $id > 0)
             ->unique()
             ->values();
 
@@ -1308,11 +1376,11 @@ class ContentListingService
     private function applyAdvancedSearchDateRange(\Illuminate\Database\Query\Builder $query, string $timeColumn, array $filters): void
     {
         if (! empty($filters['from'])) {
-            $query->where($timeColumn, '>=', strtotime($filters['from'].' 00:00:00'));
+            $query->where($timeColumn, '>=', strtotime($filters['from'] . ' 00:00:00'));
         }
 
         if (! empty($filters['to'])) {
-            $query->where($timeColumn, '<=', strtotime($filters['to'].' 23:59:59'));
+            $query->where($timeColumn, '<=', strtotime($filters['to'] . ' 23:59:59'));
         }
     }
 
@@ -1350,7 +1418,7 @@ class ContentListingService
             $query->where(function ($sub) use ($channelId) {
                 $sub->whereIn('tb1.channel_id', function ($inner) use ($channelId) {
                     $inner->select('id')->from('nuke_sat_channels')->where('id', $channelId);
-                })->orWhere('tb1.place_of_fatwa', 'like', '%'.$channelId.'%');
+                })->orWhere('tb1.place_of_fatwa', 'like', '%' . $channelId . '%');
             });
         }
 
@@ -1590,19 +1658,19 @@ class ContentListingService
         $threshold = strtotime('2026-02-09 00:00:00');
 
         $conditions = [
-            1447 => fn ($q) => $q->where('ser.time', '>=', $threshold),
-            1446 => fn ($q) => $q->where('ser.id', '>', 14642)->where('ser.time', '<', $threshold),
-            1444 => fn ($q) => $q->where('ser.id', '>', 13228)->where('ser.id', '<', 14643),
-            1443 => fn ($q) => $q->where('ser.id', '>', 11223)->where('ser.id', '<', 13228),
-            1442 => fn ($q) => $q->where('ser.id', '>', 10943)->where('ser.id', '<', 11223),
-            1441 => fn ($q) => $q->where('ser.id', '>', 9621)->where('ser.id', '<=', 10943),
-            1440 => fn ($q) => $q->where('ser.id', '>', 9408)->where('ser.id', '<=', 9621),
-            1439 => fn ($q) => $q->where('ser.id', '>', 8982)->where('ser.id', '<', 9409),
-            1438 => fn ($q) => $q->where('ser.id', '>', 8033)->where('ser.id', '<', 8982),
-            1437 => fn ($q) => $q->where('ser.id', '>', 7840)->where('ser.id', '<', 8033),
-            1436 => fn ($q) => $q->where('ser.id', '>', 7204)->where('ser.id', '<', 7841),
-            1435 => fn ($q) => $q->where('ser.id', '>', 5331)->where('ser.id', '<', 7205),
-            1434 => fn ($q) => $q->where('ser.id', '<', 5332),
+            1447 => fn($q) => $q->where('ser.time', '>=', $threshold),
+            1446 => fn($q) => $q->where('ser.id', '>', 14642)->where('ser.time', '<', $threshold),
+            1444 => fn($q) => $q->where('ser.id', '>', 13228)->where('ser.id', '<', 14643),
+            1443 => fn($q) => $q->where('ser.id', '>', 11223)->where('ser.id', '<', 13228),
+            1442 => fn($q) => $q->where('ser.id', '>', 10943)->where('ser.id', '<', 11223),
+            1441 => fn($q) => $q->where('ser.id', '>', 9621)->where('ser.id', '<=', 10943),
+            1440 => fn($q) => $q->where('ser.id', '>', 9408)->where('ser.id', '<=', 9621),
+            1439 => fn($q) => $q->where('ser.id', '>', 8982)->where('ser.id', '<', 9409),
+            1438 => fn($q) => $q->where('ser.id', '>', 8033)->where('ser.id', '<', 8982),
+            1437 => fn($q) => $q->where('ser.id', '>', 7840)->where('ser.id', '<', 8033),
+            1436 => fn($q) => $q->where('ser.id', '>', 7204)->where('ser.id', '<', 7841),
+            1435 => fn($q) => $q->where('ser.id', '>', 5331)->where('ser.id', '<', 7205),
+            1434 => fn($q) => $q->where('ser.id', '<', 5332),
         ];
 
         $results = [];
@@ -1649,7 +1717,7 @@ class ContentListingService
         bool $validateChannelExists = false,
     ): void {
         if (! empty($filters['title'])) {
-            $query->where($titleColumn, 'like', '%'.$filters['title'].'%');
+            $query->where($titleColumn, 'like', '%' . $filters['title'] . '%');
         }
 
         if (! empty($filters['channel_id'])) {
@@ -1724,11 +1792,11 @@ class ContentListingService
                 ->orderByDesc('kh.lastmirror')
                 ->select(['kh.id', 'kh.time', 'kh.ser_id', 'kh.title', 'kh.frame', 'th.id as thid', 'th.prename', 'th.name'])
                 ->get()
-                ->map(fn ($row) => (array) $row)
+                ->map(fn($row) => (array) $row)
                 ->all();
         });
 
-        return collect($rows)->map(fn (array $row) => (object) $row);
+        return collect($rows)->map(fn(array $row) => (object) $row);
     }
 
     /**
@@ -1747,17 +1815,17 @@ class ContentListingService
                     ->where('vedio', '0')
                     ->where('newslist', '1')
                     ->orderByDesc('lastmirror')
-                    ->limit(7);
+                    ->limit(3);
             }, 'kh')
                 ->join('nuke_islamic_authors as th', 'kh.author', '=', 'th.id')
                 ->orderByDesc('kh.lastmirror')
                 ->select(['kh.id', 'kh.title', 'kh.time', 'th.prename', 'th.name'])
                 ->get()
-                ->map(fn ($row) => (array) $row)
+                ->map(fn($row) => (array) $row)
                 ->all();
         });
 
-        return collect($rows)->map(fn (array $row) => (object) $row);
+        return collect($rows)->map(fn(array $row) => (object) $row);
     }
 
     /**
@@ -1787,11 +1855,11 @@ class ContentListingService
                 ->orderByDesc('kh.pdf_time')
                 ->select(['kh.id', 'kh.title', 'kh.frame', 'th.id as thid', 'th.prename', 'th.name'])
                 ->get()
-                ->map(fn ($row) => (array) $row)
+                ->map(fn($row) => (array) $row)
                 ->all();
         });
 
-        return collect($rows)->map(fn (array $row) => (object) $row);
+        return collect($rows)->map(fn(array $row) => (object) $row);
     }
 
     /**
@@ -1837,7 +1905,7 @@ class ContentListingService
      * here does not change `home.blade.php`'s existing output — it never
      * reads either column, confirmed by grep before this change.
      */
-    public function homeLatestTelawahs(int $limit = 7): Collection
+    public function homeLatestTelawahs(int $limit = 3): Collection
     {
         return DB::connection('main')->table('nuke_telawah_telawah as t')
             ->leftJoin('nuke_telawah_groups as g', 't.group_id', '=', 'g.id')

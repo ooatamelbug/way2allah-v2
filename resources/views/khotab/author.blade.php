@@ -22,18 +22,15 @@
         both point at `/khotab-{op}.htm`, final segment uses `href=""`
         (author.php:55 sets `'url'=>''` explicitly, not omitted).
     --}}
-    <x-page-chrome
-        :heading="$pageTitle"
-        :breadcrumb="[
-            ['title' => $opTitle, 'url' => '/khotab-'.$op.'.htm'],
-            ['title' => 'قائمة الدعاة', 'url' => '/khotab-'.$op.'.htm'],
-            ['title' => trim(($authorModel->prename ?? '').' '.($authorModel->name ?? '')), 'url' => ''],
-        ]"
-    />
+    <x-page-chrome :heading="$pageTitle" :breadcrumb="[
+        ['title' => $opTitle, 'url' => '/khotab-' . $op . '.htm'],
+        ['title' => 'قائمة الدعاة', 'url' => '/khotab-' . $op . '.htm'],
+        ['title' => trim(($authorModel->prename ?? '') . ' ' . ($authorModel->name ?? '')), 'url' => ''],
+    ]" />
 
     <div class="row service-box margin-bottom-40">
         <div class="col-lg-9 col-md-8 col-sm-7 nopadding">
-            @if($op !== 'pdf')
+            @if ($op !== 'pdf')
                 {{--
                     Visual parity audit (khotab-video-17.htm, 2026-08-18)
                     Batch 2: ListGroup()'s exact row markup
@@ -50,44 +47,10 @@
                 <div class="col-md-12 col-sm-12">
                     <div class="portlet box blue">
                         <div class="portlet-title">
-                            <div class="caption"><i class="fa fa-child"></i> قائمة المجموعات</div>
+                            <div class="caption"><i class="fa fa-folder" aria-hidden="true"></i> قائمة المجموعات</div>
                         </div>
-                        <div class="portlet-body series-overflow">
-                            <table class="table table-striped table-hover" id="tabelgrp">
-                                <tbody>
-                                    @foreach ($groups as $group)
-                                        <tr>
-                                            <td class="">
-                                                <div class="row">
-                                                    <div class="col-lg-12">
-                                                        <h5>
-                                                            <a href="/khotab-group-{{ $group->id }}.htm">{{ $group->title }}</a>
-                                                        </h5>
-                                                        <div class="row page-header color_00a">
-                                                            <div class="col-md-3 col-xs-6 text-blue">
-                                                                <span>
-                                                                    <i class="fa fa-play-circle-o"></i>
-                                                                    المواد:
-                                                                    {{ $group->count }}
-                                                                </span>
-                                                            </div>
-                                                            @if(!empty($group->channel_id))
-                                                                <div class="col-md-3 col-xs-6 text-blue">
-                                                                    <span>
-                                                                        <i class="fa fa-television"></i>
-                                                                        القناة:
-                                                                        <a href="/channel-{{ $group->channel_id }}.htm"><img width="24" height="24" src="/images/channels/{{ $group->channel_id }}.png" alt=""></a>
-                                                                    </span>
-                                                                </div>
-                                                            @endif
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
+                        <div class="portlet-body">
+                            <x-content.media-collection-grid :items="$groups" type="group" secondary="channel" />
                         </div>
                     </div>
                 </div>
@@ -104,58 +67,10 @@
                 <div class="col-md-12 col-sm-12">
                     <div class="portlet box blue">
                         <div class="portlet-title">
-                            <div class="caption"><i class="fa fa-child"></i> قائمة السلاسل</div>
+                            <div class="caption"><i class="fa fa-list-ol" aria-hidden="true"></i> قائمة السلاسل</div>
                         </div>
-                        <div class="portlet-body series-overflow">
-                            <table class="table table-striped table-hover" id="tableser">
-                                <tbody>
-                                    @foreach ($series as $item)
-                                        <tr>
-                                            <td class="">
-                                                <div class="row">
-                                                    <div class="col-lg-12">
-                                                        <h5>
-                                                            <a href="/khotab-series-{{ $item->id }}.htm">{{ $item->title }}</a>
-                                                        </h5>
-                                                        <div class="row page-header color_00a">
-                                                            <div class="col-md-3 col-xs-6 text-blue">
-                                                                <span>
-                                                                    <i class="fa fa-calendar"></i>
-                                                                    {{ $item->time ? date('Y-m-d', $item->time) : '' }}
-                                                                </span>
-                                                            </div>
-                                                            <div class="col-md-3 col-xs-6 text-blue">
-                                                                <span>
-                                                                    <i class="fa fa-refresh"></i>
-                                                                    {{ $item->lastupdate ? date('Y-m-d', $item->lastupdate) : '' }}
-                                                                </span>
-                                                            </div>
-                                                            <div class="col-md-3 col-xs-6 text-blue">
-                                                                <span>
-                                                                    <i class="fa fa-play-circle-o"></i>
-                                                                    المواد:
-                                                                    {{ $item->count }}
-                                                                </span>
-                                                            </div>
-                                                            @if(!empty($item->channel_id))
-                                                                <div class="col-md-3 col-xs-6 text-blue">
-                                                                    <span>
-                                                                        <i class="fa fa-television"></i>
-                                                                        القناة:
-                                                                        <a href="/channel-{{ $item->channel_id }}.htm">
-                                                                            <img width="24" height="24" border="0" src="/images/channels/{{ $item->channel_id }}.png" alt="" />
-                                                                        </a>
-                                                                    </span>
-                                                                </div>
-                                                            @endif
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
+                        <div class="portlet-body">
+                            <x-content.media-collection-grid :items="$series" secondary="channel" />
                         </div>
                     </div>
                 </div>
@@ -184,83 +99,8 @@
                     <div class="portlet-title">
                         <div class="caption"><i class="fa fa-child"></i> قائمة المواد</div>
                     </div>
-                    <div class="portlet-body series-overflow series-overflow-auto">
-                        <table class="table table-striped table-hover" id="tabelkht">
-                            <tbody>
-                                @foreach ($items as $item)
-                                    {{--
-                                        `?? 0` — this same table also renders
-                                        khotabPdfItemsByAuthor()'s result set
-                                        when $op==='pdf' (an existing,
-                                        pre-batch behavior: author.php
-                                        actually calls a different function,
-                                        ListPDF(), for that op — not traced
-                                        or matched here, out of this batch's
-                                        scope), whose SELECT has no `adur`
-                                        column at all. Missing duration for
-                                        pdf items resolves to "00:00:00",
-                                        i.e. hidden — never a fatal error.
-                                    --}}
-                                    @php($duration = \App\Domain\Content\Support\LegacyDurationFormatter::format((int) ($item->adur ?? 0)))
-                                    <tr>
-                                        <td class="">
-                                            <div class="row">
-                                                <div class="col-lg-12">
-                                                    <h5>
-                                                        <div class="row">
-                                                            <div class="col-sm-12 col-lg-8">
-                                                                <a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a>
-                                                            </div>
-                                                        </div>
-                                                    </h5>
-                                                    <div class="row page-header color_00a">
-                                                        <div class="col-md-3 col-xs-6 text-blue">
-                                                            <span>
-                                                                <i class="fa fa-calendar"></i>
-                                                                {{ $item->time ? date('Y-m-d', $item->time) : '' }}
-                                                            </span>
-                                                        </div>
-                                                        <div class="col-md-3 col-xs-6 text-blue">
-                                                            <span>
-                                                                <i class="fa fa-commenting-o"></i>
-                                                                التعليقات:
-                                                                {{ $item->comments }}
-                                                            </span>
-                                                        </div>
-                                                        <div class="col-md-3 col-xs-6 text-blue">
-                                                            <span>
-                                                                <i class="fa fa-eye"></i>
-                                                                مشاهدات:
-                                                                {{ number_format($item->hits) }}
-                                                            </span>
-                                                        </div>
-                                                        @if(!empty($item->channel_id))
-                                                            <div class="col-md-3 col-xs-6 text-blue">
-                                                                <span>
-                                                                    <i class="fa fa-television"></i>
-                                                                    القناة:
-                                                                    <a href="/channel-{{ $item->channel_id }}.htm">
-                                                                        <img width="24" height="24" border="0" src="/images/channels/{{ $item->channel_id }}.png" alt="" />
-                                                                    </a>
-                                                                </span>
-                                                            </div>
-                                                        @endif
-                                                        @if($duration !== '00:00:00')
-                                                            <div class="col-md-3 col-xs-6 text-blue">
-                                                                <span>
-                                                                    <i class="fa fa-clock-o"></i>
-                                                                    {{ $duration }}
-                                                                </span>
-                                                            </div>
-                                                        @endif
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                    <div class="portlet-body">
+                        <x-content.khotab-item-list :items="$items" :video="$op === 'video'" :pdf="$op === 'pdf'" />
                     </div>
                 </div>
             </div>
@@ -272,7 +112,7 @@
                 portlet-title/caption/icon header, just the bare
                 .portlet.box.blue > .portlet-body wrapper.
             --}}
-            @if(!empty($authorModel->description))
+            @if (!empty($authorModel->description))
                 <div class="col-md-12 col-sm-12">
                     <div class="portlet box blue">
                         <div class="portlet-body">
@@ -309,7 +149,7 @@
                 pdf op has no such banner in legacy (only video/audio
                 branches exist), reproduced as the same @if/@elseif shape.
             --}}
-            @if($op === 'video')
+            @if ($op === 'video')
                 <div class="col-md-12 col-sm-12">
                     <div class="portlet box blue">
                         <div class="portlet-title">
@@ -343,11 +183,7 @@
                         <div class="caption"><i class="fa fa-child"></i> اخترنا لك هذه المادة</div>
                     </div>
                     <div class="portlet-body">
-                        <ul>
-                            @foreach ($randomFeatured as $item)
-                                <li><a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a></li>
-                            @endforeach
-                        </ul>
+                        <x-content.featured-items :items="$randomFeatured" />
                     </div>
                 </div>
             </div>
@@ -358,18 +194,7 @@
                         <div class="caption"><i class="fa fa-child"></i> الأكثر تحميلا</div>
                     </div>
                     <div class="portlet-body">
-                        <ul>
-                            @foreach ($mostDownloaded as $item)
-                                @isset($item->thumb)
-                                    <li class="media">
-                                        <a class="pull-left" href="/khotab-item-{{ $item->id }}.htm"><img class="media-object" src="{{ $item->thumb }}" alt="{{ $item->title }}" style="width: 60px; height: 40px;"></a>
-                                        <div class="media-body"><a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a></div>
-                                    </li>
-                                @else
-                                    <li><a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a></li>
-                                @endisset
-                            @endforeach
-                        </ul>
+                        <x-content.top-items :items="$mostDownloaded" />
                     </div>
                 </div>
             </div>
@@ -380,18 +205,7 @@
                         <div class="caption"><i class="fa fa-child"></i> جديد المواد</div>
                     </div>
                     <div class="portlet-body">
-                        <ul>
-                            @foreach ($mostRecent as $item)
-                                @isset($item->thumb)
-                                    <li class="media">
-                                        <a class="pull-left" href="/khotab-item-{{ $item->id }}.htm"><img class="media-object" src="{{ $item->thumb }}" alt="{{ $item->title }}" style="width: 60px; height: 40px;"></a>
-                                        <div class="media-body"><a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a></div>
-                                    </li>
-                                @else
-                                    <li><a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a></li>
-                                @endisset
-                            @endforeach
-                        </ul>
+                        <x-content.top-items :items="$mostRecent" />
                     </div>
                 </div>
             </div>

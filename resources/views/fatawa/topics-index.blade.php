@@ -40,7 +40,7 @@
         top-level category list is kept, now inside the correct portlet
         wrapper instead of a bare `<ul>`.
     --}}
-    <i class="fa fa-gift"></i><h3 class="page-title">الفتاوى المرئية</h3>
+    <h3 class="page-title">الفتاوى المرئية</h3>
 
     <div class="page-bar">
         <ul class="page-breadcrumb">
@@ -86,7 +86,8 @@
                     <div class="portlet-body">
                         <ul class="news">
                             @foreach ($latestAddedCategories as $category)
-                                <li><a class="add" href="/fatawa-topics-{{ $category->id }}-1.htm">{{ $category->title }}</a></li>
+                                <li><a class="add"
+                                        href="/fatawa-topics-{{ $category->id }}-1.htm">{{ $category->title }}</a></li>
                             @endforeach
                         </ul>
                     </div>
@@ -101,7 +102,8 @@
                     <div class="portlet-body">
                         <ul class="news">
                             @foreach ($mostActiveCategories as $category)
-                                <li><a class="add" href="/fatawa-topics-{{ $category->id }}-1.htm">{{ $category->title }}</a></li>
+                                <li><a class="add"
+                                        href="/fatawa-topics-{{ $category->id }}-1.htm">{{ $category->title }}</a></li>
                             @endforeach
                         </ul>
                     </div>

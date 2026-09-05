@@ -11,27 +11,19 @@
     --}}
     @if($subGroups->isNotEmpty())
         <section aria-label="قائمة الأقسام الفرعية">
-            <ul>
-                @foreach ($subGroups as $subGroup)
-                    <li>
-                        <a href="/recite-group-{{ $subGroup->id }}.htm">
-                            <img src="/images/telawah.gif" alt="{{ $subGroup->title }}">
-                            <span>{{ $subGroup->title }}</span>
-                        </a>
-                    </li>
-                @endforeach
-            </ul>
+            <x-content.reciter-directory :groups="$subGroups" subgroups />
         </section>
     @endif
 
-    <section aria-label="قائمة السور القرآنية">
-        @forelse ($items as $item)
-            <div>
-                <a href="/recite-item-{{ $item->id }}.htm">{{ $item->title }}</a>
-                <a href="/recite-download-{{ $item->id }}.htm">حفظ</a>
-            </div>
-        @empty
-            <p>عفوا ، لا يوجد تلاوات مضافة في هذا القسم</p>
-        @endforelse
+    <section class="portlet box blue" aria-label="قائمة السور القرآنية">
+        <div class="portlet-title">
+            <div class="caption"><i class="fa fa-headphones"></i> قائمة السور القرآنية</div>
+        </div>
+        <div class="portlet-body">
+            <x-content.telawah-track-list :items="$items" />
+        </div>
     </section>
+
+    <x-content.media-player-panel />
+    <x-content.media-player-script />
 @endsection

@@ -92,15 +92,16 @@ it('index: renders no <h3 class="page-title"> (LEGACY_BUG_NOT_FOR_REPRODUCTION f
         ->toContain('<li><a href="/video-advanced-search.htm">البحث المتقدم في المرئيات</a><i class=""></i></li>');
 });
 
-it('index: the search form is wrapped in a real portlet (fa-child icon) with the exact Bootstrap form-horizontal/form-group structure, not a bare label/input list', function () {
+it('index: renders the premium, accessible search panel while preserving every searchable field', function () {
     $content = $this->get('/khotab/search')->assertOk()->getContent();
 
     expect($content)
-        ->toContain('<div class="caption"><i class="fa fa-child"></i> البحث المتقدم في المرئيات</div>')
-        ->toContain('<form class="form-horizontal" method="get" action="">')
+        ->toContain('class="w2a-refresh-panel w2a-search-panel"')
+        ->toContain('<form class="w2a-advanced-search" method="get" action="">')
         ->toContain('class="form-control datepikerinput" id="from" name="from"')
         ->toContain('class="form-control datepikerinput" id="to" name="to"')
-        ->toContain('class="btn btn-primary" id="kh_search"');
+        ->toContain('class="w2a-primary-action" id="kh_search"')
+        ->toContain('عرض نتائج البحث');
 });
 
 it('index: loads the bootstrap-datepicker assets that the .datepikerinput fields actually target', function () {
@@ -155,7 +156,8 @@ it('index: no channel badge at all when channel_id is 0, for either results tabl
 
     $content = $this->get('/khotab/search?title=Findable')->assertOk()->getContent();
 
-    expect($content)->not->toContain('fa-television');
+    $results = substr($content, (int) strpos($content, 'w2a-video-search-results'));
+    expect($results)->not->toContain('/images/channels/0.png');
 });
 
 it('index: empty state shows the exact red, inline-styled legacy message, positioned before the (empty) results table', function () {

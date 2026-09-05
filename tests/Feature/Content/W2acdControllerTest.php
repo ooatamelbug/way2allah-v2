@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Content\Support\LegacyShortDateFormatter;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\Fixtures\MainSchema;
 use Tests\Support\InMemoryConnection;
@@ -120,14 +121,14 @@ it('show: hidden items remain viewable but suppress the image gallery, matching 
 
 // ---- G-04 (Migration Gap Register): thumbnails.php parity + sidebar + mirror classification ----
 
-it('index: listing thumbnail routes through thumbnails.php at the exact legacy 104x105 dimensions', function () {
+it('index: listing thumbnail routes through thumbnails.php at crisp card dimensions', function () {
     DB::connection('main')->table('nuke_w2acd_w2acd')->insert([
         'id' => 1, 'title' => 'A CD', 'thumbnail' => 'first.png,second.png', 'group_id' => 0,
     ]);
 
     $content = $this->get('/w2acd/cds.php')->assertOk()->getContent();
 
-    expect($content)->toContain('/thumbnails.php?h=104&amp;w=105&amp;src=/images/cds_image2/first.png');
+    expect($content)->toContain('/thumbnails.php?h=260&amp;w=260&amp;src=/images/cds_image2/first.png');
 });
 
 it('index: an item with no thumbnail falls back to way2_cddefault.png, still thumbnails.php-wrapped', function () {
@@ -137,7 +138,7 @@ it('index: an item with no thumbnail falls back to way2_cddefault.png, still thu
 
     $content = $this->get('/w2acd/cds.php')->assertOk()->getContent();
 
-    expect($content)->toContain('/thumbnails.php?h=104&amp;w=105&amp;src=/images/way2_cddefault.png');
+    expect($content)->toContain('/thumbnails.php?h=260&amp;w=260&amp;src=/images/way2_cddefault.png');
 });
 
 it('index: loads the module CSS (gallery.css) already reachable via the existing assets symlink', function () {
@@ -167,29 +168,43 @@ it('index: breadcrumb has one plain-href item ("الاسطوانات الدعو�
     expect($content)->toContain('<li><a href="">الاسطوانات الدعوية</a><i class=""></i></li>');
 });
 
-it('index: wraps the grid in the real w2acd_open_div() portlet — caption, double-nested portlet-body, fa-child icon', function () {
+it('index: wraps the grid in the shared premium panel with an explanatory heading', function () {
     DB::connection('main')->table('nuke_w2acd_w2acd')->insert(['id' => 1, 'title' => 'A CD', 'group_id' => 0]);
 
     $content = $this->get('/cds-main.htm')->assertOk()->getContent();
 
     expect($content)
-        ->toContain('<div class="caption"><i class="fa fa-child"></i> قائمة الإسطوانات العامة</div>')
-        ->toContain('<div class="portlet-body ">')
-        ->toContain('<div class="portlet-body series-overflow series-overflow-auto">');
+        ->toContain('class="w2a-refresh-page w2a-cds-page"')
+        ->toContain('<h2>قائمة الإسطوانات العامة</h2>')
+        ->toContain('class="w2a-cd-grid"');
 });
 
-it('index: each card uses the real .var_item.cd_bg_class DOM, the cd_bg_img link class, and the confirmed malformed alt attribute', function () {
+it('index: each CD uses a semantic premium card with descriptive image text and a clear action', function () {
     DB::connection('main')->table('nuke_w2acd_w2acd')->insert(['id' => 7, 'title' => 'Ramadan CD', 'group_id' => 0]);
 
     $content = $this->get('/cds-main.htm')->assertOk()->getContent();
 
     expect($content)
-        ->toContain('col-lg-2 col-md-3 col-sm-4 col-xs-6 text-center')
-        ->toContain('<div class="var_item cd_bg_class">')
-        ->toContain('<a href="/cds-item-7.htm" class="cd_bg_img">')
-        // Confirmed live, byte-for-byte legacy artifact — not a typo to "fix".
-        ->toContain("alt=\"إضغط لمشاهدة ''&nbsp;Ramadan CD> ''\"")
-        ->toContain('<br/><span>Ramadan CD</span>');
+        ->toContain('<article class="w2a-cd-card">')
+        ->toContain('<a href="/cds-item-7.htm" class="w2a-cd-card__link">')
+        ->toContain('alt="غلاف إسطوانة Ramadan CD"')
+        ->toContain('عرض محتويات الإسطوانة');
+});
+
+it('index: pagination uses the premium accessible navigation while preserving generated page URLs', function () {
+    DB::connection('main')->table('nuke_w2acd_w2acd')->insert(
+        collect(range(1, 30))->map(fn ($i) => ['id' => $i, 'title' => "Item $i", 'group_id' => 0])->all()
+    );
+
+    $content = $this->get('/cds-main.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('class="w2a-pagination"')
+        ->toContain('aria-label="التنقل بين الصفحات"')
+        ->toContain('aria-current="page"')
+        ->toContain('aria-label="الصفحة التالية"')
+        ->toContain('cds-main.htm?page=2')
+        ->not->toContain('sm:hidden');
 });
 
 // Legacy-Source Reconstruction (cds-main.htm) supersedes the two tests
@@ -309,7 +324,7 @@ it('show: "تاريخ التحميل" uses the real CoolShortDate() Arabic forma
     $content = $this->get('/cds-item-1.htm')->assertOk()->getContent();
 
     expect($content)
-        ->toContain(\App\Domain\Content\Support\LegacyShortDateFormatter::format(mktime(0, 0, 0, 6, 6, 2015)))
+        ->toContain(LegacyShortDateFormatter::format(mktime(0, 0, 0, 6, 6, 2015)))
         ->not->toContain('2015-06-06');
 });
 
@@ -339,7 +354,7 @@ it('show: sidebar "احدث المواد" label also uses the real Arabic date f
     $content = $this->get('/cds-item-1.htm')->assertOk()->getContent();
 
     expect($content)
-        ->toContain('بتاريخ : '.\App\Domain\Content\Support\LegacyShortDateFormatter::format(mktime(0, 0, 0, 6, 6, 2015)))
+        ->toContain('بتاريخ : '.LegacyShortDateFormatter::format(mktime(0, 0, 0, 6, 6, 2015)))
         ->not->toContain('بتاريخ : 2015-06-06');
 });
 

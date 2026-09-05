@@ -6,7 +6,6 @@ use App\Domain\Content\Models\Author;
 use App\Domain\Content\Services\ContentListingService;
 use App\Domain\Content\Services\ContentSidebarWidget;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -52,12 +51,13 @@ class KhotabAuthorController
      * queries, not new scope invented for `fatawa` itself.
      *
      * Visual parity audit (khotab-video.htm, 2026-08-18): reproduces
-     * authors.php's alphabetical grouping (lines 58-74), A-Z jump nav
-     * (lines 69-73, populated client-side exactly like legacy), and
+     * authors.php's alphabetical grouping, quick navigation, and
      * per-author video/audio/pdf/fatwa count (`$Author->count`, the raw
      * `vedio`/`audio`/`pdf`/`fatwa` column already loaded on each Author
      * model — not a separate aggregate query, matching authors.php's own
-     * aliased-column SELECT). `ORDER BY BINARY name ASC` (authors.php:8)
+     * aliased-column SELECT). The view receives one grouped collection so
+     * it can render semantic sections without server-generated HTML.
+     * `ORDER BY BINARY name ASC` (authors.php:8)
      * reproduced via the same MySQL/SQLite driver-aware raw clause already
      * established by `LiveStreamController::titleOrderClause()`.
      */
@@ -71,62 +71,20 @@ class KhotabAuthorController
             ->orderByRaw($this->nameOrderClause())
             ->get();
 
-        [$rows, $letterListHtml] = $this->groupedAuthorRows($authors);
+        $groupedAuthors = $authors->groupBy(function (Author $author): string {
+            $letter = mb_substr((string) $author->name, 0, 1, 'UTF-8');
+
+            return $letter === 'ه' ? 'هـ' : $letter;
+        });
 
         return view('khotab.authors', [
-            'rows' => $rows,
+            'groupedAuthors' => $groupedAuthors,
             'op' => $op,
             'countColumn' => $countColumn,
             'countLabel' => self::COUNT_LABELS[$op],
             'sectionTitle' => self::SECTION_TITLES[$op],
             'breadcrumbLabel' => self::BREADCRUMB_LABELS[$op],
-            'letterListHtml' => $letterListHtml,
         ]);
-    }
-
-    /**
-     * authors.php:58-74,69-73. `$Char1` is the author's first UTF-8
-     * character (`ه` normalized to `هـ`, matching the source's own special
-     * case exactly); a new group starts whenever it differs from the
-     * previous author's. `$X` (here: `index`) is the author's own position
-     * in the overall ordered list, not a per-letter counter — the A-Z
-     * nav's anchors (`#0`, `#77`, `#93`, ...) and each group's `<h1 id="">`
-     * both key off this same running index, so they must be built in one
-     * pass together (exactly as authors.php itself does) rather than
-     * derived independently.
-     *
-     * @return array{0: array<int, object{author: Author, index: int, groupLetter: ?string}>, 1: string}
-     */
-    private function groupedAuthorRows(Collection $authors): array
-    {
-        $rows = [];
-        $letterListParts = [];
-        $currentChar = null;
-        $index = 0;
-
-        foreach ($authors as $author) {
-            $char1 = mb_substr($author->name, 0, 1, 'UTF-8');
-            if ($char1 === 'ه') {
-                $char1 = 'هـ';
-            }
-
-            $groupLetter = null;
-            if ($char1 !== $currentChar) {
-                $currentChar = $char1;
-                $groupLetter = $char1;
-                $letterListParts[] = '<a href="#'.$index.'">'.$char1.'</a>';
-            }
-
-            $rows[] = (object) [
-                'author' => $author,
-                'index' => $index,
-                'groupLetter' => $groupLetter,
-            ];
-
-            $index++;
-        }
-
-        return [$rows, implode('&nbsp;-&nbsp;', $letterListParts)];
     }
 
     /**

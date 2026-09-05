@@ -56,25 +56,28 @@ it('renders the real page chrome — <h3 class="page-title"> (a meaningful headi
     expect(strpos($content, 'page-title'))->toBeLessThan(strpos($content, 'page-bar'));
 });
 
-// ---- Legacy-Source Reconstruction: pages/social.php:49-54's real w2a_open_div() portlet wrapper ----
+// ---- Premium social directory refresh ----
 
-it('wraps every section in a real portlet (.portlet.box.blue, empty id="", caption+icon), not a bare .portlet-title div', function () {
+it('wraps all six platform groups in the reusable premium section component', function () {
     $content = $this->get('/social.htm')->getContent();
 
-    expect(substr_count($content, 'portlet box blue'))->toBe(6);
+    expect(substr_count($content, 'w2a-social-section'))->toBeGreaterThanOrEqual(6);
     expect($content)
-        ->toContain('<div id="" class="col-md-12 col-sm-12">')
-        ->toContain('<div class="caption"><i class="fa fa-facebook-square"></i> الفيس بوك</div>')
-        ->toContain('<div class="portlet-body ">');
+        ->toContain('class="w2a-refresh-page w2a-social-page"')
+        ->toContain('<h2>الفيس بوك</h2>')
+        ->toContain('<h2>تابعونا على بودكاست</h2>');
 });
 
-it('reuses the fa-telegram icon for 3 different portlets (تليجرام/منصات تواصل متنوعة/تابعونا على بودكاست) — a real, confirmed source repetition, not corrected', function () {
+it('uses meaningful, Font Awesome 4-compatible icons for distinct platform groups', function () {
     $content = $this->get('/social.htm')->getContent();
 
-    expect(substr_count($content, 'fa-telegram'))->toBe(3);
+    expect($content)
+        ->toContain('fa-paper-plane')
+        ->toContain('fa-globe')
+        ->toContain('fa-microphone');
 });
 
-// ---- Legacy-Source Reconstruction: pages/social.php's own separate "alt" field, and the restored background-image CSS ----
+// ---- Images, external-link safety, and responsive variants ----
 
 it('uses the restored, source-distinct alt attribute (a short identifier), not the full Arabic name, on each image', function () {
     $content = $this->get('/social.htm')->getContent();
@@ -83,25 +86,24 @@ it('uses the restored, source-distinct alt attribute (a short identifier), not t
         ->not->toContain('alt="شبكة الطريق إلى الله - Way2Allah"');
 });
 
-it('loads the background-image CSS rule that pages/social.php:1-32\'s inline <style> block defines (previously dropped entirely)', function () {
+it('loads the scoped premium refresh stylesheet after the global premium stylesheet', function () {
     $content = $this->get('/social.htm')->getContent();
 
-    expect($content)->toContain('background-image: url(/assets/frontend/layout/css/images/block_bg.png);');
+    expect($content)->toContain('/assets/frontend/layout/css/content-refresh.css');
+    expect(strpos($content, 'premium-ui.css'))->toBeLessThan(strpos($content, 'content-refresh.css'));
 });
 
-it('reproduces the literal leading space on the واتساب link (harmless — browsers trim href whitespace — but a real, confirmed source byte)', function () {
+it('normalizes external links and protects new tabs from opener access', function () {
     $content = $this->get('/social.htm')->getContent();
 
-    expect($content)->toContain('href=" https://whatsapp.com/channel/0029Va5lZWm90x2sDeAEoR3o"');
+    expect($content)
+        ->toContain('href="https://whatsapp.com/channel/0029Va5lZWm90x2sDeAEoR3o"')
+        ->not->toContain('href=" https://whatsapp.com')
+        ->toContain('rel="noopener noreferrer"');
 });
 
-it('gives the two "free" sections their own distinct, source-confirmed column widths — منصات تواصل متنوعة is col-xs-4/col-sm-2, تابعونا على بودكاست is col-xs-6/col-sm-3', function () {
+it('uses the compact responsive grid variant for miscellaneous and podcast platforms', function () {
     $content = $this->get('/social.htm')->getContent();
 
-    $miscSectionStart = strpos($content, 'منصات تواصل متنوعة');
-    $podcastSectionStart = strpos($content, 'تابعونا على بودكاست');
-    $miscSection = substr($content, $miscSectionStart, $podcastSectionStart - $miscSectionStart);
-
-    expect($miscSection)->toContain('col-xs-4 col-sm-2 col-md-2');
-    expect(substr($content, $podcastSectionStart))->toContain('col-xs-6 col-sm-3 col-md-2');
+    expect(substr_count($content, 'w2a-social-section--compact'))->toBe(2);
 });

@@ -19,6 +19,10 @@
 
 @section('title', $khotabItem->title . ' - ' . ($khotabItem->authorModel->prename ?? '') . ' ' . ($khotabItem->authorModel->name ?? ''))
 
+@push('page-styles')
+    <link href="/assets/frontend/layout/css/content-refresh.css" rel="stylesheet" type="text/css">
+@endpush
+
 @php
     $khotabOp = $khotabItem->vedio ? 'video' : 'audio';
     // item.php:92,96 — 'الصوتيات' (with the definite article), not 'صوتيات'.
@@ -67,106 +71,16 @@
                     <div class="caption"><i class="fa fa-video-camera"></i> تفاصيل المادة</div>
                 </div>
                 <div class="portlet-body">
-                    <table class="table table-striped">
-                        <tr><th class="w20" style="border-top:0;">عنوان المادة</th><td style="border-top:0;">{{ $khotabItem->title }}</td></tr>
-                        @if(!empty($khotabItem->description))
-                            <tr><th class="w20" style="border-top:0;">وصف المادة</th><td style="border-top:0;">{{ $khotabItem->description }}</td></tr>
-                        @endif
-                        <tr><th class="w20">تاريخ التحميل</th><td>{{ $khotabItem->time ? date('Y-m-d', $khotabItem->time) : '' }}</td></tr>
-                        <tr><th class="w20">حجم المادة</th><td>{{ number_format((int) $khotabItem->linksize) }}</td></tr>
-                        <tr><th class="w20">عدد الزيارات</th><td>{{ number_format($khotabItem->hits) }} زيارة</td></tr>
-                        <tr><th class="w20">عدد مرات الحفظ</th><td>{{ number_format($khotabItem->downcount) }} مرة</td></tr>
-                        @if($khotabItem->pdf != 0)
-                            <tr><th class="w20">حفظ ملف التفريغ</th><td>{{ number_format($khotabItem->pdf) }}</td></tr>
-                        @endif
-                    </table>
-
-                    {{--
-                        Visual parity audit (khotab-item-298784.htm, 2026-08-18)
-                        Batch 2 / Finding #9: item.php:189-238's exact
-                        .badge.blue > .circle > <i> + <h5> button structure,
-                        replacing the flat <i><br>text markup. Icons: download
-                        fa-floppy-o (was fa-download), comment fa-commenting
-                        (was fa-comment) — item.php:203,222 respectively.
-                        Comment button's href/class restored to legacy's
-                        literal `href="javascript:;" class="send-comment-btn"`
-                        (item.php:220) — its target #commentsModal is
-                        deferred to Batch 3, unchanged here.
-
-                        Play/Watch button (item.php:191-198) markup restored
-                        exactly, including the `onclick="w2a_play(...)"`
-                        attribute. Batch 4: `w2a_play()` is now implemented
-                        (below, @push('scripts')), backed by
-                        MediaPlayerController/MediaPlayerService — see
-                        #the_main_player above for the player panel this
-                        fills in.
-
-                        "Send to friend" button (item.php:228-237,
-                        #sendFriendModal) is NOT part of this batch's
-                        approved findings (#8/#9/#13) and is intentionally
-                        NOT restored here.
-                    --}}
-                    <div class="row text-center jumbotron-icon">
-                        <div class="col-lg-3 col-md-3 col-sm-3 col-xs-6 mada-control-item">
-                            <a onclick="w2a_play({{ $khotabItem->id }},'khotab')">
-                                <div class="badge blue">
-                                    <div class="circle">
-                                        <i class="fa {{ $khotabItem->vedio ? 'fa-youtube-play' : 'fa-headphones' }} fa-4 text-blue"></i>
-                                    </div>
-                                </div>
-                                <h5>{{ $khotabItem->vedio ? 'مشاهدة المادة' : 'إستماع المادة' }}</h5>
-                            </a>
-                        </div>
-                        <div class="col-lg-3 col-md-3 col-sm-3 col-xs-6 mada-control-item">
-                            <a href="/khotab-download-{{ $khotabItem->id }}.htm" target="_blank">
-                                <div class="badge blue">
-                                    <div class="circle">
-                                        <i class="fa fa-floppy-o fa-4 text-blue"></i>
-                                    </div>
-                                </div>
-                                <h5>حفظ المادة</h5>
-                            </a>
-                        </div>
-                        @if($khotabItem->pdf != 0)
-                            <div class="col-lg-3 col-md-3 col-sm-3 col-xs-6 mada-control-item">
-                                <a href="/khotab-item-pdf-{{ $khotabItem->id }}.htm" target="_blank">
-                                    <div class="badge blue">
-                                        <div class="circle">
-                                            <i class="fa fa-file-pdf-o fa-4 text-blue"></i>
-                                        </div>
-                                    </div>
-                                    <h5>ملف تفريغ</h5>
-                                </a>
-                            </div>
-                        @endif
-                        <div class="col-lg-3 col-md-3 col-sm-3 col-xs-6 mada-control-item">
-                            <a data-toggle="modal" data-target="#commentsModal" href="javascript:;" class="send-comment-btn">
-                                <div class="badge blue">
-                                    <div class="circle">
-                                        <i class="fa fa-commenting fa-4 text-blue"></i>
-                                    </div>
-                                </div>
-                                <h5>اضف تعليقك</h5>
-                            </a>
-                        </div>
-                        {{--
-                            Visual parity audit (khotab-item-298784.htm,
-                            2026-08-18) Batch 3 / Finding #11: item.php:
-                            228-237's 5th action button, restored now that
-                            its target modal exists below (see
-                            KhotabFriendMail's docblock for the backend).
-                        --}}
-                        <div class="col-lg-3 col-md-3 col-sm-3 col-xs-6 mada-control-item">
-                            <a data-toggle="modal" data-target="#sendFriendModal" href="javascript:;" class="send-friend-btn">
-                                <div class="badge blue">
-                                    <div class="circle">
-                                        <i class="fa fa-envelope fa-4 text-blue"></i>
-                                    </div>
-                                </div>
-                                <h5>أرسل لصديق</h5>
-                            </a>
-                        </div>
-                    </div>
+                    <x-content.media-details-card
+                        :item="$khotabItem"
+                        module="khotab"
+                        :date="$khotabItem->time ? date('Y-m-d', $khotabItem->time) : ''"
+                        :size="\App\Domain\Content\Support\LegacyFileSizeFormatter::format((int) ($khotabItem->linksize ?? 0))"
+                        :download-url="'/khotab-download-'.$khotabItem->id.'.htm'"
+                        :pdf-url="'/khotab-item-pdf-'.$khotabItem->id.'.htm'"
+                        :pdf-count="$khotabItem->pdf"
+                        :notes="$khotabItem->notes"
+                    />
                 </div>
             </div>
 
@@ -188,14 +102,8 @@
                 The panel is genuinely visible-but-empty on page load in
                 real legacy today; not "fixed" here.
             --}}
-            <div class="col-md-12 col-sm-12" id="the_main_player">
-                <div class="panel panel-default">
-                    <div class="panel-heading" style="">
-                        <span class="clickable" data-effect="fadeOut"><i class="fa fa-times"></i></span>
-                    </div>
-                    <div class="panel-body" id="w2a_main_player"></div>
-                </div>
-            </div>
+            <x-content.media-player-panel />
+            <x-content.media-player-script />
 
             {{--
                 Visual parity audit (khotab-item-298784.htm, 2026-08-18)
@@ -203,11 +111,11 @@
                 send_friend_modal() — restored verbatim from
                 khotab/functions.php:1060-1092,1155-1199.
             --}}
-            <div class="modal fade" id="commentsModal" tabindex="-1" role="dialog" aria-labelledby="commentsModalLabel">
+            <div class="modal fade" id="commentsModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="commentsModalLabel">
                 <div class="modal-dialog" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close"> <span aria-hidden="true">&times;</span> </button>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="إغلاق النافذة"> <span aria-hidden="true">&times;</span> </button>
                             <h4 class="modal-title" id="commentsModalLabel">اضافة تعليق على : {{ $khotabItem->title }}</h4>
                         </div>
                         <div class="modal-body" id="modal-comment-body">
@@ -237,11 +145,11 @@
                 </div>
             </div>
 
-            <div class="modal fade" id="sendFriendModal" tabindex="-1" role="dialog" aria-labelledby="sendFriendModalLabel">
+            <div class="modal fade" id="sendFriendModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="sendFriendModalLabel">
                 <div class="modal-dialog" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close"> <span aria-hidden="true">&times;</span> </button>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="إغلاق النافذة"> <span aria-hidden="true">&times;</span> </button>
                             <h4 class="modal-title" id="sendFriendModalLabel">ارسل مادة : {{ $khotabItem->title }}</h4>
                         </div>
                         <div class="modal-body" id="modal-sendFriend-body">
@@ -291,66 +199,7 @@
                         <div class="caption"><i class="fa fa-clone"></i> قائمة الجودات المختلفة للمادة</div>
                     </div>
                     <div class="portlet-body">
-                        {{--
-                            Visual parity audit (khotab-item-298784.htm,
-                            2026-08-18) Batch 2 / Finding #13: item.php:
-                            268-358's exact per-mirror row structure —
-                            numbered <h5>/quality_title/download-attribute
-                            link, and the 4-column .page-header row (play
-                            link, extension icon [G-13-13, unchanged], file
-                            size, download count). Play link's
-                            `onclick="w2a_play(...)"` uses the same shared
-                            `w2a_play()` (Batch 4) as the main play button
-                            above — `type='khotab_mirror'` is already
-                            supported by MediaPlayerService.
-                        --}}
-                        <table class="table table-striped table-hover" id="tabelgrp">
-                            <tbody>
-                            @foreach($khotabItem->mirrors as $mirror)
-                                <tr>
-                                    <td class="">
-                                        <div class="row">
-                                            <div class="col-lg-12">
-                                                <h5>
-                                                    {{ $loop->iteration }} - <a class="quality_title" href="/khotab-mirror-{{ $khotabItem->id }}-{{ $mirror->id }}.htm" download>{{ $mirror->comment }}</a>
-                                                </h5>
-                                                <div class="row page-header color_00a">
-                                                    <div class="col-lg-3 col-xs-6 text-blue">
-                                                        <span>
-                                                            {{ $mirror->vedio == 0 ? 'إستماع' : 'مشاهدة' }}:
-                                                        <a title="{{ $mirror->vedio == 0 ? 'سماع الوصلة' : 'مشاهدة الوصلة' }}" onclick="w2a_play({{ $mirror->id }},'khotab_mirror')">
-        <i class="fa {{ $mirror->vedio == 0 ? 'fa-headphones' : 'fa-youtube-play' }} fa-2"></i></a>
-                                                        </span>
-                                                    </div>
-                                                    <div class="col-lg-3 col-xs-6 text-blue">
-                                                        <span>
-                                                        الإمتداد:
-                                                            {{-- G-13-13 (media/visual parity phase): item.php:274-308's per-mirror
-                                                                 "quality" extension icon — see Mirror::extensionIconFilename(). --}}
-                                                            <a href="Javascript:void(0)"><img width="32" src="/images/ext/{{ $mirror->extensionIconFilename() }}" alt="نوع الملف {{ $mirror->extensionIconFilename() }}" border="0"></a>
-                                                        </span>
-                                                    </div>
-                                                    <div class="col-lg-3 col-xs-6 text-blue">
-                                                        <span>
-                                                        <i class="fa fa-file-archive-o"></i>
-                                                        {{ number_format((int) $mirror->linksize) }}
-                                                        </span>
-                                                    </div>
-                                                    <div class="col-lg-3 col-xs-6 text-blue">
-                                                        <span>
-                                                        <i class="fa fa-download"></i>
-                                                        التنزيلات:
-                                                            {{ number_format($mirror->hits) }}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforeach
-                            </tbody>
-                        </table>
+                        <x-content.media-quality-list :items="$khotabItem->mirrors" module="khotab" :parent-id="$khotabItem->id" />
                     </div>
                 </div>
             @endif
@@ -361,18 +210,7 @@
                         <div class="caption"><i class="fa fa-comments"></i> تعليقات الزوار على المادة</div>
                     </div>
                     <div class="portlet-body">
-                        <p>( عدد التعليقات : {{ $comments->total() }} تعليق )</p>
-                        <div class="anasheed_comments">
-                            @foreach($comments as $comment)
-                                <div class="comment-item">
-                                    <img src="/images/flags/{{ $comment->uid == 0 && $comment->uname === '' ? 'way2allah' : $comment->code }}.png" alt="{{ $comment->code }}">
-                                    <p>{{ $comment->comment }}</p>
-                                    <span>{{ $comment->uid == 0 && $comment->uname === '' ? 'مشرف التعليقات' : $comment->uname }}</span>
-                                    <span>{{ date('Y-m-d', $comment->mytime) }}</span>
-                                </div>
-                            @endforeach
-                        </div>
-                        {{ $comments->links() }}
+                        <x-content.visitor-comments :comments="$comments" />
                     </div>
                 </div>
             @endif
@@ -402,57 +240,39 @@
                         <div class="caption"><i class="fa fa-child"></i> اخترنا لك هذه المادة</div>
                     </div>
                     <div class="portlet-body">
-                        <ul class="news">
-                            @foreach($randomFeatured as $item)
-                                <li><a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a></li>
-                            @endforeach
-                        </ul>
+                        <x-content.featured-items :items="$randomFeatured" />
                     </div>
                 </div>
             </div>
 
-            <div class="col-md-12 col-sm-12">
-                <div class="portlet box blue">
-                    <div class="portlet-title">
-                        <div class="caption"><i class="fa fa-child"></i> الأكثر تحميلا</div>
-                    </div>
-                    <div class="portlet-body">
-                        <ul class="news">
-                            @foreach($mostDownloaded as $item)
-                                <li class="media">
-                                    <a class="pull-left" href="/khotab-item-{{ $item->id }}.htm">
-                                        <img class="media-object" src="{{ $item->thumb }}" alt="{{ $item->title }}" style="width: 60px; height: 40px;">
-                                    </a>
-                                    <div class="media-body">
-                                        <a href="/khotab-item-{{ $item->id }}.htm"><h5 class="media-heading">{{ $item->title }}</h5></a>
-                                    </div>
-                                </li>
-                            @endforeach
-                        </ul>
-                    </div>
-                </div>
+            <div class="col-md-12 col-sm-12 w2a-khotab-sidebar-refresh">
+                <x-content.premium-panel
+                    title="الأكثر تحميلاً"
+                    icon="fa-cloud-download"
+                    description="المواد الأكثر إقبالاً من زوار الموقع."
+                    class="w2a-sidebar-ranking-panel"
+                >
+                    @if ($mostDownloaded->isNotEmpty())
+                        <x-content.top-items :items="$mostDownloaded" mode="hits" />
+                    @else
+                        <p class="w2a-empty-state">لا توجد مواد متاحة حالياً.</p>
+                    @endif
+                </x-content.premium-panel>
             </div>
 
-            <div class="col-md-12 col-sm-12">
-                <div class="portlet box blue">
-                    <div class="portlet-title">
-                        <div class="caption"><i class="fa fa-child"></i> جديد المواد</div>
-                    </div>
-                    <div class="portlet-body">
-                        <ul class="news">
-                            @foreach($mostRecent as $item)
-                                <li class="media">
-                                    <a class="pull-left" href="/khotab-item-{{ $item->id }}.htm">
-                                        <img class="media-object" src="{{ $item->thumb }}" alt="{{ $item->title }}" style="width: 60px; height: 40px;">
-                                    </a>
-                                    <div class="media-body">
-                                        <a href="/khotab-item-{{ $item->id }}.htm"><h5 class="media-heading">{{ $item->title }}</h5></a>
-                                    </div>
-                                </li>
-                            @endforeach
-                        </ul>
-                    </div>
-                </div>
+            <div class="col-md-12 col-sm-12 w2a-khotab-sidebar-refresh">
+                <x-content.premium-panel
+                    title="جديد المواد"
+                    icon="fa-clock-o"
+                    description="أحدث ما أضيف إلى مكتبة المرئيات والصوتيات."
+                    class="w2a-sidebar-ranking-panel"
+                >
+                    @if ($mostRecent->isNotEmpty())
+                        <x-content.top-items :items="$mostRecent" mode="time" />
+                    @else
+                        <p class="w2a-empty-state">لا توجد مواد متاحة حالياً.</p>
+                    @endif
+                </x-content.premium-panel>
             </div>
         </aside>
     </div>
@@ -605,43 +425,5 @@
             });
         </script>
 
-        {{--
-            Batch 4 (media player, khotab-item-298784.htm investigation):
-            replaces scripts/w2a_play.js's w2a_play() + its close-button
-            handler, verbatim behavior — POST to /media-player (not
-            get-mada-player.htm — a Laravel-native route, same URL
-            adaptation already used for the comment/send-friend endpoints
-            above), inject the response into #w2a_main_player, fade in
-            #the_main_player. Close handler fades out and clears the
-            player's HTML (stopping playback by removing the DOM node —
-            same mechanism legacy relies on, no explicit media .pause()
-            needed). Same @push('scripts') stack, so this loads after
-            jquery.min.js too.
-        --}}
-        <script>
-            function w2a_play(id, type) {
-                $.ajax({
-                    url: '{{ route('media-player.show') }}',
-                    method: 'POST',
-                    data: {
-                        id: id,
-                        type: type,
-                        _token: $('meta[name="csrf-token"]').attr('content')
-                    },
-                    dataType: 'html',
-                    success: function (data) {
-                        $('#w2a_main_player').html(data);
-                        $('#the_main_player').fadeIn();
-                    }
-                });
-            }
-            $(document).ready(function () {
-                $('#the_main_player .clickable').click(function () {
-                    $('#the_main_player').fadeOut(350, function () {
-                        $('#w2a_main_player').html('');
-                    });
-                });
-            });
-        </script>
     @endpush
 @endsection

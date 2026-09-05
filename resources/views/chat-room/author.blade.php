@@ -20,20 +20,12 @@
 
             <section aria-label="قائمة السلاسل">
                 <h3>قائمة السلاسل</h3>
-                <ul>
-                    @foreach ($series as $item)
-                        <li><a href="/khotab-series-{{ $item->id }}.htm">{{ trim($item->title) }}</a> ({{ $item->count }})</li>
-                    @endforeach
-                </ul>
+                <x-content.chat-series-list :items="$series" />
             </section>
 
             <section aria-label="قائمة المواد">
                 <h3>قائمة المواد</h3>
-                <ul>
-                    @foreach ($items as $item)
-                        <li><a href="/chat_lesson_{{ $item->id }}.htm">{{ trim($item->title) }}</a></li>
-                    @endforeach
-                </ul>
+                <x-content.chat-item-list :items="$items" />
             </section>
         </div>
 
@@ -43,18 +35,10 @@
             </div>
 
             <h3>أكثر الدروس مشاهدة</h3>
-            <ul>
-                @foreach ($mostViewed as $item)
-                    <li><a href="/chat_lesson_{{ $item->id }}.htm">{{ $item->title }}</a></li>
-                @endforeach
-            </ul>
+            <x-content.chat-lesson-list :items="$mostViewed" />
 
             <h3>أجدد التسجيلات</h3>
-            <ul>
-                @foreach ($mostRecent as $item)
-                    <li><a href="/chat_lesson_{{ $item->id }}.htm">{{ $item->title }}</a></li>
-                @endforeach
-            </ul>
+            <x-content.chat-lesson-list :items="$mostRecent" />
         </aside>
     </div>
 @endsection

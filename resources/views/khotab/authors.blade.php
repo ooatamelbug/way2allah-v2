@@ -43,74 +43,54 @@
                 </div>
             </div>
             <div class="portlet-body">
-                <div class="row">
-                    <div class="col-md-12">
-                        <div class="abc text-center"></div>
-                    </div>
-                </div>
-
-                @foreach ($rows as $row)
-                    @if ($row->groupLetter !== null)
-                        <hr />
-                        <center><h1 id="{{ $row->index }}">{{ $row->groupLetter }}</h1></center>
-                        <hr />
-                    @endif
-                    <div class="author">
-                        <img class="pull-left" src="{{ $row->author->displayImageUrl() }}" alt="{{ $row->author->prename }} {{ $row->author->name }}">
-                        <div class="pull-left">
-                            <span class="author-name">
-                                <a href="/khotab-{{ $op }}-{{ $row->author->id }}.htm">{{ $row->author->name }}</a>
-                            </span>
-                            <span class="testimonials-post">{{ $row->author->{$countColumn} }} {{ $countLabel }}</span>
+                <div class="w2a-preachers-wrap">
+                    <div class="w2a-preachers-toolbar">
+                        <div class="w2a-preachers-search-wrap">
+                            <i class="fa fa-search w2a-preachers-search-icon" aria-hidden="true"></i>
+                            <label class="sr-only" for="w2a_author_search_input">ابحث عن اسم الداعية</label>
+                            <input type="search" id="w2a_author_search_input" class="w2a-preachers-search-input" placeholder="ابحث عن اسم الداعية..." autocomplete="off">
+                            <button type="button" id="w2a_author_search_clear" class="w2a-preachers-search-clear" hidden aria-label="مسح البحث"><i class="fa fa-times" aria-hidden="true"></i></button>
+                        </div>
+                        <div class="w2a-tree-badge">
+                            <i class="fa fa-user-circle" aria-hidden="true"></i> {{ $groupedAuthors->flatten(1)->count() }} داعية
                         </div>
                     </div>
-                @endforeach
+
+                    @if($groupedAuthors->isNotEmpty())
+                        <nav class="w2a-alphabet-nav" aria-label="الانتقال حسب الحرف">
+                            @foreach($groupedAuthors as $letter => $authors)
+                                <a href="#w2a_letter_{{ md5($letter) }}" class="w2a-alphabet-link">{{ $letter }}</a>
+                            @endforeach
+                        </nav>
+                    @endif
+
+                    <div class="w2a-authors-container">
+                        @forelse($groupedAuthors as $letter => $authors)
+                            <section class="w2a-letter-section" id="w2a_letter_{{ md5($letter) }}" data-letter="{{ $letter }}" tabindex="-1">
+                                <div class="w2a-letter-header">
+                                    <span class="w2a-letter-badge">{{ $letter }}</span>
+                                    <h3 class="w2a-letter-title">حرف {{ $letter }}</h3>
+                                </div>
+                                <div class="w2a-preachers-grid">
+                                    @foreach($authors as $author)
+                                        <x-content.preacher-card
+                                            :author="$author"
+                                            href="/khotab-{{ $op }}-{{ $author->id }}.htm"
+                                            :count="$author->{$countColumn}"
+                                            :count-label="$countLabel"
+                                        />
+                                    @endforeach
+                                </div>
+                            </section>
+                        @empty
+                            <div class="w2a-empty-state" role="status">لا يوجد دعاة متاحون في هذا القسم حاليًا.</div>
+                        @endforelse
+                        <p id="w2a_author_result_status" class="sr-only" aria-live="polite"></p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-{{--
-    authors.php:98-135's inline A-Z jump-nav script, reproduced verbatim
-    (same click-handler/smooth-scroll code) — `letterListHtml` is built
-    server-side by KhotabAuthorController::groupedAuthorRows() in the same
-    single pass as the grouping above, exactly like legacy's own
-    `$LetterList` string. `@push('scripts')` (not inline in
-    @section('content')) so this renders after jquery.min.js via
-    layouts/app.blade.php's `@stack('scripts')` — the homepage's #pics
-    carousel broke this exact way by loading too early; not repeating it.
---}}
-@push('scripts')
-    <script>
-        $(document).ready(function() {
-            var letterList = '{!! $letterListHtml !!}';
-            $('.abc').html(letterList);
-            $('.abc a').click(function(event) {
-                if (
-                    location.pathname.replace(/^\//, '') == this.pathname.replace(/^\//, '')
-                    &&
-                    location.hostname == this.hostname
-                ) {
-                    var target = $(this.hash);
-                    target = target.length ? target : $('[name=' + this.hash.slice(1) + ']');
-                    if (target.length) {
-                        event.preventDefault();
-                        $('html, body').animate({
-                            scrollTop: target.offset().top - 60
-                        }, 1000, function() {
-                            var target = $(target);
-                            target.focus();
-                            if (target.is(":focus")) {
-                                return false;
-                            } else {
-                                target.attr('tabindex', '-1');
-                                target.focus();
-                            };
-                        });
-                    }
-                }
-            });
-        });
-    </script>
-@endpush
 @endsection

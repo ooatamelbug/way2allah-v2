@@ -63,20 +63,18 @@
                             </div>
                         </div>
                         <div class="portlet-body ">
-                            <div class="row">
+                            <div class="w2a-chat-authors-grid">
                                 @forelse ($mostActiveAuthors as $item)
-                                    @php($authorName = $item->prename.' '.$item->name)
-                                    <div class="col-xs-12 col-sm-6 col-md-4">
-                                        <div class="author author-block">
-                                            <a href="/chat_author_{{ $item->id }}.htm">
-                                                <img class="pull-left" src="{{ $authorImages->get($item->id)?->fallbackImageUrl() }}" alt="{{ $authorName }}">
-                                            </a>
-                                            <div class="pull-left">
-                                                <span class="author-name"><a href="/chat_author_{{ $item->id }}.htm">{{ $authorName }}</a></span>
-                                                <span class="testimonials-post">{{ $item->lessons_count }} درس</span>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    @php($authorName = trim($item->prename.' '.$item->name))
+                                    <a href="/chat_author_{{ $item->id }}.htm" class="w2a-chat-author-card">
+                                        <span class="w2a-chat-author-avatar-wrap">
+                                            <img src="{{ $authorImages->get($item->id)?->fallbackImageUrl() }}" alt="{{ $authorName }}" width="48" height="48" loading="lazy" decoding="async">
+                                        </span>
+                                        <span class="w2a-chat-author-info">
+                                            <span class="w2a-chat-author-name">{{ $authorName }}</span>
+                                            <span class="w2a-chat-author-count"><i class="fa fa-microphone" aria-hidden="true"></i> {{ number_format((int) $item->lessons_count) }} درس</span>
+                                        </span>
+                                    </a>
                                 @empty
                                     <div class="text-center alert alert-danger">عفوا ، لا يوجد نتائج</div>
                                 @endforelse
@@ -108,11 +106,7 @@
                                 </div>
                             </div>
                             <div class="portlet-body ">
-                                <ul class="recent_list">
-                                    @foreach ($mostViewed as $item)
-                                        <li class="list-group-item"><a href="/chat_lesson_{{ $item->id }}.htm">  <i class="fa {{ $item->vedio == 1 ? 'fa-video-camera' : 'fa-microphone' }}"></i> {{ $item->title }}</a></li>
-                                    @endforeach
-                                </ul>
+                                <x-content.chat-lesson-list :items="$mostViewed" />
                             </div>
                         </div>
                     </div>
@@ -128,11 +122,7 @@
                                 </div>
                             </div>
                             <div class="portlet-body ">
-                                <ul class="recent_list">
-                                    @foreach ($mostRecent as $item)
-                                        <li class="list-group-item"><a href="/chat_lesson_{{ $item->id }}.htm">  <i class="fa {{ $item->vedio == 1 ? 'fa-video-camera' : 'fa-microphone' }}"></i> {{ $item->title }}</a></li>
-                                    @endforeach
-                                </ul>
+                                <x-content.chat-lesson-list :items="$mostRecent" />
                             </div>
                         </div>
                     </div>

@@ -133,16 +133,8 @@
                 real routes used identically elsewhere (FatwaTopicController,
                 FatwaAuthorController), not invented here.
 
-                Pagination: kept as Laravel's own `->links()`, matching the
-                already-established sitewide precedent for this exact
-                concern (fatawa/channels-index.blade.php, the sibling
-                fatawa-channels.htm page, does the same) — legacy's own
-                custom pager (functions.php:708-751, a 5-page-window
-                "الأولى/<</>>/الأخيرة" widget) is SOURCE_CONFIRMED but
-                deliberately not reproduced: a distinct, substantial
-                UI mechanism, not part of this task's "minimum missing
-                parity" scope, and not attempted on this page's own
-                closest sibling either.
+                Pagination uses the shared public-site premium view. Query,
+                page size, and generated route URLs remain unchanged.
             --}}
             <div class="col-md-12 col-sm-12">
                 <div class="portlet box blue">
@@ -150,7 +142,7 @@
                         <div class="caption"><i class="fa fa-plus"></i>الفتاوى المضافة على قناة {{ $title }}</div>
                     </div>
                     <div class="portlet-body series-overflow">
-                        {{ $generalQuestions->links() }}
+                        {{ $generalQuestions->onEachSide(1)->links('components.content.premium-pagination') }}
                         <table class="table table-striped table-hover" id="sample_5">
                             <tbody>
                                 @foreach ($generalQuestions as $question)
@@ -182,7 +174,7 @@
                                 @endforeach
                             </tbody>
                         </table>
-                        {{ $generalQuestions->links() }}
+                        {{ $generalQuestions->onEachSide(1)->links('components.content.premium-pagination') }}
                     </div>
                 </div>
             </div>

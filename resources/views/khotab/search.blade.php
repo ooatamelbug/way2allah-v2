@@ -1,30 +1,6 @@
 @extends('layouts.app')
 
-{{--
-    Legacy-Source Reconstruction (video-advanced-search.htm): production
-    pretty URL 404s; `khotab/search.php` is the real handler (confirmed
-    independently — its own `$breadcrumb_url = 'video-advanced-search.htm'`
-    self-reference, plus header.php:259's real, unconditional sitewide
-    nav link `<a href="video-advanced-search.htm">بحث فى المرئيات</a>`
-    inside the "المرئيات" dropdown — no `.htaccess` rewrite rule exists
-    for it either way, a genuine `LEGACY_PRETTY_URL_ORPHANED` finding, not
-    a Laravel invention). `khotab/search.php`'s own raw path
-    (`https://way2allah.com/khotab/search.php`) is LIVE — a read-only GET
-    confirmed the page chrome (document title, `<h3 class="page-title">`
-    empty per the confirmed $Author-null bug, single self-referencing
-    breadcrumb item, portlet-wrapped form) matches this repo's source
-    exactly. IMPORTANT, EXPLICITLY FLAGGED FINDING: that same live fetch's
-    actual `<form>` fields do NOT match this repo's `khotab/search.php`
-    source (live shows an 11-option department selector + free-text
-    author/channel inputs + `action="search.htm"`, vs. this file's
-    author/channel `<select>`s + self-submit) — production's real file
-    has apparently been updated since this repo snapshot. This
-    reconstruction follows the REPO'S OWN source (also what the
-    already-built KhotabSearchController/ContentListingService query
-    layer was built against) — reconciling with the newer live form is a
-    separate, larger, out-of-scope redesign (a shared multi-department
-    engine, `search.htm`/`advanced-search/index.php`), not decided here.
---}}
+{{-- Premium presentation for the existing Laravel search contract and result sets. --}}
 @section('title', 'البحث المتقدم في المرئيات')
 
 {{--
@@ -37,6 +13,10 @@
 --}}
 @push('styles')
     <link href="/assets/global/plugins/bootstrap-datepicker/css/bootstrap-datepicker3.min.css" rel="stylesheet" type="text/css"/>
+@endpush
+
+@push('page-styles')
+    <link href="/assets/frontend/layout/css/content-refresh.css" rel="stylesheet" type="text/css">
 @endpush
 
 @push('scripts')
@@ -90,83 +70,81 @@
     --}}
     <x-page-chrome :breadcrumb="[['title' => 'البحث المتقدم في المرئيات', 'url' => '/video-advanced-search.htm']]" />
 
-    {{--
-        search.php:104-168's form portlet (w2a_open_div, fa-child icon) —
-        previously a bare unstyled <label>/<input> list with no portlet,
-        no Bootstrap form classes, no datepicker wiring. Field order
-        unchanged (already correct): title, author, channel, from/to
-        dates. `action=""` (search.php:122, self-submit) reproduced as an
-        empty action rather than the previous hardcoded
-        `route('khotab.search')` — self-submit works correctly from
-        either real entry point (`/khotab/search` or
-        `/video-advanced-search.htm`) without hardcoding one, exactly
-        matching legacy's own behavior. `method="get"` (not legacy's
-        `method="post"`) is KhotabSearchController's own already-approved,
-        already-documented departure (bookmarkable/shareable search) —
-        unchanged by this task. The 5 hidden `_h` mirror inputs
-        (search.php:163-167) fed legacy's AJAX functions above — with
-        those not ported, the hidden inputs would have no consumer either,
-        so they're not added.
-    --}}
-    <div class="col-md-12 col-sm-12">
-        <div class="portlet box blue">
-            <div class="portlet-title">
-                <div class="caption"><i class="fa fa-child"></i> البحث المتقدم في المرئيات</div>
-            </div>
-            <div class="portlet-body">
-                <form class="form-horizontal" method="get" action="">
-                    <div class="form-group">
-                        <label for="title" class="col-sm-2 control-label">اسم السلسلة أو المادة :</label>
-                        <div class="col-sm-8">
-                            <input type="text" class="form-control" id="title" name="title" value="{{ $title }}">
-                        </div>
+    {{-- Field names, GET behavior, self-submit URL, and datepicker hooks are intentionally unchanged. --}}
+    <div class="w2a-refresh-page w2a-video-search-page">
+        <x-content.premium-panel
+            title="البحث المتقدم في المرئيات"
+            icon="fa-search"
+            description="اعثر على السلسلة أو المادة المرئية بدقة باستخدام الداعية أو القناة أو تاريخ الإضافة."
+            class="w2a-search-panel"
+        >
+            <form class="w2a-advanced-search" method="get" action="">
+                <div class="w2a-field w2a-field--wide">
+                    <label for="title">اسم السلسلة أو المادة</label>
+                    <span class="w2a-field__control">
+                        <i class="fa fa-file-video-o" aria-hidden="true"></i>
+                        <input type="search" class="form-control" id="title" name="title" value="{{ $title }}" placeholder="اكتب كلمات البحث" autocomplete="off">
+                    </span>
+                </div>
+                <div class="w2a-field">
+                    <label for="author">الداعية</label>
+                    <span class="w2a-field__control">
+                        <i class="fa fa-user" aria-hidden="true"></i>
+                        <select class="form-control" id="author" name="author">
+                            <option value="0">كل الدعاة</option>
+                            @foreach ($authors as $authorOption)
+                                <option value="{{ $authorOption->id }}" @selected($authorId === $authorOption->id)>{{ $authorOption->name }}</option>
+                            @endforeach
+                        </select>
+                    </span>
+                </div>
+                <div class="w2a-field">
+                    <label for="channel">القناة</label>
+                    <span class="w2a-field__control">
+                        <i class="fa fa-television" aria-hidden="true"></i>
+                        <select class="form-control" id="channel" name="channel">
+                            <option value="0">كل القنوات</option>
+                            @foreach ($channels as $channelOption)
+                                <option value="{{ $channelOption->id }}" @selected($channelId === $channelOption->id)>{{ $channelOption->title }}</option>
+                            @endforeach
+                        </select>
+                    </span>
+                </div>
+                <fieldset class="w2a-field w2a-field--dates">
+                    <legend>تاريخ الإضافة</legend>
+                    <div class="w2a-date-range">
+                        <label for="from" class="sr-only">من تاريخ</label>
+                        <span class="w2a-field__control">
+                            <i class="fa fa-calendar" aria-hidden="true"></i>
+                            <input type="text" class="form-control datepikerinput" id="from" name="from" value="{{ $from }}" placeholder="من تاريخ" inputmode="numeric">
+                        </span>
+                        <label for="to" class="sr-only">إلى تاريخ</label>
+                        <span class="w2a-field__control">
+                            <i class="fa fa-calendar-check-o" aria-hidden="true"></i>
+                            <input type="text" class="form-control datepikerinput" id="to" name="to" value="{{ $to }}" placeholder="إلى تاريخ" inputmode="numeric">
+                        </span>
                     </div>
-                    <div class="form-group">
-                        <label for="author" class="col-sm-2 control-label">الشيخ :</label>
-                        <div class="col-sm-8">
-                            <select class="form-control" id="author" name="author">
-                                <option value="0">إختر</option>
-                                @foreach ($authors as $authorOption)
-                                    <option value="{{ $authorOption->id }}" @selected($authorId === $authorOption->id)>{{ $authorOption->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="channel" class="col-sm-2 control-label">القناة :</label>
-                        <div class="col-sm-8">
-                            <select class="form-control" id="channel" name="channel">
-                                <option value="0">إختر</option>
-                                @foreach ($channels as $channelOption)
-                                    <option value="{{ $channelOption->id }}" @selected($channelId === $channelOption->id)>{{ $channelOption->title }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="from" class="col-sm-2 control-label">تاريخ الإضافة :</label>
-                        <div class="col-sm-4">
-                            <input type="text" class="form-control datepikerinput" id="from" name="from" value="{{ $from }}" placeholder="من">
-                        </div>
-                        <div class="col-sm-4">
-                            <input type="text" class="form-control datepikerinput" id="to" name="to" value="{{ $to }}" placeholder="إلى">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <div class="col-md-offset-2 col-sm-8">
-                            <input type="submit" name="kh_search" class="btn btn-primary" id="kh_search" value="بــحــث">
-                        </div>
-                    </div>
-                </form>
+                </fieldset>
+                <div class="w2a-search-actions">
+                    <button type="submit" name="kh_search" class="w2a-primary-action" id="kh_search" value="1">
+                        <i class="fa fa-search" aria-hidden="true"></i>
+                        <span>عرض نتائج البحث</span>
+                    </button>
+                    <a href="/video-advanced-search.htm" class="w2a-secondary-action">مسح الحقول</a>
+                </div>
+            </form>
 
-                @if($titleTooShort)
-                    <script type="text/javascript">alert('عفواً ، يجب إدخال أربعة أحرف على الأقل للبحث');</script>
-                @endif
-            </div>
-        </div>
+            @if($titleTooShort)
+                <div class="w2a-form-alert" role="alert">
+                    <i class="fa fa-exclamation-circle" aria-hidden="true"></i>
+                    عفواً، يجب إدخال أربعة أحرف على الأقل للبحث.
+                </div>
+            @endif
+        </x-content.premium-panel>
     </div>
 
     @if($series !== null)
+        <div class="w2a-refresh-page w2a-video-search-results">
         {{--
             search.php:230-410's ListSearchSeries() row markup — table#tabelgrp,
             title highlighted via the same title_sub()-equivalent helper
@@ -177,7 +155,7 @@
             $item->author_id directly (the series query already selects
             it correctly — no bug here, unlike the khotab table below).
         --}}
-        <div class="col-md-12 col-sm-12">
+        <div class="col-md-12 col-sm-12 w2a-search-results-block">
             <div class="portlet box blue">
                 <div class="portlet-title">
                     <div class="caption"><i class="fa fa-child"></i> قائمة السلاسل</div>
@@ -232,7 +210,7 @@
                             @endif
                         </tbody>
                     </table>
-                    <div class="row"><div class="col-xs-12">{{ $series->links() }}</div></div>
+                    <div class="row"><div class="col-xs-12">{{ $series->onEachSide(1)->links('components.content.premium-pagination') }}</div></div>
                 </div>
             </div>
         </div>
@@ -251,7 +229,7 @@
             consistently rather than introducing a fresh instance of the
             same bug.
         --}}
-        <div class="col-md-12 col-sm-12">
+        <div class="col-md-12 col-sm-12 w2a-search-results-block">
             <div class="portlet box blue">
                 <div class="portlet-title">
                     <div class="caption"><i class="fa fa-child"></i> قائمة المواد</div>
@@ -306,9 +284,10 @@
                             @endif
                         </tbody>
                     </table>
-                    <div class="row"><div class="col-xs-12">{{ $items->links() }}</div></div>
+                    <div class="row"><div class="col-xs-12">{{ $items->onEachSide(1)->links('components.content.premium-pagination') }}</div></div>
                 </div>
             </div>
+        </div>
         </div>
     @endif
 @endsection

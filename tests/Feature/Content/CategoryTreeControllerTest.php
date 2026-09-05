@@ -61,7 +61,7 @@ it('categories.htm: IF-037 — breadcrumb items render a literal empty href, not
         ->toContain('<a href="">التصنيفات الموضوعية</a>');
 });
 
-it('categories.htm: IF-037 — each leaf category gets its OWN <ul class="sub_group_list"> wrapper, not one shared wrapper for all siblings', function () {
+it('categories.htm: renders recursive accessible nodes from the grouped lookup without legacy duplicate wrappers', function () {
     DB::connection('main')->table('nuke_w2a_cat')->insert([
         ['id' => 1, 'title' => 'Top', 'main_cat' => 0, 'video_count' => 1],
         ['id' => 2, 'title' => 'Group', 'main_cat' => 1, 'video_count' => 1],
@@ -71,7 +71,11 @@ it('categories.htm: IF-037 — each leaf category gets its OWN <ul class="sub_gr
 
     $content = $this->get('/categories.htm')->assertOk()->getContent();
 
-    expect(substr_count($content, 'class="sub_group_list"'))->toBe(2);
+    expect(substr_count($content, 'class="w2a-tree-node level-'))->toBe(4)
+        ->and($content)->toContain('class="w2a-tree-toggle"')
+        ->and($content)->toContain('aria-expanded="false"')
+        ->and($content)->toContain('id="w2a_tree_search_input"')
+        ->and($content)->toContain('id="w2a_tree_expand_all"');
 });
 
 // ---- var-categories.htm (anasheed_count filter, var-category- slug) ----

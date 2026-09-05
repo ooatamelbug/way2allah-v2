@@ -147,7 +147,7 @@
                                 </tbody>
                             </table>
                         </div>
-                        {{ $topics->links() }}
+                        {{ $topics->onEachSide(1)->links('components.content.premium-pagination') }}
                     </div>
                 </div>
             </div>

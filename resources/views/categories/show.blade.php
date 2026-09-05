@@ -2,48 +2,6 @@
 
 @section('title', $categoryModel->title)
 
-{{--
-    Batch 1 (category-1.htm/channel-1.htm parity): categories/category.php:44-45
-    (`register_script('scripts/khotab_tables.js'); Plugins('datatables');`) —
-    confirmed unconditional, not inside any `if`. Scoped to this page only via
-    @push, matching this page's own real asset registration rather than making
-    DataTables globally active in the shared layout.
---}}
-@push('styles')
-    <link href="/assets/global/plugins/datatables/datatables.min.css" rel="stylesheet" type="text/css"/>
-    <link href="/assets/global/plugins/datatables/plugins/bootstrap/datatables.bootstrap-rtl.css" rel="stylesheet" type="text/css"/>
-    {{--
-        Full Design Parity Pass (category-{id}.htm): category.php:1-18's own
-        literal inline <style> block — the Series card-grid's hover
-        transform, confirmed live on production (category-1.htm's
-        .telawah-author cards use exactly this transition).
-    --}}
-    <style>
-        .telawah-author .thumbnail {
-            height: 185px !important;
-            position: relative;
-            transition: all .3s ease-in-out
-        }
-
-        .telawah-author .thumbnail .telawa-author-name {
-            position: absolute;
-            bottom: 4px;
-            width: calc(100% - 4px);
-            transition: all .3s ease-in-out
-        }
-
-        .telawah-author .thumbnail:hover .telawa-author-name{
-            transform: translateY(-10px);
-        }
-    </style>
-@endpush
-
-@push('scripts')
-    <script src="/assets/global/plugins/datatables/datatables.min.js" type="text/javascript"></script>
-    <script src="/assets/global/plugins/datatables/plugins/bootstrap/datatables.bootstrap.js" type="text/javascript"></script>
-    <script src="/scripts/khotab_tables.js" type="text/javascript"></script>
-@endpush
-
 @section('content')
     {{-- Shared Page Chrome Parity Audit: replaces the previous bare <nav><a> list (missing Home, the "التصنيفات الموضوعية" root label, and the real page-breadcrumb DOM) with the shared chrome. --}}
     <x-page-chrome :heading="$categoryModel->title" :breadcrumb="$breadcrumbTrail" />
@@ -76,10 +34,11 @@
                 <div id="" class="col-md-12 col-sm-12">
                     <div class="portlet box blue">
                         <div class="portlet-title">
-                            <div class="caption"><i class="fa fa-child"></i> برامج حصرية لشبكة الطريق إلى الله</div>
+                            <div class="caption"><i class="fa fa-star" aria-hidden="true"></i> برامج حصرية لشبكة الطريق إلى الله</div>
                         </div>
                         <div class="portlet-body ">
-                            <div class="row telawat_authors_list">
+                            <div class="w2a-exclusive-shows-wrap">
+                                <div class="w2a-exclusive-shows-grid">
                                 @foreach ($mediaCoverageSubcategories as $item)
                                     @php($logo = match ((int) $item->id) {
                                         613 => '/images/logos/Salon.gif',
@@ -92,17 +51,26 @@
                                         592 => '/images/logos/ayatTotla.gif',
                                         562 => '/images/logos/AnRab.gif',
                                         618 => '/images/logos/RamdanKarab6.gif',
-                                        default => 'https://way2allah.com//images/tvnoise.gif',
+                                        default => '/images/tvnoise.gif',
                                     })
-                                    <div class="col-xs-12 col-sm-6 col-md-4 col-lg-3 telawah-author">
-                                        <div class="thumbnail">
-                                            <img src="{{ $logo }}" title="{{ $item->title }}" width="" height="">
-                                            <div class="telawa-author-name text-center">
-                                                <a href="/category-{{ $item->id }}.htm"><span style="color: white !important;">{{ $item->title }}</span></a>
+                                    <a href="/category-{{ $item->id }}.htm" class="w2a-exclusive-card">
+                                        <div class="w2a-exclusive-banner-wrap">
+                                            <img src="{{ $logo }}" alt="{{ $item->title }}" class="w2a-exclusive-banner-img" width="240" height="160" loading="lazy" decoding="async">
+                                            <span class="w2a-exclusive-badge"><i class="fa fa-star" aria-hidden="true"></i> برنامج حصري</span>
+                                            <span class="w2a-exclusive-overlay" aria-hidden="true">
+                                                <span class="w2a-exclusive-overlay-icon"><i class="fa fa-play"></i></span>
+                                            </span>
+                                        </div>
+                                        <div class="w2a-exclusive-body">
+                                            <h3 class="w2a-exclusive-title">{{ $item->title }}</h3>
+                                            <div class="w2a-exclusive-cta">
+                                                <span>تصفح البرنامج</span>
+                                                <i class="fa fa-angle-right" aria-hidden="true"></i>
                                             </div>
                                         </div>
-                                    </div>
+                                    </a>
                                 @endforeach
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -142,25 +110,10 @@
                 <div id="" class="col-md-12 col-sm-12">
                     <div class="portlet box blue">
                         <div class="portlet-title">
-                            <div class="caption"><i class="fa fa-child"></i> قائمة السلاسل</div>
+                            <div class="caption"><i class="fa fa-list-ol" aria-hidden="true"></i> قائمة السلاسل</div>
                         </div>
                         <div class="portlet-body ">
-                            <div class="row telawat_authors_list">
-                                @foreach ($series as $item)
-                                    <div class="col-xs-12 col-sm-6 col-md-4 col-lg-3 telawah-author">
-                                        <div class="thumbnail">
-                                            <img src="https://way2allah.com//images/tvnoise.gif" title="" width="" height="">
-                                            <div class="telawa-author-name text-center">
-                                                <a href="/category-series-{{ $item->id }}-{{ $categoryModel->id }}.htm">
-                                                    {{ $item->title }}
-                                                    <br>
-                                                    {{ $item->prename }} {{ $item->name }}
-                                                </a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
+                            <x-content.category-series-grid :items="$series" :category="$categoryModel->id" />
                         </div>
                     </div>
                 </div>
@@ -183,56 +136,10 @@
             <div class="col-md-12 col-sm-12">
                 <div class="portlet box blue">
                     <div class="portlet-title">
-                        <div class="caption"><i class="fa fa-child"></i> قائمة المواد</div>
+                        <div class="caption"><i class="fa fa-play-circle" aria-hidden="true"></i> قائمة المواد</div>
                     </div>
-                    <div class="portlet-body series-overflow series-overflow-auto">
-                        <table class="table table-striped table-hover" id="tabelkht">
-                            <tbody>
-                                @foreach ($items as $item)
-                                    <tr><td class="">
-                                        <div class="row"><div class="col-lg-12">
-                                            <h5>
-                                                <div class="row">
-                                                    <div class="col-sm-12 col-lg-6">
-                                                        <a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a>
-                                                    </div>
-                                                    @if(!empty($item->name))
-                                                        <div class="col-sm-12 col-lg-6">
-                                                            {{ $item->prename }} :
-                                                            <a href="/khotab-video-{{ $item->authID }}.htm">{!! str_replace(' ', '&nbsp;', e($item->name)) !!}</a>
-                                                        </div>
-                                                    @endif
-                                                </div>
-                                            </h5>
-                                            <div class="row page-header color_00a">
-                                                <div class="col-md-3 col-xs-6 text-blue">
-                                                    <span><i class="fa fa-calendar"></i> {{ date('Y-m-d', $item->time) }}</span>
-                                                </div>
-                                                <div class="col-md-3 col-xs-6 text-blue">
-                                                    <span><i class="fa fa-commenting-o"></i> التعليقات: {{ $item->comments }}</span>
-                                                </div>
-                                                <div class="col-md-3 col-xs-6 text-blue">
-                                                    <span><i class="fa fa-eye"></i> مشاهدات: {{ number_format($item->hits) }}</span>
-                                                </div>
-                                                @if(!empty($item->channel_id))
-                                                    <div class="col-md-3 col-xs-6 text-blue">
-                                                        <span><i class="fa fa-television"></i> القناة:
-                                                            <a href="/channel-{{ $item->channel_id }}.htm"><img width="24" height="24" src="/images/channels/{{ $item->channel_id }}.png" alt=""></a>
-                                                        </span>
-                                                    </div>
-                                                @endif
-                                                @php($duration = \App\Domain\Content\Support\LegacyDurationFormatter::format((int) ($item->adur ?? 0)))
-                                                @if($duration !== '00:00:00')
-                                                    <div class="col-md-3 col-xs-6 text-blue">
-                                                        <span><i class="fa fa-clock-o"></i> {{ $duration }}</span>
-                                                    </div>
-                                                @endif
-                                            </div>
-                                        </div></div>
-                                    </td></tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                    <div class="portlet-body">
+                        <x-content.category-media-grid :items="$items" />
                     </div>
                 </div>
             </div>
@@ -290,18 +197,7 @@
                         <div class="caption"><i class="fa fa-child"></i> اخترنا لك هذه المادة</div>
                     </div>
                     <div class="portlet-body ">
-                        @foreach ($randomFeatured as $item)
-                            @php($photo = ((int) ($item->gif ?? 0)) === 1
-                                ? \App\Domain\Content\Support\MediaPathResolver::path('khotab_gifs', $item->id, 'gif')
-                                : \App\Domain\Content\Support\MediaPathResolver::path('khotab_frames', $item->id, 'jpg'))
-                            <div class="thumbnail">
-                                <img src="/{{ $photo }}" alt="{{ $item->title }}" style="width: 100%; height: 160px; display: block;">
-                                <div class="caption">
-                                    <h3>{{ $item->name }}</h3>
-                                    <p><a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a></p>
-                                </div>
-                            </div>
-                        @endforeach
+                        <x-content.featured-items :items="$randomFeatured" />
                     </div>
                 </div>
             </div>
@@ -312,17 +208,7 @@
                         <div class="caption"><i class="fa fa-cloud-download"></i> الأكثر تحميلا</div>
                     </div>
                     <div class="portlet-body ">
-                        <ul class="media-list">
-                            @foreach ($mostDownloaded as $item)
-                                <li class="media">
-                                    <a class="pull-left" href="javascript:;"><img class="media-object" src="{{ $item->thumb }}" alt="{{ $item->title }}" style="width: 60px; height: 40px;"></a>
-                                    <div class="media-body">
-                                        <a href="/khotab-item-{{ $item->id }}.htm"><h5 class="media-heading">{{ $item->title }}</h5></a>
-                                        <small>عدد مرات التحميل: {{ number_format($item->hits) }} مرة</small>
-                                    </div>
-                                </li>
-                            @endforeach
-                        </ul>
+                        <x-content.top-items :items="$mostDownloaded" />
                     </div>
                 </div>
             </div>
@@ -333,17 +219,7 @@
                         <div class="caption"><i class="fa fa-flash"></i> جديد المواد</div>
                     </div>
                     <div class="portlet-body ">
-                        <ul class="media-list">
-                            @foreach ($mostRecent as $item)
-                                <li class="media">
-                                    <a class="pull-left" href="javascript:;"><img class="media-object" src="{{ $item->thumb }}" alt="{{ $item->title }}" style="width: 60px; height: 40px;"></a>
-                                    <div class="media-body">
-                                        <a href="/khotab-item-{{ $item->id }}.htm"><h5 class="media-heading">{{ $item->title }}</h5></a>
-                                        <small>بتاريخ: {{ \App\Domain\Content\Support\LegacyShortDateFormatter::format((int) $item->time) }}</small>
-                                    </div>
-                                </li>
-                            @endforeach
-                        </ul>
+                        <x-content.top-items :items="$mostRecent" mode="time" />
                     </div>
                 </div>
             </div>

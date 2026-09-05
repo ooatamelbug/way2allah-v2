@@ -40,6 +40,10 @@ it('group show: renders sub-groups and sorah-ordered items', function () {
     $content = $this->get('/recite-group-1.htm')->assertOk()->assertSee('Sub Group')->getContent();
 
     expect(strpos($content, 'Al-Fatiha'))->toBeLessThan(strpos($content, 'Al-Baqarah'));
+    expect($content)
+        ->toContain('class="w2a-qualities-list"')
+        ->toContain("w2a_play(2, 'telawat')")
+        ->toContain('/recite-download-2.htm');
 });
 
 it('group show: 404s for a nonexistent group', function () {
@@ -65,7 +69,7 @@ it('group show: G-13-07 — sub-group rows show the hardcoded telawah.gif too', 
 
 // ---- recite.htm parity: one outer portlet containing a flat card grid, not one portlet per reader ----
 
-it('authors index: renders exactly ONE portlet (list_telawat_groups() wraps all readers in a single portlet, not one each)', function () {
+it('authors index: renders exactly one portlet with a searchable premium reciter grid', function () {
     DB::connection('main')->table('nuke_telawah_groups')->insert([
         ['id' => 1, 'title' => 'Reader One', 'parent_id' => 0, 'hits' => 5, 'child' => 2, 'telawah' => 10],
         ['id' => 2, 'title' => 'Reader Two', 'parent_id' => 0, 'hits' => 7, 'child' => 0, 'telawah' => 3],
@@ -74,11 +78,13 @@ it('authors index: renders exactly ONE portlet (list_telawat_groups() wraps all 
     $content = $this->get('/recite.htm')->assertOk()->getContent();
 
     expect(substr_count($content, 'portlet-title'))->toBe(1)
-        ->and(substr_count($content, 'telawah-author'))->toBe(2)
+        ->and(substr_count($content, 'class="w2a-reciter-card"'))->toBe(2)
+        ->and($content)->toContain('w2a_reciter_search_input')
+        ->and($content)->toContain('2 قارئ')
         ->and($content)->toContain('fa-users');
 });
 
-it('authors index: card metadata matches list_telawat_groups() exactly — counts, comment fallback/truncation, and the untruncated tooltip', function () {
+it('authors index: premium card metadata includes counts, the new fallback description, and truncation', function () {
     DB::connection('main')->table('nuke_telawah_groups')->insert([
         ['id' => 1, 'title' => 'No Comment Reader', 'parent_id' => 0, 'hits' => 100, 'child' => 3, 'telawah' => 25, 'des' => ''],
         ['id' => 2, 'title' => 'Long Comment Reader', 'parent_id' => 0, 'hits' => 1, 'child' => 0, 'telawah' => 1,
@@ -88,11 +94,25 @@ it('authors index: card metadata matches list_telawat_groups() exactly — count
 
     $content = $this->get('/recite.htm')->assertOk()->getContent();
 
-    expect($content)->toContain('الأقسام الفرعية : <span>3</span> قسم')
-        ->and($content)->toContain('التلاوات : <span>25</span> تلاوة')
-        ->and($content)->toContain('الزيارات : <span>100</span> زيارة')
-        ->and($content)->toContain('بدون تعليق') // functions.php:151's fallback for an empty `des`
+    expect($content)->toContain('3 قسم فرعي')
+        ->and($content)->toContain('25 تلاوة')
+        ->and($content)->toContain('100 زيارة')
+        ->and($content)->toContain('تلاوات قرآنية خاشعة ومجودة')
         ->and($content)->toContain('...'); // the long comment must be truncated, not shown in full
+});
+
+it('group show: subgroups reuse the searchable reciter-card component', function () {
+    DB::connection('main')->table('nuke_telawah_groups')->insert([
+        ['id' => 1, 'title' => 'Reader One', 'parent_id' => 0, 'hits' => 0, 'child' => 1, 'telawah' => 0],
+        ['id' => 2, 'title' => 'Sub Group', 'parent_id' => 1, 'hits' => 7, 'child' => 0, 'telawah' => 3],
+    ]);
+
+    $content = $this->get('/recite-group-1.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('class="w2a-reciter-card"')
+        ->toContain('data-title="Sub Group"')
+        ->toContain('1 قسم فرعي');
 });
 
 it('item show: renders details WITHOUT incrementing hits — legacy never does either', function () {
@@ -101,6 +121,24 @@ it('item show: renders details WITHOUT incrementing hits — legacy never does e
     $this->get('/recite-item-1.htm')->assertOk()->assertSee('A Recitation');
 
     expect(DB::connection('main')->table('nuke_telawah_telawah')->find(1)->hits)->toBe(7);
+});
+
+it('item show: renders the premium details, player, and metadata sidebars', function () {
+    DB::connection('main')->table('nuke_telawah_telawah')->insert([
+        ['id' => 1, 'title' => 'A Recitation', 'link' => 'https://example.com/a.mp3', 'linksize' => 1024, 'hits' => 7, 'downcount' => 3, 'mytime' => 100],
+        ['id' => 2, 'title' => 'Popular Recitation', 'link' => '', 'linksize' => 0, 'hits' => 90, 'downcount' => 12, 'mytime' => 50],
+        ['id' => 3, 'title' => 'Recent Recitation', 'link' => '', 'linksize' => 0, 'hits' => 1, 'downcount' => 2, 'mytime' => 200],
+    ]);
+
+    $content = $this->get('/recite-item-1.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('class="w2a-item-details-card"')
+        ->toContain("w2a_play(1,'telawat')")
+        ->toContain('id="the_main_player"')
+        ->toContain('class="w2a-chat-sidebar-list"')
+        ->toContain('12 مرة')
+        ->toContain('function w2a_play(id, type)');
 });
 
 // ---- Shared Page Chrome Parity Audit: recite.htm's heading vs document <title> are genuinely different strings ----

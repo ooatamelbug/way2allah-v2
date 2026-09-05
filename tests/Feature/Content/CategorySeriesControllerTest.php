@@ -27,7 +27,7 @@ beforeEach(function () {
     useInMemoryMainConnectionForCategorySeries();
 });
 
-it('renders items linked to the series via khotab_category_index for the given category', function () {
+it('renders linked items in the searchable premium media grid', function () {
     DB::connection('main')->table('nuke_w2a_cat')->insert(['id' => 11, 'title' => 'Fiqh', 'main_cat' => 0]);
     DB::connection('main')->table('nuke_islamic_series')->insert(['id' => 9, 'title' => 'A Series', 'vedio' => 1, 'hidden' => 0]);
     DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Author']);
@@ -36,7 +36,13 @@ it('renders items linked to the series via khotab_category_index for the given c
     ]);
     DB::connection('main')->table('khotab_category_index')->insert(['khotab_id' => 1, 'category_id' => 11]);
 
-    $this->get('/category-series-9-11.htm')->assertOk()->assertSee('Series Lesson')->assertSee('A Series');
+    $content = $this->get('/category-series-9-11.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('Series Lesson')
+        ->toContain('A Series')
+        ->toContain('class="w2a-cat-items-wrap"')
+        ->toContain('id="w2a_cat_items_search_input"');
 });
 
 it('404s for a nonexistent series or a nonexistent category', function () {
@@ -109,4 +115,34 @@ it('IF-039: sidebar (most-downloaded/most-recent) includes hidden items, unlike 
     DB::connection('main')->table('khotab_category_index')->insert(['khotab_id' => 1, 'category_id' => 11]);
 
     $this->get('/category-series-9-11.htm')->assertOk()->assertSee('Hidden Sidebar Item');
+});
+
+it('renders the redesigned series downloads and discovery cards with useful metadata', function () {
+    DB::connection('main')->table('nuke_w2a_cat')->insert(['id' => 11, 'title' => 'Fiqh', 'main_cat' => 0]);
+    DB::connection('main')->table('nuke_islamic_series')->insert(['id' => 9, 'title' => 'A Series']);
+    DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Author']);
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1,
+        'author' => 1,
+        'title' => 'Popular Recent Lesson',
+        'vedio' => 1,
+        'frame' => 1,
+        'hits' => 321,
+        'time' => 1_700_000_000,
+    ]);
+    DB::connection('main')->table('khotab_category_index')->insert(['khotab_id' => 1, 'category_id' => 11]);
+
+    $content = $this->get('/category-series-9-11.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('/assets/frontend/layout/css/category-series.css')
+        ->toContain('class="w2a-series-download-panel"')
+        ->toContain('href="/khotab-series-9-11.grx"')
+        ->toContain('href="/khotab-series-9.grx"')
+        ->toContain('class="portlet box blue w2a-series-list-widget"')
+        ->toContain('class="media w2a-top-item"')
+        ->toContain('class="media-object w2a-top-item-thumb"')
+        ->toContain('321 تحميل')
+        ->toContain('fa-clock-o')
+        ->not->toContain('<ul class="news">');
 });

@@ -107,7 +107,7 @@ it('show: pagination uses the real pretty-URL contract (/auther-questions-{autho
 
     $page1 = $this->get('/auther-questions-5.htm');
     $page1->assertOk()
-        ->assertSee('class="pagination"', false)
+        ->assertSee('class="w2a-pagination"', false)
         ->assertSee('/auther-questions-5-2.htm', false)
         ->assertDontSee('?page=', false);
 

@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Content\Support\LegacyDurationFormatter;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\Fixtures\MainSchema;
 use Tests\Support\InMemoryConnection;
@@ -103,8 +104,25 @@ it('fatawa-authors.htm (op=fatwa) generates real khotab-fatwa-{id}.htm links, by
     $content = $this->get('/fatawa-authors.htm')->assertOk()->getContent();
 
     expect($content)
-        ->toContain('<a href="/khotab-fatwa-17.htm">الحويني</a>')
+        ->toContain('href="/khotab-fatwa-17.htm"')
+        ->toContain('الحويني')
         ->toContain('12 فتوى');
+});
+
+it('author directory: renders searchable alphabetical card groups without inline jQuery navigation', function () {
+    DB::connection('main')->table('nuke_islamic_authors')->insert([
+        ['id' => 1, 'name' => 'أحمد', 'prename' => 'الشيخ', 'vedio' => 5, 'hidden' => 0],
+        ['id' => 2, 'name' => 'محمد', 'prename' => 'الدكتور', 'vedio' => 3, 'hidden' => 0],
+    ]);
+
+    $content = $this->get('/khotab-video.htm')->assertOk()->getContent();
+
+    expect($content)->toContain('id="w2a_author_search_input"')
+        ->toContain('class="w2a-alphabet-nav"')
+        ->toContain('class="w2a-preacher-card"')
+        ->toContain('data-name="الشيخ أحمد"')
+        ->toContain('5 فيديو')
+        ->not->toContain("$('.abc').html");
 });
 
 it('fatawa-authors.htm only lists authors with fatwa > 0, matching authors.php:24\'s real WHERE clause', function () {
@@ -132,7 +150,7 @@ it('group show: renders series and items scoped to the group', function () {
     $this->get('/khotab-group-20.htm')->assertOk()->assertSee('Group Item');
 });
 
-it('group show: G-13-11 — the series list shows a channel icon only when the series has a channel_id, matching ListSeries() exactly', function () {
+it('group show: the series list uses premium cards without nested channel links', function () {
     DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Author']);
     DB::connection('main')->table('nuke_islamic_groups')->insert(['id' => 20, 'author_id' => 1, 'title' => 'A Group', 'vedio' => 1, 'hidden' => 0]);
     DB::connection('main')->table('nuke_islamic_series')->insert([
@@ -142,9 +160,11 @@ it('group show: G-13-11 — the series list shows a channel icon only when the s
 
     $content = $this->get('/khotab-group-20.htm')->assertOk()->getContent();
 
-    expect($content)->toContain('/images/channels/9.png');
-    // "No Channel" row must not accidentally render a channels/0.png link.
-    expect(substr_count($content, 'images/channels/'))->toBe(1);
+    expect($content)
+        ->toContain('class="w2a-cat-series-grid"')
+        ->toContain('<a href="/khotab-series-1.htm" class="w2a-cat-series-card">')
+        ->toContain('<a href="/khotab-series-2.htm" class="w2a-cat-series-card">')
+        ->not->toContain('images/channels/');
 });
 
 // ---- G-13-03 (media/visual parity phase): the "الملف الشخصي" author-photo box was missing entirely on series/group ----
@@ -246,29 +266,27 @@ it('group show: audio group uses الصوتيات/khotab-audio.htm throughout th
         ->not->toContain('المرئيات');
 });
 
-it('group show: all 6 portlets use fa-child uniformly, matching this page\'s own confirmed convention (not the varied icons other pages use)', function () {
+it('group show: the redesigned series portlet uses the list icon while the other portlets remain intact', function () {
     seedKhotabGroupParityFixture();
 
     $content = $this->get('/khotab-group-20.htm')->assertOk()->getContent();
 
-    expect(substr_count($content, '<i class="fa fa-child"></i>'))->toBe(6);
+    expect($content)->toContain('<i class="fa fa-list-ol" aria-hidden="true"></i> قائمة السلاسل')
+        ->and(substr_count($content, 'class="portlet box blue"'))->toBe(7);
 });
 
-it('group show: the Series portlet reproduces the real double-nested portlet-body, id="tableser", and full metadata row (date/lastupdate/count/channel)', function () {
+it('group show: the Series portlet renders a premium card with count and channel label', function () {
     seedKhotabGroupParityFixture();
 
     $content = $this->get('/khotab-group-20.htm')->assertOk()->getContent();
 
     expect($content)
         ->toContain('<div class="portlet-body ">')
-        ->toContain('<div class="portlet-body series-overflow">')
-        ->toContain('id="tableser"')
-        ->toContain('<a href="/khotab-series-30.htm">Juz Tabarak</a>')
-        ->toContain('<i class="fa fa-calendar"></i> 2010-11-15')
-        ->toContain('<i class="fa fa-refresh"></i> 2010-12-31')
-        ->toContain('<i class="fa fa-play-circle-o"></i> المواد: 32')
-        ->toContain('<i class="fa fa-television"></i> القناة:')
-        ->toContain('/images/channels/9.png');
+        ->toContain('<a href="/khotab-series-30.htm" class="w2a-cat-series-card">')
+        ->toContain('class="w2a-cat-series-title">Juz Tabarak</h3>')
+        ->toContain('32 مادة')
+        ->toContain('class="fa fa-television"')
+        ->toContain('Iqraa');
 });
 
 it('group show: the Series portlet shows the real empty-state text when the group has no series, not an omitted block', function () {
@@ -280,18 +298,18 @@ it('group show: the Series portlet shows the real empty-state text when the grou
     expect($content)->toContain('لا توجد سلاسل مطابقة بقاعدة بيانات الموقع');
 });
 
-it('group show: the Khotab items portlet shows date/comments/hits/channel/duration but NEVER an author link — a confirmed difference from categories\' own ListKhotab()', function () {
+it('group show: the Khotab items portlet uses responsive cards with date, comments, views, channel, and duration but no author link', function () {
     seedKhotabGroupParityFixture();
 
     $content = $this->get('/khotab-group-20.htm')->assertOk()->getContent();
 
     expect($content)
-        ->toContain('id="tabelkht"')
-        ->toContain('<a href="/khotab-item-40.htm">Surah Al-Bayyina</a>')
-        ->toContain('<i class="fa fa-calendar"></i> 2006-12-19')
-        ->toContain('<i class="fa fa-commenting-o"></i> التعليقات: 1')
-        ->toContain('<i class="fa fa-eye"></i> مشاهدات: 2,529')
-        ->not->toContain('الداعية:');
+        ->toContain('class="w2a-item-card-row"')
+        ->toContain('class="w2a-item-card-title">Surah Al-Bayyina</a>')
+        ->toContain('<i class="fa fa-calendar" aria-hidden="true"></i> 2006-12-19')
+        ->toContain('<i class="fa fa-commenting-o" aria-hidden="true"></i> 1 تعليق')
+        ->toContain('<i class="fa fa-eye" aria-hidden="true"></i> 2,529 مشاهدة')
+        ->not->toContain('w2a-item-card-author');
 });
 
 it('group show: the Khotab items portlet shows the real empty-state text when the group has no items', function () {
@@ -313,29 +331,21 @@ it('group show: BOTH "الأكثر تحميلا" and "جديد المواد" sho
 
     $content = $this->get('/khotab-group-20.htm')->assertOk()->getContent();
 
-    // Both fixture items qualify for both LIMIT-5 boxes (only 2 rows
-    // exist), so the label appears once per item per box (4 total) —
-    // the real point of this test is that NEITHER box ever shows a date.
-    expect(substr_count($content, 'عدد مرات التحميل:'))->toBe(4);
-    expect($content)->not->toContain('بتاريخ:');
+    expect(substr_count($content, 'fa-cloud-download'))->toBeGreaterThanOrEqual(4);
+    expect($content)->toContain('500 تحميل')->toContain('42 تحميل');
 });
 
-it('group show: registers the DataTables assets (core + bootstrap plugin + khotab_tables.js), matching this page\'s own confirmed live asset profile', function () {
+it('group show: omits DataTables assets after its last table was replaced by responsive cards', function () {
     seedKhotabGroupParityFixture();
 
     $content = $this->get('/khotab-group-20.htm')->assertOk()->getContent();
 
     expect($content)
-        ->toContain('datatables.min.css')
-        ->toContain('datatables.bootstrap-rtl.css')
-        ->toContain('datatables.min.js')
-        ->toContain('datatables.bootstrap.js')
-        ->toContain('/scripts/khotab_tables.js')
-        // Title/DataTables Gap Closure (2026-08-22): assets/global/scripts/
-        // datatable.js investigated and confirmed CONFIGURED_BUT_INERT —
-        // khotab_tables.js is fully self-contained and never references
-        // the global Datatable wrapper class that file defines. Guards
-        // against it being silently re-added without re-verifying that.
+        ->not->toContain('datatables.min.css')
+        ->not->toContain('datatables.bootstrap-rtl.css')
+        ->not->toContain('datatables.min.js')
+        ->not->toContain('datatables.bootstrap.js')
+        ->not->toContain('/scripts/khotab_tables.js')
         ->not->toContain('global/scripts/datatable.js');
 });
 
@@ -431,17 +441,33 @@ it('day: IF-022 fix — a dated URL scopes the main list to that date\'s items, 
     expect($listSection)->not->toContain('Today Item');
 });
 
-it('day: khotab-video-today.htm parity — 4 portlets, datepicker assets loaded, empty-state message when no items today, "newest" box shows a date not a hit count', function () {
+it('day: renders the premium native date form without legacy datepicker assets', function () {
     $response = $this->get('/khotab-video-today.htm');
     $content = $response->assertOk()->getContent();
 
     expect(substr_count($content, 'portlet-title'))->toBe(4)
         ->and($content)->toContain('بحث بالتاريخ')
-        ->and($content)->toContain('bootstrap-datepicker3.min.css')
-        ->and($content)->toContain('bootstrap-datepicker.js')
-        ->and($content)->toContain('scripts/khotab_date.js')
-        ->and($content)->toContain("\$('#form_datetime_1').datepicker(")
+        ->and($content)->toContain('w2a-date-picker-form')
+        ->and($content)->toContain('w2a-date-picker-submit')
+        ->and($content)->toContain('type="date"')
+        ->and($content)->toContain('method="get"')
+        ->and($content)->not->toContain('bootstrap-datepicker')
+        ->and($content)->not->toContain('scripts/khotab_date.js')
         ->and($content)->toContain('لا توجد مواد مطابقة بقاعدة بيانات الموقع');
+});
+
+it('day: native date search redirects to the canonical dated route for video and audio', function () {
+    $this->get('/khotab-video-today.htm?date=2020-01-15')
+        ->assertRedirect('/khotab-videodate-15-1-2020.htm');
+
+    $this->get('/khotab-audio-today.htm?date=2020-01-15')
+        ->assertRedirect('/khotab-audiodate-15-1-2020.htm');
+});
+
+it('day: invalid native date input is ignored safely', function () {
+    $this->get('/khotab-video-today.htm?date=2020-02-31')
+        ->assertOk()
+        ->assertSee('البحث بالتاريخ');
 });
 
 it('day: "جديد المواد" box uses mode=\'time\' (a formatted date), unlike khotab-series-{id}.htm\'s always-\'hits\' boxes', function () {
@@ -452,7 +478,7 @@ it('day: "جديد المواد" box uses mode=\'time\' (a formatted date), unli
 
     $content = $this->get('/khotab-video-today.htm')->assertOk()->getContent();
 
-    expect($content)->toContain('بتاريخ: الأحد 28 يونيو 2026 مـ');
+    expect($content)->toContain('الأحد 28 يونيو 2026 مـ');
 });
 
 // ---- IF-017 + IF-021: news.php / author.php pdf-op sidebars ----
@@ -469,7 +495,7 @@ it('news: IF-017 fix — the pdf op\'s "Most Downloaded" sidebar is scoped to pd
     $response->assertOk()->assertSee('PDF Item')->assertDontSee('Unrelated Audio Item');
 });
 
-it('author show: G-13-11 — group/series lists show a channel icon only when channel_id is set, matching ListGroup()/ListSeries() exactly', function () {
+it('author show: group and series lists use premium cards without nested channel links', function () {
     DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Author']);
     DB::connection('main')->table('nuke_islamic_groups')->insert(['id' => 1, 'author_id' => 1, 'title' => 'A Group', 'vedio' => 1, 'hidden' => 0, 'count' => 1, 'channel_id' => 9]);
     DB::connection('main')->table('nuke_islamic_series')->insert(['id' => 1, 'author_id' => 1, 'group_id' => 0, 'title' => 'A Series', 'vedio' => 1, 'hidden' => 0, 'count' => 1, 'channel_id' => 0]);
@@ -478,8 +504,10 @@ it('author show: G-13-11 — group/series lists show a channel icon only when ch
 
     $content = $this->get('/khotab-video-1.htm')->assertOk()->getContent();
 
-    expect($content)->toContain('/images/channels/9.png')
-        ->and(substr_count($content, 'images/channels/'))->toBe(1);
+    expect($content)
+        ->toContain('<a href="/khotab-group-1.htm" class="w2a-cat-series-card">')
+        ->toContain('<a href="/khotab-series-1.htm" class="w2a-cat-series-card">')
+        ->not->toContain('images/channels/');
 });
 
 it('author show: IF-021 fix — the pdf op\'s sidebar is scoped to this author\'s pdf items, not coerced to audio', function () {
@@ -533,7 +561,7 @@ it('author show: renders author.php:53-57\'s breadcrumb — first two segments b
         ->and($content)->toContain('<li><a href="">Sheikh Author</a><i class=""></i></li>');
 });
 
-it('author show: every section (groups/series/items + all 4 always-present sidebar widgets) is wrapped in .portlet.box.blue with the correct fa-child icon and legacy caption text', function () {
+it('author show: every section remains wrapped in a portlet while collection headings use their new icons', function () {
     DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Author']);
     DB::connection('main')->table('nuke_islamic_groups')->insert(['id' => 1, 'author_id' => 1, 'title' => 'A Group', 'vedio' => 1, 'hidden' => 0, 'count' => 1]);
     DB::connection('main')->table('nuke_islamic_series')->insert(['id' => 1, 'author_id' => 1, 'group_id' => 0, 'title' => 'A Series', 'vedio' => 1, 'hidden' => 0, 'count' => 1]);
@@ -541,8 +569,8 @@ it('author show: every section (groups/series/items + all 4 always-present sideb
 
     $content = $this->get('/khotab-video-1.htm')->assertOk()->getContent();
 
-    expect($content)->toContain('<div class="caption"><i class="fa fa-child"></i> قائمة المجموعات</div>')
-        ->and($content)->toContain('<div class="caption"><i class="fa fa-child"></i> قائمة السلاسل</div>')
+    expect($content)->toContain('<div class="caption"><i class="fa fa-folder" aria-hidden="true"></i> قائمة المجموعات</div>')
+        ->and($content)->toContain('<div class="caption"><i class="fa fa-list-ol" aria-hidden="true"></i> قائمة السلاسل</div>')
         ->and($content)->toContain('<div class="caption"><i class="fa fa-child"></i> قائمة المواد</div>')
         ->and($content)->toContain('<div class="caption"><i class="fa fa-child"></i> الملف الشخصي</div>')
         ->and($content)->toContain('<div class="caption"><i class="fa fa-child"></i> اخترنا لك هذه المادة</div>')
@@ -613,7 +641,7 @@ it('author show: no duplicate element ids on the page', function () {
 
 // ---- Visual parity audit (khotab-video-17.htm, 2026-08-18): author show() Batch 2 — Groups/Series/Items rich row markup restored, previously simplified ----
 
-it('author show: renders ListGroup()\'s exact row markup (khotab/functions.php:360-402) — table#tabelgrp, count with fa-play-circle-o, channel badge only when channel_id is set', function () {
+it('author show: renders group cards with counts and channel labels without nested links', function () {
     DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Author']);
     DB::connection('main')->table('nuke_islamic_groups')->insert([
         ['id' => 1, 'author_id' => 1, 'title' => 'With Channel', 'vedio' => 1, 'hidden' => 0, 'count' => 1, 'channel_id' => 9],
@@ -624,17 +652,18 @@ it('author show: renders ListGroup()\'s exact row markup (khotab/functions.php:3
         ['id' => 2, 'author' => 1, 'group_id' => 1, 'title' => 'Item B', 'vedio' => 1, 'hidden' => 0],
         ['id' => 3, 'author' => 1, 'group_id' => 2, 'title' => 'Item C', 'vedio' => 1, 'hidden' => 0],
     ]);
+    DB::connection('main')->table('nuke_sat_channels')->insert(['id' => 9, 'title' => 'Test Channel']);
 
     $content = $this->get('/khotab-video-1.htm')->assertOk()->getContent();
 
-    expect($content)->toContain('<table class="table table-striped table-hover" id="tabelgrp">')
-        ->and($content)->toContain('<i class="fa fa-play-circle-o"></i>')
-        ->and($content)->toContain('المواد:')
-        ->and($content)->toContain('/images/channels/9.png')
-        ->and(substr_count($content, 'images/channels/'))->toBe(1);
+    expect($content)->toContain('<a href="/khotab-group-1.htm" class="w2a-cat-series-card">')
+        ->and($content)->toContain('class="w2a-cat-series-count"')
+        ->and($content)->toContain('1 مادة')
+        ->and($content)->toContain('Test Channel')
+        ->and($content)->not->toContain('images/channels/');
 });
 
-it('author show: renders ListSeries()\'s exact row markup (khotab/functions.php:452-495) — table#tableser, date + last-updated + count + conditional channel badge', function () {
+it('author show: renders series cards with counts and channel labels', function () {
     DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Author']);
     $time = mktime(0, 0, 0, 3, 15, 2026);
     $lastupdate = mktime(0, 0, 0, 4, 1, 2026);
@@ -642,20 +671,17 @@ it('author show: renders ListSeries()\'s exact row markup (khotab/functions.php:
         'id' => 1, 'author_id' => 1, 'group_id' => 0, 'title' => 'A Series', 'vedio' => 1, 'hidden' => 0,
         'count' => 7, 'channel_id' => 9, 'time' => $time, 'lastupdate' => $lastupdate,
     ]);
+    DB::connection('main')->table('nuke_sat_channels')->insert(['id' => 9, 'title' => 'Test Channel']);
 
     $content = $this->get('/khotab-video-1.htm')->assertOk()->getContent();
 
-    expect($content)->toContain('<table class="table table-striped table-hover" id="tableser">')
-        ->and($content)->toContain('<i class="fa fa-calendar"></i>')
-        ->and($content)->toContain(date('Y-m-d', $time))
-        ->and($content)->toContain('<i class="fa fa-refresh"></i>')
-        ->and($content)->toContain(date('Y-m-d', $lastupdate))
-        ->and($content)->toContain('<i class="fa fa-play-circle-o"></i>')
-        ->and($content)->toContain('المواد:')
-        ->and($content)->toContain('/images/channels/9.png');
+    expect($content)->toContain('<a href="/khotab-series-1.htm" class="w2a-cat-series-card">')
+        ->and($content)->toContain('7 مادة')
+        ->and($content)->toContain('Test Channel')
+        ->and($content)->not->toContain('images/channels/');
 });
 
-it('author show: renders ListKhotab()\'s exact default-branch row markup (khotab/functions.php:643-706) — table#tabelkht, date/comments/views always shown, channel badge and duration conditional', function () {
+it('author show: renders the responsive item-card contract with date, comments, views, channel, and duration', function () {
     DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Author']);
     $time = mktime(0, 0, 0, 4, 22, 2026);
     DB::connection('main')->table('nuke_islamic_khotab')->insert([
@@ -666,17 +692,15 @@ it('author show: renders ListKhotab()\'s exact default-branch row markup (khotab
 
     $content = $this->get('/khotab-video-1.htm')->assertOk()->getContent();
 
-    expect($content)->toContain('<table class="table table-striped table-hover" id="tabelkht">')
-        ->and($content)->toContain('<i class="fa fa-calendar"></i>')
+    expect($content)->toContain('class="w2a-item-card-row"')
+        ->and($content)->toContain('<i class="fa fa-calendar" aria-hidden="true"></i>')
         ->and($content)->toContain(date('Y-m-d', $time))
-        ->and($content)->toContain('<i class="fa fa-commenting-o"></i>')
-        ->and($content)->toContain('التعليقات:')
-        ->and($content)->toContain('4')
-        ->and($content)->toContain('<i class="fa fa-eye"></i>')
-        ->and($content)->toContain('مشاهدات:')
+        ->and($content)->toContain('<i class="fa fa-commenting-o" aria-hidden="true"></i> 4 تعليق')
+        ->and($content)->toContain('<i class="fa fa-eye" aria-hidden="true"></i>')
+        ->and($content)->toContain('مشاهدة')
         ->and($content)->toContain(number_format(1872))
-        ->and($content)->toContain('/images/channels/9.png')
-        ->and($content)->toContain('<i class="fa fa-clock-o"></i>')
+        ->and($content)->toContain('/channel-9.htm')
+        ->and($content)->toContain('<i class="fa fa-clock-o" aria-hidden="true"></i>')
         // Verified against real olddb data (khotab-item-158635, adur=3621662ms) — matches live legacy's displayed "01:00:21" exactly.
         ->and($content)->toContain('01:00:21');
 });
@@ -692,10 +716,10 @@ it('author show: an item with no nuke_islamic_advanced row (adur missing) never 
 
 it('LegacyDurationFormatter::format(): matches Duration() (functions.php:357-365) exactly, verified against 2 real olddb items\' raw adur values', function () {
     // khotab-item-158635 (>1hr branch, 12-hour "h" format — legacy's own date("h:i:s",...), not 24-hour).
-    expect(\App\Domain\Content\Support\LegacyDurationFormatter::format(3621662))->toBe('01:00:21')
+    expect(LegacyDurationFormatter::format(3621662))->toBe('01:00:21')
         // khotab-item-158739 (<=1hr branch, "00:i:s").
-        ->and(\App\Domain\Content\Support\LegacyDurationFormatter::format(3405995))->toBe('00:56:45')
-        ->and(\App\Domain\Content\Support\LegacyDurationFormatter::format(0))->toBe('00:00:00');
+        ->and(LegacyDurationFormatter::format(3405995))->toBe('00:56:45')
+        ->and(LegacyDurationFormatter::format(0))->toBe('00:00:00');
 });
 
 it('author show: pdf op\'s item list still renders (khotabPdfItemsByAuthor() has no adur column) — no fatal error, duration silently omitted', function () {
@@ -770,13 +794,9 @@ it('authors index: groups authors by first letter exactly like authors.php:58-74
 
     $content = $this->get('/khotab-video.htm')->assertOk()->getContent();
 
-    // BINARY-ordered: أ (0x...627) sorts before ه (0x...647) — two groups,
-    // "أحمد"/"أنس" both fall under one أ group (index 0), "هشام" starts a
-    // new group at index 2, normalized to هـ (authors.php:61).
-    expect(substr_count($content, '<h1 id="0">أ</h1>'))->toBe(1)
-        ->and(substr_count($content, '<h1 id="2">هـ</h1>'))->toBe(1)
-        // Only 2 groups total — "أنس" must NOT start its own group.
-        ->and(substr_count($content, '<h1 id='))->toBe(2);
+    expect($content)->toContain('id="w2a_letter_'.md5('أ').'"')
+        ->toContain('id="w2a_letter_'.md5('هـ').'"')
+        ->and(substr_count($content, 'class="w2a-letter-section"'))->toBe(2);
 });
 
 it('authors index: a single shared first letter across all authors renders exactly one group, not one per author', function () {
@@ -788,8 +808,8 @@ it('authors index: a single shared first letter across all authors renders exact
 
     $content = $this->get('/khotab-video.htm')->assertOk()->getContent();
 
-    expect(substr_count($content, '<h1 id='))->toBe(1)
-        ->and($content)->toContain('<h1 id="0">خ</h1>');
+    expect(substr_count($content, 'class="w2a-letter-section"'))->toBe(1)
+        ->and($content)->toContain('id="w2a_letter_'.md5('خ').'"');
 });
 
 it('authors index: renders the real vedio/audio/pdf column value as the per-author count, with the op-specific label word', function () {
@@ -798,13 +818,13 @@ it('authors index: renders the real vedio/audio/pdf column value as the per-auth
     ]);
 
     $video = $this->get('/khotab-video.htm')->assertOk()->getContent();
-    expect($video)->toContain('<span class="testimonials-post">42 فيديو</span>');
+    expect($video)->toContain('<span class="w2a-preacher-count">42 فيديو</span>');
 
     $audio = $this->get('/khotab-audio.htm')->assertOk()->getContent();
-    expect($audio)->toContain('<span class="testimonials-post">7 صوت</span>');
+    expect($audio)->toContain('<span class="w2a-preacher-count">7 صوت</span>');
 
     $pdf = $this->get('/khotab-pdf.htm')->assertOk()->getContent();
-    expect($pdf)->toContain('<span class="testimonials-post">3 منشور</span>');
+    expect($pdf)->toContain('<span class="w2a-preacher-count">3 منشور</span>');
 });
 
 it('authors index: author link points at khotab-{op}-{id}.htm', function () {
@@ -814,7 +834,7 @@ it('authors index: author link points at khotab-{op}-{id}.htm', function () {
     expect($this->get('/khotab-audio.htm')->assertOk()->getContent())->toContain('href="/khotab-audio-55.htm"');
 });
 
-it('authors index: renders the A-Z jump-nav container and its populating script exactly once, after jquery.min.js', function () {
+it('authors index: renders semantic alphabet navigation without inline-generated HTML', function () {
     DB::connection('main')->table('nuke_islamic_authors')->insert([
         ['id' => 1, 'name' => 'أحمد', 'vedio' => 1, 'hidden' => 0],
         ['id' => 2, 'name' => 'بلال', 'vedio' => 1, 'hidden' => 0],
@@ -822,16 +842,10 @@ it('authors index: renders the A-Z jump-nav container and its populating script 
 
     $content = $this->get('/khotab-video.htm')->assertOk()->getContent();
 
-    expect(substr_count($content, 'class="abc text-center"'))->toBe(1)
-        ->and(substr_count($content, 'var letterList'))->toBe(1)
-        ->and($content)->toContain('<a href="#0">أ</a>&nbsp;-&nbsp;<a href="#1">ب</a>');
-
-    $jqueryPos = strpos($content, 'jquery.min.js');
-    $scriptPos = strpos($content, 'var letterList');
-
-    expect($jqueryPos)->not->toBeFalse()
-        ->and($scriptPos)->not->toBeFalse()
-        ->and($jqueryPos)->toBeLessThan($scriptPos);
+    expect(substr_count($content, 'class="w2a-alphabet-nav"'))->toBe(1)
+        ->and($content)->toContain('href="#w2a_letter_'.md5('أ').'"')
+        ->toContain('href="#w2a_letter_'.md5('ب').'"')
+        ->not->toContain('var letterList');
 });
 
 it('dump: lists pdf items ordered by pdf_time, with a pdf-scoped sidebar', function () {

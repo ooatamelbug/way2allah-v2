@@ -3,6 +3,7 @@
 namespace App\Domain\Admin\Models;
 
 use App\Domain\Content\Support\MediaPathResolver;
+use App\Domain\Content\Support\MediaUrl;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -51,7 +52,7 @@ class Location extends Model
         $path = MediaPathResolver::path('locations', $this->id, 'jpg');
 
         return file_exists(public_path($path))
-            ? "/{$path}"
-            : '/media/locations/no_location_image.png';
+            ? MediaUrl::asset($path)
+            : MediaUrl::asset('locations/no_location_image.png');
     }
 }

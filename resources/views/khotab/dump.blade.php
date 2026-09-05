@@ -5,15 +5,11 @@
 @section('content')
     <div class="row service-box margin-bottom-40">
         <div class="col-lg-9 col-md-8 col-sm-7 nopadding">
-            <section aria-label="أحدث 50 درس مفرغ">
-                <ul>
-                    @foreach ($items as $item)
-                        <li>
-                            <a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a>
-                            — <a href="/khotab-pdf-{{ $item->author }}.htm">{{ $item->prename }} {{ $item->name }}</a>
-                        </li>
-                    @endforeach
-                </ul>
+            <section class="portlet box blue" aria-label="أحدث 50 درس مفرغ">
+                <div class="portlet-title"><div class="caption"><i class="fa fa-child"></i> قائمة المواد</div></div>
+                <div class="portlet-body">
+                    <x-content.khotab-item-list :items="$items" pdf show-author :show-comments="false" :show-views="false" />
+                </div>
             </section>
         </div>
 

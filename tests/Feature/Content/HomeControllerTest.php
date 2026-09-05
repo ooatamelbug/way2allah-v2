@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\Fixtures\MainSchema;
 use Tests\Support\InMemoryConnection;
@@ -55,9 +56,9 @@ it('/: replaces the stock Laravel welcome page', function () {
     expect($content)->not->toContain('laravel.com')->toContain('الطريق إلى الله');
 });
 
-// ---- All 17 sections present ----
+// ---- Enhanced homepage sections present ----
 
-it('/: all 17 homepage sections render their title markers', function () {
+it('/: renders the enhanced v1 homepage section set', function () {
     $content = $this->get('/')->assertOk()->getContent();
 
     $titles = [
@@ -71,13 +72,11 @@ it('/: all 17 homepage sections render their title markers', function () {
         'مقاطع SoundCloud', // 8
         'جديد التلاوات', // 9
         'جديد الصوتيات', // 10
-        'التصميمات الدعوية', // 11
-        'إعلان', // 12
-        'جديد الأفلام الوثائقية', // 13
-        'جديد الكارتون', // 14
-        'أحدث المواد المفرغة', // 15
-        'التصويت', // 16
-        'تشاهدون الآن', // 17
+        'جديد الأفلام الوثائقية',
+        'جديد الكارتون',
+        'أحدث المواد المفرغة',
+        'التصويت',
+        'أكثر المواد مشاهدة',
     ];
 
     foreach ($titles as $title) {
@@ -92,12 +91,93 @@ it('/: dead legacy sections are NOT reproduced (رسائل دعوية / جديد
         ->and($content)->not->toContain('جديد الإسطوانات');
 });
 
-it('/: carouFredSel is loaded homepage-scoped for #pics only, no #cds init', function () {
+it('/: loads the premium UI globally and renders the lightweight media rail without the retired carousel plugin', function () {
     $content = $this->get('/')->assertOk()->getContent();
 
-    expect($content)->toContain('jquery.carouFredSel.js')
-        ->toContain("jQuery('#pics').carouFredSel")
-        ->not->toContain('#cds');
+    expect($content)->toContain('/assets/frontend/layout/css/premium-ui.css')
+        ->toContain('/assets/frontend/layout/scripts/premium-ui.js')
+        ->toContain('w2a-now-watching-rail')
+        ->not->toContain('jquery.carouFredSel.js');
+});
+
+it('/: caps homepage media widgets at three items even when a stale audio cache contains more', function () {
+    Cache::put('home-latest-audios', collect(range(1, 7))->map(fn ($id) => [
+        'id' => $id,
+        'title' => "Cached audio {$id}",
+        'time' => 1_788_356_760,
+        'prename' => 'الشيخ',
+        'name' => 'اختبار',
+    ])->all(), 300);
+
+    try {
+        $response = $this->get('/')->assertOk();
+
+        $response
+            ->assertViewHas('telawahs', fn ($items) => $items->count() <= 3)
+            ->assertViewHas('audios', fn ($items) => $items->count() === 3)
+            ->assertViewHas('documentary12', fn ($items) => $items->count() <= 3)
+            ->assertSee('Cached audio 1')
+            ->assertSee('Cached audio 3')
+            ->assertDontSee('Cached audio 4')
+            ->assertDontSee('Cached audio 7');
+    } finally {
+        Cache::forget('home-latest-audios');
+    }
+});
+
+it('/: scopes the equal-width presentation-card layout to the introductory section', function () {
+    $content = $this->get('/')->assertOk()->getContent();
+
+    expect($content)->toContain('<div class="row service-box top-section-card">')
+        ->not->toContain('<div class="row service-box margin-bottom-40">')
+        ->and(substr_count($content, '<div class="row service-box w2a-equal-height-row">'))->toBe(3);
+});
+
+it('/: keeps equal-height content rows horizontal while stretching their card columns', function () {
+    $css = file_get_contents(public_path('assets/frontend/layout/css/premium-ui.css'));
+
+    expect($css)->toMatch('/\.row\.service-box\.w2a-equal-height-row\s*\{[^}]*flex-direction:\s*row\s*!important;[^}]*flex-wrap:\s*wrap\s*!important;/s')
+        ->toMatch('/\.row\.service-box\.w2a-equal-height-row\s*>\s*\[class\*="col-"\][^{]*\{[^}]*flex-direction:\s*column\s*!important;/s');
+});
+
+it('/: groups video and fatwa copy so title metadata does not compete as separate flex items', function () {
+    DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'العدوي', 'prename' => 'الشيخ']);
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1,
+        'author' => 1,
+        'vedio' => 1,
+        'newslist' => 1,
+        'title' => 'عنوان مرئي طويل',
+        'time' => 1_788_356_760,
+    ]);
+    DB::connection('main')->table('nuke_fatwa_questions')->insert([
+        'id' => 1,
+        'auther_id' => 1,
+        'question_text' => 'عنوان فتوى مرئية',
+        'general_question_id' => '1',
+    ]);
+
+    $content = $this->get('/')->assertOk()->getContent();
+
+    expect(substr_count($content, '<div class="w2a-var-copy">'))->toBe(2)
+        ->and($content)->toMatch('/<div class="w2a-var-copy">\s*<span>عنوان مرئي طويل<\/span><br>\s*<small>الشيخ العدوي<\/small>/')
+        ->toMatch('/<div class="w2a-var-copy">\s*<span>عنوان فتوى مرئية<\/span><br>\s*<small>الشيخ العدوي<\/small>/')
+        ->and($content)->toContain('3:46م');
+});
+
+it('/: uses the legacy Cairo timezone for homepage publication times', function () {
+    expect(config('app.timezone'))->toBe('Africa/Cairo');
+});
+
+it('/: exposes keyboard-accessible global navigation and advanced search controls', function () {
+    $content = $this->get('/')->assertOk()->getContent();
+
+    expect($content)->toContain('href="#main-content"')
+        ->toContain('id="w2a-primary-navigation"')
+        ->toContain('class="w2a-search-trigger-btn"')
+        ->toContain('role="dialog"')
+        ->toContain('aria-modal="true"')
+        ->toContain('type="date"');
 });
 
 // ---- Section 3/15: image fallback + real-file resolution ----
@@ -112,6 +192,10 @@ it('/: video thumbnail falls back to tvnoise.gif when the bucketed frame file do
 });
 
 it('/: video thumbnail resolves to the real bucketed path when the frame file DOES exist on disk (file_exists() gate proven both ways)', function () {
+    if (! is_writable(public_path('media'))) {
+        $this->markTestSkipped('The configured media mount is read-only in this environment.');
+    }
+
     DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'A', 'prename' => 'Dr.']);
     $id = 42;
     DB::connection('main')->table('nuke_islamic_khotab')->insert(['id' => $id, 'author' => 1, 'vedio' => 1, 'newslist' => 1, 'frame' => 1, 'title' => 'Has a real frame file']);
@@ -186,76 +270,6 @@ it('/: SoundCloud section embeds a real track id when nuke_options.soundcloud is
     $content = $this->get('/')->assertOk()->getContent();
 
     expect($content)->toContain('api.soundcloud.com/tracks/2043605508');
-});
-
-// ---- Section 11: album thumbnail URL (thumbnails.php, 242x197, zc=1 default) ----
-
-it('/: album images route through thumbnails.php at the exact legacy 242x197 dimensions', function () {
-    DB::connection('main')->table('nuke_options')->insert(['option_name' => 'home_selected_album', 'option_value' => '7']);
-    DB::connection('main')->table('nuke_albums_images')->insert(['album_id' => 7, 'url' => 'media/albums/2020/01/pic.jpg', 'order' => 1]);
-
-    $content = $this->get('/')->assertOk()->getContent();
-
-    expect($content)->toContain('/thumbnails.php?h=197&amp;w=242&amp;src=media/albums/2020/01/pic.jpg')
-        ->and($content)->toContain('/gallery-7.htm');
-});
-
-// ---- Section 12: ads ----
-
-it('/: ad position 3 with no matching rows falls back to the static positional image (images/ads.jpg)', function () {
-    $content = $this->get('/')->assertOk()->getContent();
-
-    expect($content)->toContain('/images/ads.jpg');
-});
-
-it('/: ad type=0 echoes the raw image_path directly (legacy\'s own type-0 branch)', function () {
-    DB::connection('main')->table('nuke_ads')->insert(['position' => 3, 'show' => 1, 'type' => 0, 'image_path' => '<img src="raw-type0.jpg">', 'ads_show_type' => 'always']);
-
-    $content = $this->get('/')->assertOk()->getContent();
-
-    expect($content)->toContain('raw-type0.jpg');
-});
-
-it('/: ad type=1 with a link renders an anchor-wrapped image and increments num_view', function () {
-    DB::connection('main')->table('nuke_ads')->insert(['id' => 1, 'position' => 3, 'show' => 1, 'type' => 1, 'image_path' => 'ad.jpg', 'link' => 'https://example.test', 'ads_show_type' => 'always', 'num_view' => 5, 'required_num_view' => 999]);
-
-    $content = $this->get('/')->assertOk()->getContent();
-
-    expect($content)->toContain('href="https://example.test"')->toContain('ad.jpg');
-    expect((int) DB::connection('main')->table('nuke_ads')->where('id', 1)->value('num_view'))->toBe(6);
-});
-
-it('/: ad "ended" period row is hidden (show=0) and the resolver recurses to the static fallback once no eligible row remains', function () {
-    // A single ended row, deliberately alone — see the required_num_view test's
-    // docblock for why a second competing row would make this non-deterministic.
-    DB::connection('main')->table('nuke_ads')->insert(['id' => 1, 'position' => 3, 'show' => 1, 'type' => 1, 'image_path' => 'ended.jpg', 'link' => '', 'ads_show_type' => 'period', 'startdate' => '2000-01-01', 'enddate' => '2000-01-02']);
-
-    $content = $this->get('/')->assertOk()->getContent();
-
-    expect($content)->not->toContain('ended.jpg')->toContain('/images/ads.jpg');
-    expect((int) DB::connection('main')->table('nuke_ads')->where('id', 1)->value('show'))->toBe(0);
-});
-
-it('/: ad exceeding required_num_view (non-period type) is hidden and the resolver recurses to the static fallback once no eligible row remains', function () {
-    // A single over-quota row, deliberately alone: `ORDER BY RAND()` among 2+ eligible
-    // rows would make "which one gets hidden first" non-deterministic (faithfully
-    // reproducing legacy's own randomness) — isolating this row is what makes the
-    // hidden-and-recursed outcome actually provable.
-    DB::connection('main')->table('nuke_ads')->insert(['id' => 1, 'position' => 3, 'show' => 1, 'type' => 0, 'image_path' => 'over-quota.jpg', 'ads_show_type' => 'always', 'num_view' => 100, 'required_num_view' => 10]);
-
-    $content = $this->get('/')->assertOk()->getContent();
-
-    expect($content)->not->toContain('over-quota.jpg')->toContain('/images/ads.jpg');
-    expect((int) DB::connection('main')->table('nuke_ads')->where('id', 1)->value('show'))->toBe(0);
-});
-
-it('/: ad "within period" row is shown without being hidden', function () {
-    DB::connection('main')->table('nuke_ads')->insert(['id' => 1, 'position' => 3, 'show' => 1, 'type' => 0, 'image_path' => 'active-period.jpg', 'ads_show_type' => 'period', 'startdate' => '2000-01-01', 'enddate' => '2999-01-01']);
-
-    $content = $this->get('/')->assertOk()->getContent();
-
-    expect($content)->toContain('active-period.jpg');
-    expect((int) DB::connection('main')->table('nuke_ads')->where('id', 1)->value('show'))->toBe(1);
 });
 
 // ---- Section 16: poll (standalone poll, comment-count quirk, dead vote target) ----
@@ -363,16 +377,16 @@ it('/: renders the homepage slider with active, website-visible rows only, order
         ->and(strpos($content, 'first.jpg'))->toBeLessThan(strpos($content, 'second.jpg'))
         ->and($content)->not->toContain('inactive.jpg')
         ->and($content)->not->toContain('mobile.jpg')
-        // slider-specific CSS/JS only load when there are slides to show.
-        ->and($content)->toContain('slider-revolution-slider/rs-plugin/css/settings.css')
-        ->and($content)->toContain('revo-slider-init.js');
+        ->and($content)->toContain('w2a-hero-slider-wrap')
+        ->and($content)->toContain('w2a-hero-prev')
+        ->and($content)->not->toContain('revo-slider-init.js');
 });
 
 it('/: renders no slider markup or slider-specific assets when there are no active rows, matching $display_slider\'s own empty-results guard', function () {
     $content = $this->get('/')->assertOk()->getContent();
 
     expect($content)->not->toContain('page-slider')
-        ->and($content)->not->toContain('revolution-slider/rs-plugin')
+        ->and($content)->not->toContain('w2a-hero-slider-wrap')
         ->and($content)->not->toContain('revo-slider-init.js');
 });
 

@@ -29,7 +29,7 @@
     <x-page-chrome heading="التصميمات الدعوية" :breadcrumb="[['title' => 'التصميمات الدعوية']]" />
 
     <div class="row service-box margin-bottom-40">
-        <div class="col-xs-12 col-sm-12 col-md-12">
+        <div class="col-xs-12">
             {{--
                 list.php:23,32-33,63-66: the whole block — including the
                 extra outer .row and the portlet wrapper itself — only
@@ -37,31 +37,65 @@
                 in source for this page.
             --}}
             @if ($albums->isNotEmpty())
-                <div class="row">
-                    <div id="" class="col-md-12 col-sm-12">
-                        <div class="portlet box blue">
-                            <div class="portlet-title">
-                                <div class="caption"><i class="fa fa-picture-o"></i> التصميمات الدعوية</div>
-                            </div>
-                            <div class="portlet-body ">
-                                <div class="row albums_list row-fluid">
+                <div id="" class="col-md-12 col-sm-12">
+                    <div class="portlet box blue">
+                        <div class="portlet-title">
+                            <div class="caption"><i class="fa fa-picture-o" aria-hidden="true"></i> التصميمات والبطاقات الدعوية</div>
+                        </div>
+                        <div class="portlet-body ">
+                            <div class="w2a-gallery-wrap">
+                                <div class="w2a-gallery-toolbar">
+                                    <div class="w2a-gallery-search-wrap">
+                                        <i class="fa fa-search w2a-gallery-search-icon" aria-hidden="true"></i>
+                                        <label class="sr-only" for="w2a_gallery_search_input">ابحث في الألبومات والبطاقات الدعوية</label>
+                                        <input type="search" id="w2a_gallery_search_input" class="w2a-gallery-search-input" placeholder="ابحث في الألبومات والبطاقات الدعوية..." autocomplete="off">
+                                        <button type="button" id="w2a_gallery_search_clear" class="w2a-gallery-search-clear" hidden aria-label="مسح البحث">
+                                            <i class="fa fa-times" aria-hidden="true"></i>
+                                        </button>
+                                    </div>
+                                    <div class="w2a-tree-badge">
+                                        <i class="fa fa-picture-o" aria-hidden="true"></i> {{ $albums->count() }} ألبوم دعوي
+                                    </div>
+                                </div>
+
+                                <div class="w2a-albums-grid">
                                     @foreach ($albums as $album)
-                                        @php($thumbUrl = '/thumbnails.php?h=250&w=350&src='.($thumbnailUrls[$album->album_id] ?? null))
-                                        <div class="col-lg-4 col-md-6 col-sm-6 col-xs-12">
-                                            <div class="album-item">
-                                                <a class="standard" href="/gallery-{{ $album->album_id }}.htm"><img src="{{ $thumbUrl }}" alt="{{ $album->title }}" class="img-responsive"></a>
-                                                <a class="w2a_album_title" href="/gallery-{{ $album->album_id }}.htm">
-                                                    <h5 class="text-center">{{ $album->title }}</h5>
+                                        @php($thumbUrl = \App\Domain\Content\Support\MediaUrl::thumbnail('h=250&w=350&src='.($thumbnailUrls[$album->album_id] ?? null)))
+                                        <article class="w2a-album-card" data-title="{{ $album->title }}">
+                                            <div class="w2a-album-cover-wrap">
+                                                <a href="/gallery-{{ $album->album_id }}.htm">
+                                                    <img src="{{ $thumbUrl }}" alt="{{ $album->title }}" class="w2a-album-cover" width="350" height="250" loading="lazy" decoding="async">
+                                                    <span class="w2a-album-overlay" aria-hidden="true">
+                                                        <span class="w2a-album-overlay-icon"><i class="fa fa-search-plus"></i></span>
+                                                    </span>
                                                 </a>
-                                                <span class="album_last_update"><i class="fa fa-calendar"></i> اخر تحديث : {{ $album->last_update ? \App\Domain\Content\Support\LegacyShortDateFormatter::format((int) $album->last_update) : '' }}</span>
-                                                <span class="w2a_gallery_imgs_c"><i class="fa fa-files-o"></i> {{ $album->count }} صورة</span>
-                                                @if ($album->is_compressed == 1)
-                                                    <a href="Javascript:void(0)" onclick="downlaod_gellery_images({{ $album->album_id }})" class="w2a_album_save" title="حفظ جميع صور الألبوم : {{ $album->title }}"><i></i>حفظ الألبوم</a>
-                                                @endif
+                                                <span class="w2a-album-count-badge"><i class="fa fa-photo" aria-hidden="true"></i> {{ $album->count }} صورة</span>
                                             </div>
-                                        </div>
+
+                                            <div class="w2a-album-body">
+                                                <a href="/gallery-{{ $album->album_id }}.htm" style="text-decoration: none;">
+                                                    <h3 class="w2a-album-card-title">{{ $album->title }}</h3>
+                                                </a>
+                                                <div class="w2a-album-meta">
+                                                    <span class="w2a-album-date"><i class="fa fa-calendar" aria-hidden="true"></i> تحديث: {{ $album->last_update ? \App\Domain\Content\Support\LegacyShortDateFormatter::format((int) $album->last_update) : '' }}</span>
+                                                </div>
+                                                <div class="w2a-album-actions">
+                                                    <a href="/gallery-{{ $album->album_id }}.htm" class="w2a-album-btn-view">
+                                                        <span>تصفح الألبوم</span>
+                                                        <i class="fa fa-angle-right" aria-hidden="true"></i>
+                                                    </a>
+                                                    @if ($album->is_compressed == 1)
+                                                        <a href="javascript:void(0)" onclick="downlaod_gellery_images({{ $album->album_id }})" class="w2a-album-btn-download" title="تحميل جميع صور الألبوم">
+                                                            <i class="fa fa-download" aria-hidden="true"></i>
+                                                            <span>تحميل</span>
+                                                        </a>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </article>
                                     @endforeach
                                 </div>
+                                <p id="w2a_gallery_result_status" class="sr-only" aria-live="polite"></p>
                             </div>
                         </div>
                     </div>

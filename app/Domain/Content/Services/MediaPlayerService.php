@@ -7,6 +7,7 @@ use App\Domain\Content\Models\AnasheedMirror;
 use App\Domain\Content\Models\FatwaQuestion;
 use App\Domain\Content\Models\KhotabItem;
 use App\Domain\Content\Models\Mirror;
+use App\Domain\Content\Models\TelawahItem;
 
 /**
  * Replaces `functions.php`'s `get_w2a_mada()` (:856-869) + `w2a_mada_play()`
@@ -14,12 +15,9 @@ use App\Domain\Content\Models\Mirror;
  * `w2a_play()`/`get-mada-player.htm`. Confirmed shared infrastructure
  * (khotab-item-298784.htm Batch 4 investigation): also called by anasheed,
  * telawah, fatawa, and chat_room. `khotab`/`khotab_mirror` (Batch 4),
- * `anasheed`/`anasheed_mirror` (var-item-{id}.htm parity batch), and now
- * `fatawa` (`fatawa-all-{id}.htm` owner-approved `answer2.php`
- * reconstruction) are implemented; `telawat` remains deliberately NOT
- * added yet (out of approved scope so far), matching the same
- * `resolveMedia()` branch shape it would extend later without
- * restructuring this class.
+ * `anasheed`/`anasheed_mirror` (var-item-{id}.htm parity batch), `fatawa`
+ * (`fatawa-all-{id}.htm` owner-approved `answer2.php` reconstruction),
+ * and `telawat` are implemented through the same validated endpoint.
  *
  * **`fatawa` is NOT a straight port of `get_w2a_mada()`'s branch list**
  * (`functions.php:856-869` has no `'fatawa'` case at all — that type is
@@ -71,14 +69,14 @@ class MediaPlayerService
             return null;
         }
 
-        return $this->renderPlayer($media->link, $media->video);
+        return $this->renderPlayer($media->title, $media->link, $media->video);
     }
 
     /**
      * `get_w2a_mada($id, $type)`'s `khotab`/`khotab_mirror` (`functions.php:861-864`)
      * and `anasheed`/`anasheed_mirror` (`:865-868`) branches, plus `fatawa`
      * (this class's own `get_w2a_mada_player()`-level reconstruction, see
-     * class docblock) — `telawat` remains deliberately unimplemented.
+     * class docblock) and the final UI branch's `telawat` player.
      *
      * @return object{title: string, link: string, video: bool}|null
      */
@@ -112,6 +110,10 @@ class MediaPlayerService
 
         if ($type === 'fatawa') {
             return $this->fromFatwaQuestion($id);
+        }
+
+        if ($type === 'telawat') {
+            return $this->fromTelawahItem($id);
         }
 
         return null;
@@ -179,6 +181,23 @@ class MediaPlayerService
         ];
     }
 
+    private function fromTelawahItem(int $id): ?object
+    {
+        // The telawah detail route intentionally exposes rows regardless
+        // of the legacy hidden flag, so playback follows the same rule.
+        $item = TelawahItem::find($id);
+
+        if ($item === null) {
+            return null;
+        }
+
+        return (object) [
+            'title' => (string) $item->title,
+            'link' => (string) $item->link,
+            'video' => false,
+        ];
+    }
+
     /**
      * `get_w2a_mada_player()`'s `type=='fatawa'` branch — see this class's
      * docblock for why `video` is unconditionally `true` (the row's own
@@ -224,31 +243,38 @@ class MediaPlayerService
      * other unrecognized format) rather than embedding dead technology or
      * inventing a fallback UI.
      */
-    private function renderPlayer(string $link, bool $video): ?string
+    private function renderPlayer(string $title, string $link, bool $video): ?string
     {
         if ($video && str_contains($link, 'youtu')) {
             $youtubeId = $this->youtubeId($link);
 
-            return '<div class="embed-responsive embed-responsive-16by9"><iframe src="https://www.youtube.com/embed/'.e($youtubeId).'" frameborder="0" allowfullscreen></iframe></div>';
+            return '<div class="w2a-video-player-wrapper"><div class="embed-responsive embed-responsive-16by9"><iframe src="https://www.youtube.com/embed/'.e($youtubeId).'?autoplay=1" title="'.e($title).'" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div></div>';
         }
 
         $extension = strtolower(pathinfo(parse_url($link, PHP_URL_PATH) ?: $link, PATHINFO_EXTENSION));
 
         if ($extension === 'mp3') {
-            return '<audio controls autoplay><source src="'.e($link).'" type="audio/mpeg"></audio>';
+            return $this->audioPlayer($title, '<audio controls autoplay><source src="'.e($link).'" type="audio/mpeg"></audio>');
         }
 
         if (! $video && str_contains($link, 'soundcloud.com')) {
-            $embedUrl = 'https://w.soundcloud.com/player/?url='.$link.'&color=%23ff5500&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true';
+            $embedUrl = 'https://w.soundcloud.com/player/?url='.$link.'&color=%2310b981&auto_play=true&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true';
 
-            return '<iframe width="100%" height="166" scrolling="no" frameborder="no" allow="autoplay" src="'.e($embedUrl).'"></iframe>';
+            return $this->audioPlayer($title, '<iframe width="100%" height="166" loading="lazy" title="'.e($title).'" allow="autoplay" src="'.e($embedUrl).'"></iframe>');
         }
 
         if ($video && $extension === 'mp4') {
-            return '<video controls autoplay><source src="'.e($link).'" type="video/mp4"></video>';
+            return '<div class="w2a-video-player-wrapper"><video controls autoplay><source src="'.e($link).'" type="video/mp4"></video></div>';
         }
 
         return null;
+    }
+
+    private function audioPlayer(string $title, string $player): string
+    {
+        $bars = str_repeat('<span class="w2a-audio-anim-bar"></span>', 5);
+
+        return '<div class="w2a-audio-player-wrapper"><div class="w2a-audio-anim-bars" aria-hidden="true">'.$bars.'</div><h4>'.e($title).'</h4>'.$player.'</div>';
     }
 
     /**

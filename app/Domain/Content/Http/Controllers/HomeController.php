@@ -3,12 +3,13 @@
 namespace App\Domain\Content\Http\Controllers;
 
 use App\Domain\Admin\Models\SiteOption;
-use App\Domain\Content\Models\HomeAd;
 use App\Domain\Content\Services\ContentListingService;
 use App\Domain\Content\Support\MediaPathResolver;
+use App\Domain\Content\Support\MediaUrl;
 use App\Domain\Engagement\Models\Poll;
 use App\Domain\Engagement\Models\PollOption;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -19,23 +20,18 @@ use Illuminate\Support\Facades\DB;
  * `$tb_field`/`$slug` block is deliberately NOT reproduced (confirmed dead
  * — never referenced again in that file).
  *
- * Kept a thin orchestrator per the Blueprint's explicit architectural
- * constraint: data assembly and the handful of genuinely stateful/
- * side-effecting behaviors (ad resolution's DB writes + recursion, the
- * poll's comment-count quirk) live here as private methods; everything
- * else is pure presentation, delegated to `home.blade.php`.
+ * Kept a thin orchestrator: data assembly and the poll's preserved
+ * comment-count quirk live here; presentation remains in `home.blade.php`.
+ * The enhanced v1 homepage intentionally removed the gallery carousel and
+ * advertising card, so their queries and ad view-count side effects are not
+ * executed for a surface that no longer renders them.
  */
 class HomeController
 {
+    private const MEDIA_WIDGET_ITEM_LIMIT = 3;
+
     public function index(ContentListingService $listing): View
     {
-        $album = $listing->homeSelectedAlbumImages();
-        $album['images'] = $album['images']->map(function ($image) {
-            $image->thumb = $this->albumThumb($image->url);
-
-            return $image;
-        });
-
         return view('home', [
             'videos' => $this->withVideoTimeLabel($this->withVideoThumbs($listing->homeLatestVideos())),
             'cat487' => $listing->homeCategory487(),
@@ -43,17 +39,28 @@ class HomeController
             'exclusive158' => $this->withAnasheedThumbs($listing->homeAnasheedByParent(158), 72, 50),
             'youtube' => $this->resolveYoutube(),
             'soundcloud' => $this->resolveSoundcloud(),
-            'telawahs' => $listing->homeLatestTelawahs(),
-            'audios' => $listing->homeLatestAudios(),
-            'album' => $album,
-            'ad3' => $this->resolveAd(3),
-            'documentary12' => $this->withAnasheedThumbs($listing->homeAnasheedByParent(12), 72, 50),
+            'telawahs' => $this->limitMediaWidgetItems($listing->homeLatestTelawahs()),
+            'audios' => $this->limitMediaWidgetItems($listing->homeLatestAudios()),
+            'documentary12' => $this->withAnasheedThumbs(
+                $this->limitMediaWidgetItems($listing->homeAnasheedByParent(12)),
+                72,
+                50,
+            ),
             'cartoon57' => $this->withAnasheedThumbs($listing->homeAnasheedByParent(57), 72, 50),
             'dumpFiles' => $this->withVideoThumbs($listing->homeLatestDumpFiles()),
             'pollData' => $this->resolvePollViewData(),
             'trending' => $this->withAnasheedThumbs($listing->homeTrendingAnasheed(), 100, 75),
             'slides' => $listing->homeSliderItems(),
         ]);
+    }
+
+    /**
+     * Keep the homepage card contract stable even when an older, larger
+     * collection is still present in a persistent production cache.
+     */
+    private function limitMediaWidgetItems(Collection $items): Collection
+    {
+        return $items->take(self::MEDIA_WIDGET_ITEM_LIMIT)->values();
     }
 
     /**
@@ -71,7 +78,7 @@ class HomeController
      * optimization not explicitly required" / this is removal of a
      * no-op, not a behavior change.
      */
-    private function withVideoThumbs(\Illuminate\Support\Collection $items): \Illuminate\Support\Collection
+    private function withVideoThumbs(Collection $items): Collection
     {
         return $items->map(function ($item) {
             $item->thumb = $this->bucketedThumb((int) $item->id, (int) $item->frame, isset($item->thid) ? (int) $item->thid : null);
@@ -88,7 +95,7 @@ class HomeController
      * ((date("h",$time)-1)==0) ? "12" : (date("h",$time)-1);` — not
      * "fixed" to a normal 12-hour display.
      */
-    private function withVideoTimeLabel(\Illuminate\Support\Collection $items): \Illuminate\Support\Collection
+    private function withVideoTimeLabel(Collection $items): Collection
     {
         return $items->map(function ($item) {
             if (! property_exists($item, 'time') || $item->time === null) {
@@ -107,7 +114,7 @@ class HomeController
         if ($frame === 1) {
             $rel = MediaPathResolver::path('khotab_frames', $id, 'jpg');
             if (file_exists(public_path($rel))) {
-                return '/'.$rel;
+                return MediaUrl::asset($rel);
             }
 
             return '/images/tvnoise.gif';
@@ -116,7 +123,7 @@ class HomeController
         if ($authorId !== null) {
             $rel = MediaPathResolver::path('authors', $authorId, 'jpg');
             if (file_exists(public_path($rel))) {
-                return '/'.$rel;
+                return MediaUrl::asset($rel);
             }
         }
 
@@ -142,25 +149,19 @@ class HomeController
         if ($frame === 1) {
             $rel = MediaPathResolver::path('anasheed/frame', $id, 'jpg');
 
-            return "/thumbnails.php?h={$h}&w={$w}&src=".$rel;
+            return MediaUrl::thumbnail("h={$h}&w={$w}&src=".$rel);
         }
 
         return '/images/tvnoise.gif';
     }
 
-    private function withAnasheedThumbs(\Illuminate\Support\Collection $items, int $w, int $h): \Illuminate\Support\Collection
+    private function withAnasheedThumbs(Collection $items, int $w, int $h): Collection
     {
         return $items->map(function ($item) use ($w, $h) {
             $item->thumb = $this->anasheedThumb((int) $item->id, (int) $item->frame, $w, $h);
 
             return $item;
         });
-    }
-
-    /** `home_functions.php:238-258`'s `list_latest_albums()` thumbnail — same `thumbnails.php` convention, fixed 242x197 (Blueprint §10). */
-    private function albumThumb(string $url): string
-    {
-        return '/thumbnails.php?h=197&w=242&src='.$url;
     }
 
     /**
@@ -171,7 +172,7 @@ class HomeController
      * identical here but this makes the byte-index check explicit and
      * traceable back to the exact legacy line).
      */
-    private function withFatwaLinkIds(\Illuminate\Support\Collection $items): \Illuminate\Support\Collection
+    private function withFatwaLinkIds(Collection $items): Collection
     {
         return $items->map(function ($item) {
             $rawId = (string) $item->general_question_id;
@@ -253,117 +254,5 @@ class HomeController
             'totalVotes' => $poll->totalVotes(),
             'commentsDisplay' => $hasComments ? 1 : 0,
         ];
-    }
-
-    /**
-     * `home_functions.php:436-472`'s `show_ads_byposition()`. Recursion
-     * and date-branching preserved exactly, INCLUDING the "not started
-     * yet" branch's own commented-out `hide_ads()` call (legacy line:
-     * `/*hide_ads($row);*\/ show_ads_byposition($pos,$return);` — the row
-     * is deliberately NOT hidden before the recursive retry).
-     *
-     * PRESERVED LATENT RISK, not fixed (explicit instruction: "do not
-     * redesign the ad algorithm"): because that branch never hides the
-     * row it just examined, `ORDER BY RAND() LIMIT 1` can re-select the
-     * SAME not-yet-started row indefinitely if it is the only `show=1`
-     * row at this position — an unbounded recursion identical to
-     * legacy's own. Confirmed via real `olddb` data (`nuke_ads`, checked
-     * during this task) that position 3 currently has ZERO rows, so this
-     * path is dormant today; flagged prominently in the Final Report as
-     * a pre-existing defect this task did not introduce and was
-     * instructed not to fix.
-     *
-     * The `position === 12` fancybox-popup branch of the legacy
-     * `switch_on_ads_type()` is NOT reproduced in `switchOnAdsType()`
-     * below — genuinely dead code for this single, private,
-     * position-3-only call site (no other caller exists anywhere in
-     * this Laravel app), not a behavior change for the path exercised
-     * here.
-     */
-    private function resolveAd(int $position): string
-    {
-        $ad = HomeAd::where('position', $position)->where('show', 1)->inRandomOrder()->first();
-
-        if ($ad === null) {
-            return match ($position) {
-                1 => '<a href="#"><img border="0" width="auto" height="250" src="/images/ads3.jpg" alt=" "></a>',
-                2, 3 => '<a href="#"><img border="0" width="auto" height="250" src="/images/ads.jpg" alt=" "></a>',
-                default => '',
-            };
-        }
-
-        $today = now()->format('Y-m-d');
-
-        if ($ad->ads_show_type === 'period') {
-            if ($today > $ad->startdate && $today <= $ad->enddate) {
-                return $this->switchOnAdsType($position, $ad);
-            }
-
-            if ($today < $ad->startdate && $today < $ad->enddate) {
-                return $this->resolveAd($position);
-            }
-
-            if ($today > $ad->startdate && $today > $ad->enddate) {
-                $this->hideAd($ad);
-
-                return $this->resolveAd($position);
-            }
-
-            return '';
-        }
-
-        if ($ad->num_view > $ad->required_num_view) {
-            $this->hideAd($ad);
-
-            return $this->resolveAd($position);
-        }
-
-        return $this->switchOnAdsType($position, $ad);
-    }
-
-    /** `home_functions.php:474-509`'s `switch_on_ads_type()`, minus the unreachable `position === 12` branch (see `resolveAd()`'s docblock). */
-    private function switchOnAdsType(int $position, HomeAd $ad): string
-    {
-        $output = '';
-
-        if ((int) $ad->type === 0) {
-            $output = (string) $ad->image_path;
-        } elseif (! empty($ad->image_path)) {
-            if ($position === 4) {
-                $output .= "<div class='ads_details'>";
-            }
-            if (in_array($position, [7, 9, 10], true)) {
-                $output .= "<div class='ads_details_2'>";
-            }
-            if (in_array($position, [5, 6, 8], true)) {
-                $output .= "<div class='ads_details_bottom'>";
-            }
-            if ($position === 11) {
-                $output .= "<div class='ads_dialog'>";
-            }
-
-            if (trim((string) $ad->link) !== '') {
-                $imagePath = str_replace('http://', 'https://', str_replace('/images/', '/media/', (string) $ad->image_path));
-                $output .= '<a href="'.$ad->link.'" onclick="increaseclick('.$ad->id.')" target="_blank" rel="nofollow"><img border="0" width="auto" height="250" src="'.$imagePath.'" alt=""/></a>';
-            } else {
-                $output .= '<img border="0" src="'.$ad->image_path.'" alt="" />';
-            }
-
-            if (in_array($position, [4, 5, 6, 7, 8, 9, 10, 11], true)) {
-                $output .= '</div>';
-            }
-        } else {
-            $output = '  ';
-        }
-
-        DB::connection('main')->table('nuke_ads')->where('id', $ad->id)->increment('num_view');
-
-        return $output;
-    }
-
-    /** `home_functions.php:511-515`'s `hide_ads()`. */
-    private function hideAd(HomeAd $ad): void
-    {
-        DB::connection('main')->table('nuke_ads')->where('id', $ad->id)->update(['show' => 0]);
     }
 }

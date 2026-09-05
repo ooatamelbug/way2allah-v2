@@ -69,7 +69,7 @@
                             @if ($w2acdItem->hidden == 0)
                                 <div class="row text-center jumbotron-icon">
                                     @foreach ($w2acdItem->thumbnailFilenames() as $filename)
-                                        @php($imgUrl = '/thumbnails.php?h=400&w=400&zc=0&q=100&src=/images/cds_image2/'.$filename)
+                                        @php($imgUrl = \App\Domain\Content\Support\MediaUrl::thumbnail('h=400&w=400&zc=0&q=100&src=/images/cds_image2/'.$filename))
                                         @if ($loop->first)
                                             <div class="cd_first_img">
                                                 <img src="{{ $imgUrl }}" height="350" width="400" title="{{ $w2acdItem->title }}" alt="{{ $w2acdItem->title }}" />

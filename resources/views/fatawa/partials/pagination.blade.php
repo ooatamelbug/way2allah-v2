@@ -16,10 +16,9 @@
     REQUEST_URI string-splicing, which only worked because it operated on
     the current request's own URL — not portable to a reusable partial.
 
-    Markup/classes (`.pagination`, `.prevnext`, `.page_link`, `a.active`,
-    `.disablelink`) are legacy's own, real, and already styled by the
-    `fatawa/css/new-style.css` this page already loads (decision-log #45)
-    — not a redesign.
+    The pretty-URL windowing remains the legacy contract. The presentation
+    now uses the shared premium pagination system so this paginator matches
+    every other public directory while retaining its route closure.
 
     $perpage is hardcoded to 25 here, matching the same value
     `ContentListingService::fatwaQuestionsByDate()` already paginates
@@ -45,21 +44,41 @@
             $end = $start + 5;
         }
     @endphp
-    <div class="pagination">
-        <ul>
+    <nav class="w2a-pagination" role="navigation" aria-label="التنقل بين الصفحات">
+        <p class="w2a-pagination__summary">
+            عرض
+            <strong>{{ $questions->firstItem() }}–{{ $questions->lastItem() }}</strong>
+            من
+            <strong>{{ $count }}</strong>
+        </p>
+        <ul class="w2a-pagination__list">
             @if ($currentPage > 1)
-                <li><a href="{{ $pageUrl(1) }}" class="prevnext disablelink">الأولى</a></li>
-                <li><a href="{{ $pageUrl($currentPage - 1) }}" class="prevnext disablelink">&lt;&lt;</a></li>
+                <li><a href="{{ $pageUrl(1) }}" class="w2a-pagination__control" aria-label="الصفحة الأولى">الأولى</a></li>
+                <li>
+                    <a href="{{ $pageUrl($currentPage - 1) }}" class="w2a-pagination__control" rel="prev" aria-label="الصفحة السابقة">
+                        <i class="fa fa-angle-right" aria-hidden="true"></i><span>السابق</span>
+                    </a>
+                </li>
             @endif
             @for ($i = $start; $i <= $end; $i++)
-                <li><span class="page_link"><a href="{{ $pageUrl($i) }}" class="{{ $currentPage == $i ? 'active' : '' }}">{{ $i }}</a></span></li>
+                <li>
+                    @if ($currentPage === $i)
+                        <span class="w2a-pagination__page is-current" aria-current="page"><span class="sr-only">الصفحة الحالية:</span>{{ $i }}</span>
+                    @else
+                        <a href="{{ $pageUrl($i) }}" class="w2a-pagination__page" aria-label="الانتقال إلى الصفحة {{ $i }}">{{ $i }}</a>
+                    @endif
+                </li>
             @endfor
             @if ($count > $currentPage * $perpage)
-                <li><a href="{{ $pageUrl($currentPage + 1) }}" class="prevnext">&gt;&gt;</a></li>
+                <li>
+                    <a href="{{ $pageUrl($currentPage + 1) }}" class="w2a-pagination__control" rel="next" aria-label="الصفحة التالية">
+                        <span>التالي</span><i class="fa fa-angle-left" aria-hidden="true"></i>
+                    </a>
+                </li>
             @endif
             @if ($count > (2 * $perpage) && $currentPage < $num)
-                <li><a href="{{ $pageUrl($num) }}" class="prevnext">الأخيرة</a></li>
+                <li><a href="{{ $pageUrl($num) }}" class="w2a-pagination__control" aria-label="الصفحة الأخيرة">الأخيرة</a></li>
             @endif
         </ul>
-    </div>
+    </nav>
 @endif

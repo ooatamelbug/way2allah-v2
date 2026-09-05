@@ -81,8 +81,7 @@ it('renders third-level children where they exist', function () {
 
     expect($content)->toContain('href="/category-3.htm"')->toContain('Leaf Alpha')
         ->toContain('href="/category-4.htm"')->toContain('Leaf Beta')
-        // each leaf gets its own wrapper (IF-037's preserved legacy quirk)
-        ->and(substr_count($content, 'class="sub_group_list"'))->toBe(2);
+        ->and(substr_count($content, 'class="w2a-tree-node level-3'))->toBe(2);
 });
 
 it('treats a node with children and a node without differently', function () {
@@ -93,13 +92,13 @@ it('treats a node with children and a node without differently', function () {
     $content = $this->get('/categories.htm')->assertOk()->getContent();
 
     // A parent renders the expandable control...
-    expect($content)->toContain('id="group1"')
-        ->toContain('class="catAncor" href="/category-1.htm"');
+    expect($content)->toContain('aria-controls="w2a-tree-children-1"')
+        ->toContain('class="w2a-tree-link">Top With Children</a>');
 
     // ...a childless top-level node renders the plain link branch instead:
     // no checkbox/label for it, and its anchor carries no catAncor class.
-    expect($content)->not->toContain('id="group2"')
-        ->not->toContain('class="catAncor" href="/category-5.htm"');
+    expect($content)->not->toContain('aria-controls="w2a-tree-children-5"')
+        ->toContain('href="/category-5.htm" class="w2a-tree-link"');
 });
 
 it('renders a childless top-level category as a plain leaf with no child container', function () {
@@ -110,8 +109,7 @@ it('renders a childless top-level category as a plain leaf with no child contain
     $content = $this->get('/categories.htm')->assertOk()->getContent();
 
     expect($content)->toContain('href="/category-9.htm"')->toContain('Only Node')
-        ->and(substr_count($content, 'class="group_list"'))->toBe(0)
-        ->and(substr_count($content, 'class="sub_group_list"'))->toBe(0);
+        ->not->toContain('aria-controls="w2a-tree-children-9"');
 });
 
 it('preserves the title ASC, id DESC ordering among siblings', function () {
@@ -155,7 +153,7 @@ it('groups correctly when main_cat arrives as a numeric string rather than an in
     expect($content)->toContain('href="/category-1.htm"')
         ->toContain('href="/category-2.htm"')
         // the child must be nested, i.e. the parent is recognised as having children
-        ->toContain('id="group1"')
+        ->toContain('aria-controls="w2a-tree-children-1"')
         ->and(strpos($content, 'href="/category-1.htm"'))->toBeLessThan(strpos($content, 'href="/category-2.htm"'));
 });
 
@@ -171,9 +169,9 @@ it('applies the same grouped lookup on the anasheed and fatawa sibling trees', f
     $fatawa = $this->get('/fatawa-categories.htm')->assertOk()->getContent();
 
     expect($anasheed)->toContain('href="/var-category-3.htm"')
-        ->and(substr_count($anasheed, 'class="sub_group_list"'))->toBe(2);
+        ->and(substr_count($anasheed, 'class="w2a-tree-node level-3'))->toBe(2);
     expect($fatawa)->toContain('href="/fatawa-category-3.htm"')
-        ->and(substr_count($fatawa, 'class="sub_group_list"'))->toBe(2);
+        ->and(substr_count($fatawa, 'class="w2a-tree-node level-3'))->toBe(2);
 });
 
 it('issues exactly one query per tree page — grouping adds no database work', function () {

@@ -77,100 +77,26 @@
                     <div class="caption"><i class="fa fa-video-camera"></i> تفاصيل المادة</div>
                 </div>
                 <div class="portlet-body">
-                    {{--
-                        var-item-17350.htm parity: anasheed_details() wraps
-                        this table in <div class="anasheed-details mada-details">
-                        — css/custom.css:450,749-758 has real, applicable rules
-                        for .mada-details td/th (15px padding) and
-                        .anasheed-details.mada-details .col-md-3 (a compound
-                        selector requiring BOTH classes together) — previously
-                        missing entirely. Date row uses CoolShortDate()
-                        (functions.php:391, confirmed via source), not
-                        tinydate()'s plain Y-m-d — reused via the same
-                        LegacyShortDateFormatter already built for
-                        khotab-video-today.htm's "جديد المواد" box.
-                    --}}
-                    <div class="anasheed-details mada-details">
-                    <table class="table table-striped">
-                        <tr><th>عنوان المادة</th><td>{{ $anasheedItem->title }}</td></tr>
-                        @if(!empty($anasheedItem->description))
-                            <tr><th>وصف المادة</th><td>{{ $anasheedItem->description }}</td></tr>
-                        @endif
-                        <tr><th>تاريخ التحميل</th><td>{{ $anasheedItem->mytime ? \App\Domain\Content\Support\LegacyShortDateFormatter::format((int) $anasheedItem->mytime) : '' }}</td></tr>
-                        <tr><th>حجم المادة</th><td>{{ \App\Domain\Content\Support\LegacyFileSizeFormatter::format((int) ($anasheedItem->linksize ?? 0)) }}</td></tr>
-                        <tr><th>عدد الزيارات</th><td>{{ $anasheedItem->hits }} زيارة</td></tr>
-                        <tr><th>عدد مرات الحفظ</th><td>{{ $anasheedItem->downcount }} مرة</td></tr>
-                    </table>
-                    </div>
-
-                    {{--
-                        item.php:85's w2a_player_html() + anasheed_details()'s 4 real
-                        action buttons (functions.php:407-446) — watch (onclick=
-                        w2a_play(id,'anasheed'), the previously-missing button),
-                        download (already present), comment-modal trigger (already
-                        present), send-friend-modal trigger (previously missing).
-                    --}}
-                    <div class="row text-center jumbotron-icon">
-                        <div class="col-lg-3 col-md-3 col-sm-3 col-xs-6 mada-control-item">
-                            <a onclick="w2a_play({{ $anasheedItem->id }},'anasheed')">
-                                <div class="badge blue">
-                                    <div class="circle">
-                                        <i class="fa fa-youtube-play fa-4 text-blue"></i>
-                                    </div>
-                                </div>
-                                <h5>مشاهدة المادة</h5>
-                            </a>
-                        </div>
-                        <div class="col-lg-3 col-md-3 col-sm-3 col-xs-6 mada-control-item">
-                            <a href="/var-download-{{ $anasheedItem->id }}.htm" target="_blank">
-                                <div class="badge blue">
-                                    <div class="circle">
-                                        <i class="fa fa-floppy-o fa-4 text-blue"></i>
-                                    </div>
-                                </div>
-                                <h5>حفظ المادة</h5>
-                            </a>
-                        </div>
-                        <div class="col-lg-3 col-md-3 col-sm-3 col-xs-6 mada-control-item">
-                            <a data-toggle="modal" data-target="#commentsModal" href="javascript:;" class="send-comment-btn">
-                                <div class="badge blue">
-                                    <div class="circle">
-                                        <i class="fa fa-commenting fa-4 text-blue"></i>
-                                    </div>
-                                </div>
-                                <h5>اضف تعليقك</h5>
-                            </a>
-                        </div>
-                        <div class="col-lg-3 col-md-3 col-sm-3 col-xs-6 mada-control-item">
-                            <a data-toggle="modal" data-target="#sendFriendModal" href="javascript:;" class="send-friend-btn">
-                                <div class="badge blue">
-                                    <div class="circle">
-                                        <i class="fa fa-envelope fa-4 text-blue"></i>
-                                    </div>
-                                </div>
-                                <h5>أرسل لصديق</h5>
-                            </a>
-                        </div>
-                    </div>
+                    <x-content.media-details-card
+                        :item="$anasheedItem"
+                        module="anasheed"
+                        :date="$anasheedItem->mytime ? \App\Domain\Content\Support\LegacyShortDateFormatter::format((int) $anasheedItem->mytime) : ''"
+                        :size="\App\Domain\Content\Support\LegacyFileSizeFormatter::format((int) ($anasheedItem->linksize ?? 0))"
+                        :download-url="'/var-download-'.$anasheedItem->id.'.htm'"
+                    />
                 </div>
             </div>
 
-            {{-- item.php:85's w2a_player_html() (functions.php:780-793) — the empty player container w2a_play()'s AJAX response is injected into. --}}
-            <div class="col-md-12 col-sm-12" id="the_main_player">
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        <span class="clickable" data-effect="fadeOut"><i class="fa fa-times"></i></span>
-                    </div>
-                    <div class="panel-body" id="w2a_main_player"></div>
-                </div>
-            </div>
+            {{-- Shared player chrome; w2a_play() injects the selected media response into #w2a_main_player. --}}
+            <x-content.media-player-panel />
+            <x-content.media-player-script />
 
             {{-- item.php:86 post_comment_modal() (functions.php:504-536) — the modal itself, previously entirely absent. --}}
-            <div class="modal fade" id="commentsModal" tabindex="-1" role="dialog" aria-labelledby="commentsModalLabel">
+            <div class="modal fade" id="commentsModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="commentsModalLabel">
                 <div class="modal-dialog" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="إغلاق النافذة"><span aria-hidden="true">&times;</span></button>
                             <h4 class="modal-title" id="commentsModalLabel">اضافة تعليق على : {{ $anasheedItem->title }}</h4>
                         </div>
                         <div class="modal-body" id="modal-comment-body">
@@ -197,11 +123,11 @@
             </div>
 
             {{-- item.php:87 send_friend_modal() (functions.php:599-646) — the modal itself, previously entirely absent. --}}
-            <div class="modal fade" id="sendFriendModal" tabindex="-1" role="dialog" aria-labelledby="sendFriendModalLabel">
+            <div class="modal fade" id="sendFriendModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="sendFriendModalLabel">
                 <div class="modal-dialog" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="إغلاق النافذة"><span aria-hidden="true">&times;</span></button>
                             <h4 class="modal-title" id="sendFriendModalLabel">ارسل مادة : {{ $anasheedItem->title }}</h4>
                         </div>
                         <div class="modal-body" id="modal-sendFriend-body">
@@ -243,54 +169,14 @@
                 </div>
             </div>
 
-            {{--
-                item.php:88 list_anasheed_mirrors() (functions.php:679-787) — real
-                numbered rows with a play button (w2a_play(mirror.id,'anasheed_mirror'),
-                confirmed a genuinely different type from the main item's 'anasheed'),
-                extension icon, file size, download count. Previously a bare
-                title+download-count line.
-            --}}
+            {{-- Mirror routes and the distinct anasheed_mirror player type are preserved by the shared quality component. --}}
             @if($anasheedItem->mirror && $anasheedItem->mirrors->isNotEmpty())
                 <div class="portlet box blue">
                     <div class="portlet-title">
                         <div class="caption"><i class="fa fa-clone"></i> قائمة الجودات المختلفة للمادة</div>
                     </div>
-                    <div class="portlet-body series-overflow item">
-                        <table class="table table-striped table-hover" id="tabelgrp">
-                            <tbody>
-                                @foreach($anasheedItem->mirrors as $index => $mirror)
-                                    <tr><td class="">
-                                        <div class="row"><div class="col-lg-12">
-                                            <h5>
-                                                {{ $index + 1 }} - <a href="/var-mirror-{{ $anasheedItem->id }}-{{ $mirror->id }}.htm">{{ $mirror->title }}</a>
-                                            </h5>
-                                            <div class="row page-header color_00a">
-                                                <div class="col-lg-3 col-xs-6 text-blue">
-                                                    <span>
-                                                        {{ $mirror->isAudioLike() ? 'إستماع' : 'مشاهدة' }}:
-                                                        <a title="{{ $mirror->isAudioLike() ? 'سماع الوصلة' : 'مشاهدة الوصلة' }}" onclick="w2a_play({{ $mirror->id }},'anasheed_mirror')">
-                                                            <i class="fa {{ $mirror->isAudioLike() ? 'fa-headphones' : 'fa-youtube-play' }} fa-2"></i>
-                                                        </a>
-                                                    </span>
-                                                </div>
-                                                <div class="col-lg-3 col-xs-6 text-blue">
-                                                    <span>
-                                                        الإمتداد:
-                                                        <a href="javascript:void(0)"><img src="/images/ext/{{ $mirror->extensionIconFilename() }}" alt="نوع الملف {{ $mirror->extensionIconFilename() }}" border="0"></a>
-                                                    </span>
-                                                </div>
-                                                <div class="col-lg-3 col-xs-6 text-blue">
-                                                    <span><i class="fa fa-file-archive-o"></i> {{ \App\Domain\Content\Support\LegacyFileSizeFormatter::format((int) ($mirror->linksize ?? 0)) }}</span>
-                                                </div>
-                                                <div class="col-lg-3 col-xs-6 text-blue">
-                                                    <span><i class="fa fa-download"></i> التنزيلات: {{ number_format($mirror->hits) }}</span>
-                                                </div>
-                                            </div>
-                                        </div></div>
-                                    </td></tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                    <div class="portlet-body">
+                        <x-content.media-quality-list :items="$anasheedItem->mirrors" module="anasheed" :parent-id="$anasheedItem->id" />
                     </div>
                 </div>
             @endif
@@ -301,62 +187,21 @@
                         <div class="caption"><i class="fa fa-comments"></i> تعليقات الزوار على المادة</div>
                     </div>
                     <div class="portlet-body">
-                        <p>( عدد التعليقات : {{ $comments->total() }} تعليق )</p>
-                        <div class="anasheed_comments">
-                            @foreach($comments as $comment)
-                                <div class="comment-item">
-                                    <img src="/images/flags/{{ $comment->uid == 0 && $comment->uname === '' ? 'way2allah' : $comment->code }}.png" alt="{{ $comment->code }}">
-                                    <p>{{ $comment->comment }}</p>
-                                    <span>{{ $comment->uid == 0 && $comment->uname === '' ? 'مشرف التعليقات' : $comment->uname }}</span>
-                                    {{-- var-item-17350.htm parity: list_anasheed_comments() (functions.php:815) uses CoolShortDate(), not tinydate()'s plain Y-m-d. --}}
-                                    <span>{{ \App\Domain\Content\Support\LegacyShortDateFormatter::format((int) $comment->mytime) }}</span>
-                                </div>
-                            @endforeach
-                        </div>
-                        {{ $comments->links() }}
+                        <x-content.visitor-comments :comments="$comments" />
                     </div>
                 </div>
             @endif
         </div>
 
         <aside class="col-lg-3 col-md-4 col-sm-5 nopadding" aria-label="الشريط الجانبي">
-            {{--
-                var-item-17350.htm parity: most_recent_html() (functions.php:882-910,
-                the shared builder for BOTH sidebar boxes below) — real markup
-                is `<ul class='recent_list'><li class='list-group-item
-                anasheed-latest-item'>`, not the `<ul class="news"><li
-                class="media">` shape previously used here (copied from a
-                different, unrelated legacy convention without re-checking
-                this module's own function — confirmed by direct re-read).
-                Metadata line was entirely missing: "مرات التحميل : X مرة"
-                (downcount) for the downloaded box, "بتاريخ : {date}"
-                (CoolShortDate(mytime), reusing LegacyShortDateFormatter)
-                for the newest box — a real, source-proven distinction, not
-                interchangeable.
-            --}}
+            {{-- Compact sidebar cards retain the source distinction between download-count and date metadata. --}}
             <div class="col-md-12 col-sm-12">
                 <div class="portlet box blue">
                     <div class="portlet-title">
                         <div class="caption"><i class="fa fa-cloud-download"></i> الأكثر تحميلا</div>
                     </div>
                     <div class="portlet-body">
-                        <ul class="recent_list">
-                            @foreach ($mostDownloaded as $item)
-                                <li class="list-group-item anasheed-latest-item">
-                                    <div class="row">
-                                        <div class="col-lg-5 col-md-4 col-sm-3 col-xs-4">
-                                            {{-- functions.php:895's literal `"> <img` — a real space inside the inline <a>, not incidental whitespace; confirmed against live production, kept exactly. --}}
-                                            <a href="/var-item-{{ $item->id }}.htm"> <img src="{{ $item->thumb }}" class="img-responsive img-thumbnail" alt="{{ $item->title }}"></a>
-                                        </div>
-                                        <div class="col-lg-7 col-md-8 col-sm-9 col-xs-8" style="padding: 0;">
-                                            {{-- functions.php:898's literal `"> <h5` — same real, confirmed space. --}}
-                                            <a href="/var-item-{{ $item->id }}.htm"> <h5>{{ $item->title }}</h5></a>
-                                            <small>مرات التحميل : {{ $item->downcount }} مرة</small>
-                                        </div>
-                                    </div>
-                                </li>
-                            @endforeach
-                        </ul>
+                        <x-content.anasheed-sidebar-list :items="$mostDownloaded" meta="downloads" />
                     </div>
                 </div>
             </div>
@@ -367,23 +212,7 @@
                         <div class="caption"><i class="fa fa-flash"></i> احدث المواد</div>
                     </div>
                     <div class="portlet-body">
-                        <ul class="recent_list">
-                            @foreach ($mostRecent as $item)
-                                <li class="list-group-item anasheed-latest-item">
-                                    <div class="row">
-                                        <div class="col-lg-5 col-md-4 col-sm-3 col-xs-4">
-                                            {{-- functions.php:895's literal `"> <img` — a real space inside the inline <a>, not incidental whitespace; confirmed against live production, kept exactly. --}}
-                                            <a href="/var-item-{{ $item->id }}.htm"> <img src="{{ $item->thumb }}" class="img-responsive img-thumbnail" alt="{{ $item->title }}"></a>
-                                        </div>
-                                        <div class="col-lg-7 col-md-8 col-sm-9 col-xs-8" style="padding: 0;">
-                                            {{-- functions.php:898's literal `"> <h5` — same real, confirmed space. --}}
-                                            <a href="/var-item-{{ $item->id }}.htm"> <h5>{{ $item->title }}</h5></a>
-                                            <small>بتاريخ : {{ \App\Domain\Content\Support\LegacyShortDateFormatter::format((int) $item->mytime) }}</small>
-                                        </div>
-                                    </div>
-                                </li>
-                            @endforeach
-                        </ul>
+                        <x-content.anasheed-sidebar-list :items="$mostRecent" meta="date" />
                     </div>
                 </div>
             </div>

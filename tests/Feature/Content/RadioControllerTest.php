@@ -165,17 +165,32 @@ it('index: playlist items carry the cover="cover1.jpg" attribute, matching radio
     expect($content)->toContain('cover="cover1.jpg"');
 });
 
-it('index: playlist is wrapped in a portlet box (title + fa-eject icon), not a bare section', function () {
+it('index: playlist uses the premium list with a visible title and author for every item', function () {
     seedRadioPlaylistFixture();
 
     $content = $this->get('/radio.htm')->getContent();
 
-    expect($content)->toContain('fa-eject');
-    // The literal w2a_open_div() portlet shape: caption before body, both inside one portlet.box.
-    expect($content)->toMatch('/portlet box blue.*?fa-eject.*?قائمة التشغيل الحالية.*?portlet-body.*?class="playlist"/s');
+    expect($content)
+        ->toContain('class="playlist"')
+        ->toContain('fa-play-circle')
+        ->toContain('w2a-pl-num">01</span>')
+        ->toMatch('/<li[^>]+artist="Sheikh Author"[^>]+data-title="Audio Lesson"[^>]+data-artist="Sheikh Author"[^>]*>.*?w2a-pl-title">Audio Lesson<.*?w2a-pl-author">.*?Sheikh Author<\/span>/s');
 });
 
-it('index: sidebar boxes are portlets with the legacy icons and show the hits ("عدد مرات التحميل") line, not a date', function () {
+it('index: renders the searchable playlist toolbar and accessible result feedback', function () {
+    seedRadioPlaylistFixture();
+
+    $content = $this->get('/radio.htm')->getContent();
+
+    expect($content)
+        ->toContain('class="w2a-playlist-container"')
+        ->toContain('id="w2a_playlist_search_input"')
+        ->toContain('id="w2a_playlist_search_clear"')
+        ->toContain('id="w2a_playlist_result_status"')
+        ->toContain('2 درس صوتي');
+});
+
+it('index: sidebar boxes retain their media icons and use the shared linked top-item cards', function () {
     DB::connection('main')->table('nuke_islamic_khotab')->insert([
         'id' => 200, 'title' => 'Video Item', 'vedio' => 1, 'hidden' => 0, 'time' => 1, 'hits' => 42,
     ]);
@@ -190,20 +205,20 @@ it('index: sidebar boxes are portlets with the legacy icons and show the hits ("
         ->toContain('fa-headphones')
         ->toContain('media-list')
         ->toContain('media-heading')
-        ->toContain('عدد مرات التحميل: 42 مرة')
-        ->toContain('عدد مرات التحميل: 7 مرة');
-    // Thumbnail anchor is inert (javascript:;) — only the title anchor links to the item, matching topitems()/day.blade.php's established convention.
-    expect($content)->toMatch('#<a class="pull-left" href="javascript:;"><img class="media-object" src="[^"]*" alt="Video Item"#');
+        ->toContain('42 تحميل')
+        ->toContain('7 تحميل');
+    expect($content)->toMatch('#<a class="pull-left w2a-top-item-thumb-link" href="/khotab-item-200\.htm">\s*<img class="media-object w2a-top-item-thumb"#');
 });
 
-it('index: shows the guest "current-user-warning" notice, matching radio/index.php:33-36', function () {
+it('index: shows the premium live-radio banner', function () {
     seedRadioPlaylistFixture();
 
     $content = $this->get('/radio.htm')->getContent();
 
     expect($content)
-        ->toContain('current-user-warning')
-        ->toContain('يمكنك الإستماع زائرنا الكريم إلى أحدث الدروس المضافة إلى موقعنا على هيئة صوتيات');
+        ->toContain('w2a-radio-banner')
+        ->toContain('راديو الطريق إلى الله المباشر')
+        ->toContain('استمع زائرنا الكريم بشكل متواصل لأحدث الدروس والمحاضرات الصوتية المضافة للموقع.');
 });
 
 it('index: /radio.htm has no w2a_is_mobile hidden input; /radio-mobile.htm does (detect_if_mobile_view() gap closure)', function () {
