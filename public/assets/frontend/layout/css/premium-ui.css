@@ -7318,7 +7318,11 @@ button.mobi-toggler {
     padding: 16px !important;
     border: 1px solid var(--w2a-border) !important;
     border-radius: var(--w2a-radius-lg) !important;
-    background: linear-gradient(135deg, var(--w2a-surface-alt), #ffffff) !important;
+    background: linear-gradient(
+        135deg,
+        var(--w2a-surface-alt),
+        #ffffff
+    ) !important;
     box-shadow: var(--w2a-shadow-sm) !important;
     gap: 20px !important;
 }
@@ -7401,7 +7405,11 @@ a.w2a-pagination__page:focus-visible {
 
 .w2a-pagination__page.is-current {
     color: #ffffff !important;
-    background: linear-gradient(135deg, var(--w2a-primary-700), var(--w2a-primary-500)) !important;
+    background: linear-gradient(
+        135deg,
+        var(--w2a-primary-700),
+        var(--w2a-primary-500)
+    ) !important;
     border-color: var(--w2a-primary-700) !important;
     box-shadow: 0 8px 18px rgba(17, 96, 151, 0.22) !important;
 }
@@ -7462,7 +7470,11 @@ body.modal-open {
     justify-content: space-between !important;
     padding: 20px 22px !important;
     color: #ffffff !important;
-    background: linear-gradient(135deg, var(--w2a-primary-800), var(--w2a-primary-600)) !important;
+    background: linear-gradient(
+        135deg,
+        var(--w2a-primary-800),
+        var(--w2a-primary-600)
+    ) !important;
     border: 0 !important;
     flex-direction: row-reverse !important;
     gap: 16px !important;
@@ -7568,7 +7580,11 @@ body.modal-open {
 
 .modal .modal-footer .btn-primary {
     color: #ffffff !important;
-    background: linear-gradient(135deg, var(--w2a-primary-700), var(--w2a-primary-500)) !important;
+    background: linear-gradient(
+        135deg,
+        var(--w2a-primary-700),
+        var(--w2a-primary-500)
+    ) !important;
     border-color: var(--w2a-primary-700) !important;
     box-shadow: 0 8px 18px rgba(17, 96, 151, 0.2) !important;
 }
@@ -7660,7 +7676,7 @@ body.modal-open .w2a_main_player {
         width: 100% !important;
     }
 
-    .header-navigation > ul > li {
+    .header-navigation > ul > li:not(.w2a-more-menu) {
         display: block !important;
         width: 100% !important;
         border-bottom: 1px solid var(--w2a-border) !important;
