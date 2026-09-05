@@ -2,6 +2,10 @@
 
 @section('title', $seriesModel->title)
 
+@push('styles')
+    <link href="/assets/frontend/layout/css/category-series.css" rel="stylesheet" type="text/css">
+@endpush
+
 @section('content')
     {{--
         categories/series.php. Two DIFFERENT breadcrumb link patterns are
@@ -73,32 +77,16 @@
             @endif
         </div>
 
-        <div class="col-lg-3 col-md-4 col-sm-5 nopadding">
+        <aside class="col-lg-3 col-md-4 col-sm-5 nopadding w2a-series-sidebar" aria-label="معلومات وتنزيلات السلسلة">
             <div class="col-md-12 col-sm-12">
-                <div class="portlet box blue">
+                <section class="portlet box blue w2a-series-download-widget" aria-labelledby="series-download-title">
                     <div class="portlet-title">
-                        <div class="caption">تنزيل مواد السلسلة</div>
+                        <h2 class="caption" id="series-download-title"><i class="fa fa-cloud-download" aria-hidden="true"></i> تنزيل مواد السلسلة</h2>
                     </div>
                     <div class="portlet-body">
-                        {{-- .grx GetRight bulk-download links kept as real hrefs, not yet built — same deferred-scope precedent as khotab_send_friend()/categories/downitems.php elsewhere. --}}
-                        <a href="/khotab-series-{{ $seriesModel->id }}-{{ $categoryModel->id }}.grx">
-                            <img src="/images/admin/icons/series_download2.png" alt="">
-                            <br>تحميل مواد التصنيف
-                        </a>
-                        <br>
-                        <a href="/khotab-series-{{ $seriesModel->id }}.grx">
-                            <img src="/images/admin/icons/series_download2.png" alt="">
-                            <br>تحميل السلسلة بالكامل
-                        </a>
-                        <br>
-                        <a href="http://download.getright.com/getright-download.exe">
-                            <img src="/images/admin/icons/getright.png" alt="رابط برنامج التحميل">
-                            <br>برنامج التحميل
-                        </a>
-                        <br>
-                        قبل تحميل السلسلة يجب أن يكون برنامج (getright) مثبت على جهازك وسوف يقوم بتحميل السلسلة مباشرة بمجرد الضغط على تحميل السلسلة. لتحميل البرنامج إضغط على رابط تحميل البرنامج
+                        <x-content.series-download-panel :series="$seriesModel" :category="$categoryModel" />
                     </div>
-                </div>
+                </section>
             </div>
 
             <div class="col-md-12 col-sm-12">
@@ -113,34 +101,34 @@
             </div>
 
             <div class="col-md-12 col-sm-12">
-                <div class="portlet box blue">
+                <section class="portlet box blue w2a-series-list-widget" aria-labelledby="most-downloaded-title">
                     <div class="portlet-title">
-                        <div class="caption">الأكثر تحميلا</div>
+                        <h2 class="caption" id="most-downloaded-title"><i class="fa fa-cloud-download" aria-hidden="true"></i> الأكثر تحميلا</h2>
                     </div>
                     <div class="portlet-body">
-                        <ul class="news">
-                            @foreach ($mostDownloaded as $item)
-                                <li><a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a></li>
-                            @endforeach
-                        </ul>
+                        @if ($mostDownloaded->isNotEmpty())
+                            <x-content.top-items :items="$mostDownloaded" />
+                        @else
+                            <p class="w2a-series-empty-state"><i class="fa fa-inbox" aria-hidden="true"></i> لا توجد مواد متاحة حاليًا</p>
+                        @endif
                     </div>
-                </div>
+                </section>
             </div>
 
             <div class="col-md-12 col-sm-12">
-                <div class="portlet box blue">
+                <section class="portlet box blue w2a-series-list-widget" aria-labelledby="most-recent-title">
                     <div class="portlet-title">
-                        <div class="caption">جديد المواد</div>
+                        <h2 class="caption" id="most-recent-title"><i class="fa fa-clock-o" aria-hidden="true"></i> جديد المواد</h2>
                     </div>
                     <div class="portlet-body">
-                        <ul class="news">
-                            @foreach ($mostRecent as $item)
-                                <li><a href="/khotab-item-{{ $item->id }}.htm">{{ $item->title }}</a></li>
-                            @endforeach
-                        </ul>
+                        @if ($mostRecent->isNotEmpty())
+                            <x-content.top-items :items="$mostRecent" mode="time" />
+                        @else
+                            <p class="w2a-series-empty-state"><i class="fa fa-inbox" aria-hidden="true"></i> لا توجد مواد متاحة حاليًا</p>
+                        @endif
                     </div>
-                </div>
+                </section>
             </div>
-        </div>
+        </aside>
     </div>
 @endsection

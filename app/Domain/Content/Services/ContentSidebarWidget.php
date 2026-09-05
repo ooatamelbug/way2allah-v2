@@ -522,7 +522,12 @@ class ContentSidebarWidget
             ->select(['kh.id', 'kh.title', 'kh.author', 'kh.frame', 'kh.hits', 'kh.downcount', 'kh.time'])
             ->orderByDesc('kh.hits')
             ->limit(5)
-            ->get();
+            ->get()
+            ->map(function ($item) {
+                $item->thumb = $this->topitemsThumb((int) $item->frame, (int) $item->id);
+
+                return $item;
+            });
     }
 
     /** "Newest" counterpart to `khotabMostDownloadedByCategoryForSeries()` above — same no-`hidden`-filter difference, `categories/series.php:130`. */
@@ -536,7 +541,12 @@ class ContentSidebarWidget
             ->select(['kh.id', 'kh.title', 'kh.author', 'kh.frame', 'kh.hits', 'kh.downcount', 'kh.time'])
             ->orderByDesc('kh.time')
             ->limit(5)
-            ->get();
+            ->get()
+            ->map(function ($item) {
+                $item->thumb = $this->topitemsThumb((int) $item->frame, (int) $item->id);
+
+                return $item;
+            });
     }
 
     // ---- Wave 4 (post-Wave-4 addition): radio/index.php ----
