@@ -12,7 +12,7 @@
         <ul> wrapper, empty-href breadcrumb items) — not re-documented here,
         same finding.
     --}}
-    <i class="fa fa-gift"></i><h3 class="page-title">شجرة تصنيفات المنوعات</h3>
+    <h3 class="page-title">شجرة تصنيفات المنوعات</h3>
 
     <div class="page-bar">
         <ul class="page-breadcrumb">

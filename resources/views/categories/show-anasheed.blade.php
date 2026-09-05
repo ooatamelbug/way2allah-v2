@@ -14,7 +14,7 @@
         with the same var- slug, the current category itself unlinked
         (Cat_Breadcrumb's own $lastlink=0 default).
     --}}
-    <i class="fa fa-gift"></i><h3 class="page-title">{{ $categoryModel->title }}</h3>
+    <h3 class="page-title">{{ $categoryModel->title }}</h3>
 
     <div class="page-bar">
         <ul class="page-breadcrumb">
@@ -22,7 +22,8 @@
             <li><a href="/var-categories.htm">التصنيفات الموضوعية</a><i class="fa fa-angle-right"></i></li>
             @foreach ($breadcrumbTrail as $crumb)
                 @if (!$loop->last)
-                    <li><a href="/var-category-{{ $crumb->id }}.htm">{{ $crumb->title }}</a><i class="fa fa-angle-right"></i></li>
+                    <li><a href="/var-category-{{ $crumb->id }}.htm">{{ $crumb->title }}</a><i
+                            class="fa fa-angle-right"></i></li>
                 @else
                     <li>{{ $crumb->title }}</li>
                 @endif
@@ -61,15 +62,20 @@
                                         // functions.php:357-365 Duration() — ms input, HH:MM:SS (or 00:MM:SS under 1000h).
                                         $durationMs = (int) $item->adur;
                                         $durationSeconds = intdiv($durationMs, 1000);
-                                        $duration = $durationMs > 60 * 60 * 1000
-                                            ? gmdate('h:i:s', $durationSeconds)
-                                            : '00:'.gmdate('i:s', $durationSeconds);
+                                        $duration =
+                                            $durationMs > 60 * 60 * 1000
+                                                ? gmdate('h:i:s', $durationSeconds)
+                                                : '00:' . gmdate('i:s', $durationSeconds);
                                     @endphp
                                     <tr>
-                                        <td><a href="/var-item-{{ $item->id }}.htm">{{ trim((string) $item->title) }}</a></td>
+                                        <td><a
+                                                href="/var-item-{{ $item->id }}.htm">{{ trim((string) $item->title) }}</a>
+                                        </td>
                                         <td>{{ $item->time ? date('Y-m-d', $item->time) : '' }}</td>
                                         <td class="hidden-xs">{{ $duration }}</td>
-                                        <td class="hidden-xs"><a href="/channel-{{ $item->channel_id }}-{{ $categoryModel->id }}.htm">{{ $item->channel }}</a></td>
+                                        <td class="hidden-xs"><a
+                                                href="/channel-{{ $item->channel_id }}-{{ $categoryModel->id }}.htm">{{ $item->channel }}</a>
+                                        </td>
                                         <td class="hidden-xs">{{ $item->comments }}</td>
                                         <td class="hidden-xs">{{ $item->hits }}</td>
                                     </tr>
@@ -80,7 +86,7 @@
                 </div>
             @endif
 
-            @if(!empty($categoryModel->description))
+            @if (!empty($categoryModel->description))
                 <div class="portlet box blue">
                     <div class="portlet-body">
                         <p>{{ $categoryModel->description }}</p>

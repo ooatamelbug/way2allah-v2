@@ -11,7 +11,7 @@
         empty href (isset() is true for ''), not a plain unlinked label —
         a real, if slightly odd, legacy quirk, preserved as found.
     --}}
-    <i class="fa fa-gift"></i><h3 class="page-title">شجرة تصنيفات المرئيات</h3>
+    <h3 class="page-title">شجرة تصنيفات المرئيات</h3>
 
     <div class="page-bar">
         <ul class="page-breadcrumb">

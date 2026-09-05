@@ -20,7 +20,7 @@
         page is a separate, still-open item, not fixed or worked around
         here.
     --}}
-    <i class="fa fa-gift"></i><h3 class="page-title">شجرة تصنيفات الفتاوى</h3>
+    <h3 class="page-title">شجرة تصنيفات الفتاوى</h3>
 
     <div class="page-bar">
         <ul class="page-breadcrumb">

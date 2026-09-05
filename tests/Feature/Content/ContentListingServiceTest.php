@@ -91,7 +91,14 @@ it('groupsByCategory: has no hidden-override capability at all — hidden rows a
 
 it('seriesByAuthorAndGroup: filters by author+group and never joins authors (no name in the result)', function () {
     DB::connection('main')->table('nuke_islamic_series')->insert([
-        'id' => 1, 'author_id' => 5, 'group_id' => 0, 'title' => 'S1', 'count' => 3, 'vedio' => 0, 'hidden' => 0, 'lastupdate' => 100,
+        'id' => 1,
+        'author_id' => 5,
+        'group_id' => 0,
+        'title' => 'S1',
+        'count' => 3,
+        'vedio' => 0,
+        'hidden' => 0,
+        'lastupdate' => 100,
     ]);
 
     $results = $this->service->seriesByAuthorAndGroup(5, 0, false);
@@ -260,7 +267,14 @@ it('seriesByChannel: filters by channel always, author only when positive, and j
     $db = DB::connection('main');
     $db->table('nuke_islamic_authors')->insert(['id' => 9, 'name' => 'Shaikh Z']);
     $db->table('nuke_islamic_series')->insert([
-        'id' => 1, 'channel_id' => 5, 'author_id' => 9, 'title' => 'S1', 'count' => 1, 'vedio' => 1, 'hidden' => 0, 'lastupdate' => 1,
+        'id' => 1,
+        'channel_id' => 5,
+        'author_id' => 9,
+        'title' => 'S1',
+        'count' => 1,
+        'vedio' => 1,
+        'hidden' => 0,
+        'lastupdate' => 1,
     ]);
 
     $results = $this->service->seriesByChannel(5, 9, true);
@@ -421,7 +435,7 @@ it('homeLatestVideos/homeLatestAudios/homeLatestDumpFiles: survive a real file-c
     }
 });
 
-it('homeLatestAudios: only vedio=0 AND newslist=1 rows, newest lastmirror first, limit 7', function () {
+it('homeLatestAudios: only vedio=0 AND newslist=1 rows, newest lastmirror first, limit 3', function () {
     $db = DB::connection('main');
     $db->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'A', 'prename' => 'Dr.']);
     $db->table('nuke_islamic_khotab')->insert([

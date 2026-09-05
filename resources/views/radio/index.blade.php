@@ -17,8 +17,8 @@
     established ASSET_EFFECTIVE elsewhere, reused as-is.
 --}}
 @push('styles')
-    <link href="/css/w2a_radio.css" rel="stylesheet" type="text/css"/>
-    <link href="/css/custom.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/w2a_radio.css" rel="stylesheet" type="text/css" />
+    <link href="/css/custom.css" rel="stylesheet" type="text/css" />
 @endpush
 
 {{--
@@ -71,13 +71,14 @@
                             <i class="fa fa-podcast" aria-hidden="true"></i>
                             راديو الطريق إلى الله المباشر
                         </h2>
-                        <p style="font-size: 13px; opacity: 0.9; margin: 0;">استمع زائرنا الكريم بشكل متواصل لأحدث الدروس والمحاضرات الصوتية المضافة للموقع.</p>
+                        <p style="font-size: 13px; opacity: 0.9; margin: 0;">استمع زائرنا الكريم بشكل متواصل لأحدث الدروس
+                            والمحاضرات الصوتية المضافة للموقع.</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        @if($isMobile)
+        @if ($isMobile)
             <input type="hidden" name="w2a_is_mobile" id="w2a_is_mobile" value="true" />
         @endif
 
@@ -86,7 +87,8 @@
             <div id="w2a_radio">
                 <div class="w2a-radio-card">
                     <div class="player">
-                        <div class="play-loading"><i class="fa fa-spinner fa-pulse fa-2x fa-fw" aria-hidden="true"></i></div>
+                        <div class="play-loading"><i class="fa fa-spinner fa-pulse fa-2x fa-fw" aria-hidden="true"></i>
+                        </div>
 
                         <div class="w2a-radio-player-top">
                             <div class="w2a-radio-disc-wrap">
@@ -94,21 +96,27 @@
                             </div>
                             <div class="w2a-radio-track-info">
                                 <h3 class="title">جاري تحميل البث...</h3>
-                                <p class="artist">راديو الطريق إلى الله</p>
+                                <div class="artist-wrapper">
+                                    <p class="artist">راديو الطريق إلى الله</p>
+                                </div>
                             </div>
                         </div>
 
                         <div class="w2a-radio-tracker-wrap">
                             <div class="tracker"></div>
-                            <div class="player-timer"><span class="current-t">00:00:00</span> / <span class="total-t">00:00:00</span></div>
+                            <div class="player-timer"><span class="current-t">00:00:00</span> / <span
+                                    class="total-t">00:00:00</span></div>
                         </div>
 
                         <div class="w2a-radio-controls-bar">
                             <div class="controls">
                                 <div class="play" role="button" tabindex="0" title="تشغيل" aria-label="تشغيل"></div>
-                                <div class="pause" role="button" tabindex="0" title="إيقاف مؤقت" aria-label="إيقاف مؤقت"></div>
-                                <div class="rew" role="button" tabindex="0" title="السابق" aria-label="المقطع السابق"></div>
-                                <div class="fwd" role="button" tabindex="0" title="التالي" aria-label="المقطع التالي"></div>
+                                <div class="pause" role="button" tabindex="0" title="إيقاف مؤقت"
+                                    aria-label="إيقاف مؤقت"></div>
+                                <div class="rew" role="button" tabindex="0" title="السابق" aria-label="المقطع السابق">
+                                </div>
+                                <div class="fwd" role="button" tabindex="0" title="التالي" aria-label="المقطع التالي">
+                                </div>
                             </div>
                             <div class="volume-cont">
                                 <div class="vol-icon" title="مستوى الصوت"></div>
@@ -123,8 +131,10 @@
                         <div class="w2a-playlist-search-wrap">
                             <i class="fa fa-search w2a-playlist-search-icon" aria-hidden="true"></i>
                             <label class="sr-only" for="w2a_playlist_search_input">ابحث في قائمة التشغيل</label>
-                            <input type="search" id="w2a_playlist_search_input" class="w2a-playlist-search-input" placeholder="ابحث في قائمة التشغيل..." autocomplete="off">
-                            <button type="button" id="w2a_playlist_search_clear" class="w2a-playlist-search-clear" hidden aria-label="مسح البحث">
+                            <input type="search" id="w2a_playlist_search_input" class="w2a-playlist-search-input"
+                                placeholder="ابحث في قائمة التشغيل..." autocomplete="off">
+                            <button type="button" id="w2a_playlist_search_clear" class="w2a-playlist-search-clear" hidden
+                                aria-label="مسح البحث">
                                 <i class="fa fa-times" aria-hidden="true"></i>
                             </button>
                         </div>
@@ -136,21 +146,18 @@
 
                     <ul class="playlist">
                         @foreach ($playlist as $item)
-                            @php($authorName = trim($item->prename.' '.$item->author_name))
-                            <li audiourl="{{ $item->audio_url }}"
-                                cover="cover1.jpg"
-                                artist="{{ $authorName }}"
-                                id="li_{{ $item->khid }}_{{ $item->pl_section }}"
-                                data-title="{{ $item->title }}"
-                                data-artist="{{ $authorName }}"
-                                role="button"
-                                tabindex="0">
+                            @php($authorName = trim($item->prename . ' ' . $item->author_name))
+                            <li audiourl="{{ $item->audio_url }}" cover="cover1.jpg" artist="{{ $authorName }}"
+                                id="li_{{ $item->khid }}_{{ $item->pl_section }}" data-title="{{ $item->title }}"
+                                data-artist="{{ $authorName }}" role="button" tabindex="0">
                                 <div class="w2a-pl-item-left">
                                     <span class="w2a-pl-num">{{ sprintf('%02d', $loop->iteration) }}</span>
-                                    <div class="w2a-pl-playing-icon"><i class="fa fa-volume-up" aria-hidden="true"></i></div>
+                                    <div class="w2a-pl-playing-icon"><i class="fa fa-volume-up" aria-hidden="true"></i>
+                                    </div>
                                     <div class="w2a-pl-details">
                                         <h4 class="w2a-pl-title">{{ $item->title }}</h4>
-                                        <span class="w2a-pl-author"><i class="fa fa-user" aria-hidden="true"></i> {{ $authorName }}</span>
+                                        <span class="w2a-pl-author"><i class="fa fa-user" aria-hidden="true"></i>
+                                            {{ $authorName }}</span>
                                     </div>
                                 </div>
                                 <div class="w2a-pl-action" aria-hidden="true">

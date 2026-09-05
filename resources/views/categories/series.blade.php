@@ -43,34 +43,39 @@
     <div class="row service-box margin-bottom-40">
         <div class="col-lg-9 col-md-8 col-sm-7 nopadding">
             @if ($items->isNotEmpty())
-                <div class="portlet box blue">
-                    <div class="portlet-title">
-                        <div class="caption">{{ $seriesModel->title }}</div>
-                    </div>
-                    <div class="portlet-body">
-                        <x-content.category-media-grid :items="$items" />
+                <div class="col-md-12 col-sm-12">
+                    <div class="portlet box blue">
+                        <div class="portlet-title">
+                            <div class="caption">{{ $seriesModel->title }}</div>
+                        </div>
+                        <div class="portlet-body">
+                            <x-content.category-media-grid :items="$items" />
+                        </div>
                     </div>
                 </div>
 
                 @if ($seriesCategoryTrails->isNotEmpty())
-                    <div class="portlet box blue" id="cats-breadtcrumb">
-                        <div class="portlet-title">
-                            <div class="caption">جميع تصنيفات مواد السلسلة</div>
-                        </div>
-                        <div class="portlet-body">
-                            @foreach ($seriesCategoryTrails as $trail)
-                                <div class="page-bar">
-                                    <ul class="page-breadcrumb">
-                                        @foreach ($trail as $crumb)
-                                            @if ($loop->last)
-                                                <li><a href="/category-{{ $crumb->id }}.htm">{{ $crumb->title }}</a></li>
-                                            @else
-                                                <li>{{ $crumb->title }}<i class="fa fa-angle-right"></i></li>
-                                            @endif
-                                        @endforeach
-                                    </ul>
-                                </div>
-                            @endforeach
+                    <div id="cats-breadtcrumb" class="col-md-12 col-sm-12">
+                        <div class="portlet box blue">
+                            <div class="portlet-title">
+                                <div class="caption">جميع تصنيفات مواد السلسلة</div>
+                            </div>
+                            <div class="portlet-body">
+                                @foreach ($seriesCategoryTrails as $trail)
+                                    <div class="page-bar">
+                                        <ul class="page-breadcrumb">
+                                            @foreach ($trail as $crumb)
+                                                @if ($loop->last)
+                                                    <li><a href="/category-{{ $crumb->id }}.htm">{{ $crumb->title }}</a>
+                                                    </li>
+                                                @else
+                                                    <li>{{ $crumb->title }}<i class="fa fa-angle-right"></i></li>
+                                                @endif
+                                            @endforeach
+                                        </ul>
+                                    </div>
+                                @endforeach
+                            </div>
                         </div>
                     </div>
                 @endif
