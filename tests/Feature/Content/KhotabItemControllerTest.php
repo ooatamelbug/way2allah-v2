@@ -651,7 +651,7 @@ it('show: renders the redesigned details card and metadata grid', function () {
         ->and(substr_count($content, 'class="w2a-meta-pill"'))->toBeGreaterThanOrEqual(4);
 });
 
-it('show: every portlet caption on the page renders its w2a_open_div() icon (fa-video-camera/fa-clone/fa-comments/fa-child), matching functions.php:112', function () {
+it('show: legacy content portlets remain intact while ranking widgets use the premium panel', function () {
     insertKhotabAuthor();
     DB::connection('main')->table('nuke_islamic_khotab')->insert([
         'id' => 1, 'author' => 1, 'title' => 'Item', 'vedio' => 1, 'hidden' => 0,
@@ -669,10 +669,10 @@ it('show: every portlet caption on the page renders its w2a_open_div() icon (fa-
     expect($content)->toContain('<div class="caption"><i class="fa fa-video-camera"></i> تفاصيل المادة</div>')
         ->and($content)->toContain('<div class="caption"><i class="fa fa-clone"></i> قائمة الجودات المختلفة للمادة</div>')
         ->and($content)->toContain('<div class="caption"><i class="fa fa-comments"></i> تعليقات الزوار على المادة</div>')
-        // 4 sidebar portlets share this icon in legacy (item.php:439,453,461,470's
-        // 'الملف الشخصي'/'اخترنا لك هذه المادة'/'الأكثر تحميلا'/'جديد المواد',
-        // all icon=>'fa-child') — a real legacy copy-paste choice, not a typo.
-        ->and(substr_count($content, '<div class="caption"><i class="fa fa-child"></i>'))->toBe(4);
+        ->and(substr_count($content, '<div class="caption"><i class="fa fa-child"></i>'))->toBe(2)
+        ->and($content)->toContain('class="w2a-refresh-panel w2a-sidebar-ranking-panel"')
+        ->and($content)->toContain('<i class="fa fa-cloud-download"></i>')
+        ->and($content)->toContain('<i class="fa fa-clock-o"></i>');
 });
 
 it('show: renders the page-title/breadcrumb/portlet-icon fix set for the same live item-298784-shaped fixture used in the audit (multi-finding smoke test)', function () {

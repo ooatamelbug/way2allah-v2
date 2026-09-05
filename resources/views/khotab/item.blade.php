@@ -19,6 +19,10 @@
 
 @section('title', $khotabItem->title . ' - ' . ($khotabItem->authorModel->prename ?? '') . ' ' . ($khotabItem->authorModel->name ?? ''))
 
+@push('page-styles')
+    <link href="/assets/frontend/layout/css/content-refresh.css" rel="stylesheet" type="text/css">
+@endpush
+
 @php
     $khotabOp = $khotabItem->vedio ? 'video' : 'audio';
     // item.php:92,96 — 'الصوتيات' (with the definite article), not 'صوتيات'.
@@ -241,48 +245,34 @@
                 </div>
             </div>
 
-            <div class="col-md-12 col-sm-12">
-                <div class="portlet box blue">
-                    <div class="portlet-title">
-                        <div class="caption"><i class="fa fa-child"></i> الأكثر تحميلا</div>
-                    </div>
-                    <div class="portlet-body">
-                        <ul class="news">
-                            @foreach($mostDownloaded as $item)
-                                <li class="media">
-                                    <a class="pull-left" href="/khotab-item-{{ $item->id }}.htm">
-                                        <img class="media-object" src="{{ $item->thumb }}" alt="{{ $item->title }}" style="width: 60px; height: 40px;">
-                                    </a>
-                                    <div class="media-body">
-                                        <a href="/khotab-item-{{ $item->id }}.htm"><h5 class="media-heading">{{ $item->title }}</h5></a>
-                                    </div>
-                                </li>
-                            @endforeach
-                        </ul>
-                    </div>
-                </div>
+            <div class="col-md-12 col-sm-12 w2a-khotab-sidebar-refresh">
+                <x-content.premium-panel
+                    title="الأكثر تحميلاً"
+                    icon="fa-cloud-download"
+                    description="المواد الأكثر إقبالاً من زوار الموقع."
+                    class="w2a-sidebar-ranking-panel"
+                >
+                    @if ($mostDownloaded->isNotEmpty())
+                        <x-content.top-items :items="$mostDownloaded" mode="hits" />
+                    @else
+                        <p class="w2a-empty-state">لا توجد مواد متاحة حالياً.</p>
+                    @endif
+                </x-content.premium-panel>
             </div>
 
-            <div class="col-md-12 col-sm-12">
-                <div class="portlet box blue">
-                    <div class="portlet-title">
-                        <div class="caption"><i class="fa fa-child"></i> جديد المواد</div>
-                    </div>
-                    <div class="portlet-body">
-                        <ul class="news">
-                            @foreach($mostRecent as $item)
-                                <li class="media">
-                                    <a class="pull-left" href="/khotab-item-{{ $item->id }}.htm">
-                                        <img class="media-object" src="{{ $item->thumb }}" alt="{{ $item->title }}" style="width: 60px; height: 40px;">
-                                    </a>
-                                    <div class="media-body">
-                                        <a href="/khotab-item-{{ $item->id }}.htm"><h5 class="media-heading">{{ $item->title }}</h5></a>
-                                    </div>
-                                </li>
-                            @endforeach
-                        </ul>
-                    </div>
-                </div>
+            <div class="col-md-12 col-sm-12 w2a-khotab-sidebar-refresh">
+                <x-content.premium-panel
+                    title="جديد المواد"
+                    icon="fa-clock-o"
+                    description="أحدث ما أضيف إلى مكتبة المرئيات والصوتيات."
+                    class="w2a-sidebar-ranking-panel"
+                >
+                    @if ($mostRecent->isNotEmpty())
+                        <x-content.top-items :items="$mostRecent" mode="time" />
+                    @else
+                        <p class="w2a-empty-state">لا توجد مواد متاحة حالياً.</p>
+                    @endif
+                </x-content.premium-panel>
             </div>
         </aside>
     </div>

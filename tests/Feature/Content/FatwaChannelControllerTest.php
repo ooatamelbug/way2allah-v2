@@ -64,28 +64,25 @@ it('index: renders the empty <h1> and the exact 3-item breadcrumb (Home, الف�
 
 // ---- Legacy-Source Reconstruction: fatawa-channels.php:29-67's real portlet + channel-logo grid — previously a bare <ul><li><a>text</a></li></ul> ----
 
-it('index: renders the real portlet caption with its genuine trailing 3 spaces, and the co-sm-12 legacy typo class (not "corrected" to col-sm-12)', function () {
+it('index: renders the redesigned channel directory with semantic premium panel markup', function () {
     $content = $this->get('/fatawa-channels.htm')->assertOk()->getContent();
 
-    expect($content)->toContain('<div class="caption"> <i class="fa fa-child"></i>قائمة القنوات الفضائية   </div>')
-        ->toContain('co-sm-12')
-        ->not->toContain('col-sm-12 col-xs-12">')
-        ->not->toContain('h3>قائمة القنوات الفضائية</h3>'); // not a portlet-title <h3>, a raw <div class="caption">
+    expect($content)->toContain('class="w2a-refresh-page w2a-fatawa-channels-page"')
+        ->toContain('class="w2a-channel-grid"')
+        ->toContain('<h2>قائمة القنوات الفضائية</h2>')
+        ->not->toContain('co-sm-12');
 });
 
-it('index: renders each channel as a real logo card (channel_logo/.tt/.attt/<img>), not a plain text link', function () {
+it('index: renders each channel as a named, linked logo card', function () {
     DB::connection('main')->table('nuke_sat_channels')->insert(['id' => 3, 'title' => 'Al Rahma']);
     DB::connection('main')->table('nuke_fatwa_questions')->insert(['id' => 1, 'channel_id' => 3]);
 
     $content = $this->get('/fatawa-channels.htm')->assertOk()->getContent();
 
-    expect($content)->toMatch(
-        '#<div class="channel_logo col-lg-3 col-md-3 col-sm-6 col-xs-12">\s*'
-        .'<a href="/fatawa-channel-3\.htm" class="tt">\s*'
-        .'<span class="attt" style="width:130px;height:130px;">\s*'
-        .'<img src="/images/channels/3\.png" class="img-responsive center-block" height="120" width="120" alt="Al Rahma">\s*'
-        .'</span>\s*</a>\s*</div>#s'
-    );
+    expect($content)
+        ->toContain('<a href="/fatawa-channel-3.htm" class="w2a-channel-card">')
+        ->toContain('<img src="/images/channels/3.png" width="120" height="120" alt="Al Rahma"')
+        ->toContain('<strong>Al Rahma</strong>');
 });
 
 it('index: the "بدون قناة" (no-channel) entry uses the exact same card shape, id 0, and is always the first card', function () {
@@ -94,7 +91,7 @@ it('index: the "بدون قناة" (no-channel) entry uses the exact same card s
 
     $content = $this->get('/fatawa-channels.htm')->assertOk()->getContent();
 
-    expect($content)->toContain('<img src="/images/channels/0.png" class="img-responsive center-block" height="120" width="120" alt="بدون قناة">');
+    expect($content)->toContain('<img src="/images/channels/0.png" width="120" height="120" alt="بدون قناة"');
     expect(strpos($content, 'fatawa-channel-0.htm'))->toBeLessThan(strpos($content, 'fatawa-channel-3.htm'));
 });
 

@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\Fixtures\MainSchema;
 use Tests\Support\InMemoryConnection;
@@ -48,7 +49,7 @@ it('the fatwa-today-{page}.htm route also works', function () {
     $this->get('/fatwa-today-1.htm')->assertOk();
 });
 
-it('featured section: G-13-10 — each item shows the hardcoded images/tvnoise.gif, matching fatwa-today.php:87 (no per-item image field)', function () {
+it('featured section: presents questions as premium editorial cards without a fake placeholder image', function () {
     // fatwaRandomFeatured()'s hardcoded random OFFSET (up to 7400) makes it
     // unreliable to exercise through the full controller with test-sized
     // data (documented in the sibling test above) — rendering the view
@@ -60,17 +61,18 @@ it('featured section: G-13-10 — each item shows the hardcoded images/tvnoise.g
 
     $html = view('fatawa.day', [
         'featured' => $featured,
-        'questions' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 25),
+        'questions' => new LengthAwarePaginator([], 0, 25),
         'displayDate' => 'اليوم',
         'date' => now()->format('Y-m-d'),
         'pageUrl' => fn (int $page): string => "/fatwa-today-{$page}.htm",
     ])->render();
 
-    expect($html)->toContain('/images/tvnoise.gif')
-        ->and($html)->toContain('A featured question');
+    expect($html)->toContain('class="w2a-featured-fatwa-card"')
+        ->and($html)->toContain('A featured question')
+        ->and($html)->not->toContain('/images/tvnoise.gif');
 });
 
-it('Fatwa Today Visual Parity Pass: restores the real legacy portlet structure, thumbs grid, calendar block, and per-row channel markup', function () {
+it('Fatwa Today premium refresh: renders featured cards, calendar, and semantic answer rows with channel metadata', function () {
     $db = DB::connection('main');
     $db->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Shaikh', 'prename' => 'Dr.']);
     $db->table('nuke_sat_channels')->insert(['id' => 5, 'title' => 'Channel Five']);
@@ -83,10 +85,9 @@ it('Fatwa Today Visual Parity Pass: restores the real legacy portlet structure, 
     $response = $this->get('/fatwa-today.htm');
 
     $response->assertOk()
-        // Featured/results portlet wrappers, matching legacy exactly.
-        ->assertSee('portlet box blue', false)
-        ->assertSee('fatawa-mokhtara', false)
-        ->assertSee('date_fatawa', false)
+        ->assertSee('w2a-featured-fatwas', false)
+        ->assertSee('w2a-fatwa-results', false)
+        ->assertSee('w2a-fatwa-row', false)
         // The calendar block (static shell) is present.
         ->assertSee('calendar-days', false)
         ->assertSee('تقويم الطريق إلى الله')
@@ -97,13 +98,13 @@ it('Fatwa Today Visual Parity Pass: restores the real legacy portlet structure, 
         // exactly like `channel_id = null`/0 does — proving the LEFT JOIN
         // existence check, not a bare channel_id truthiness check.
         ->assertSee('/fatawa-channel-0.htm', false)
-        ->assertSeeInOrder(['With a real channel', 'بدون قناه'], false);
+        ->assertSeeInOrder(['With a real channel', 'بدون قناة'], false);
 });
 
-it('Fatwa Today Visual Parity Pass: real legacy empty-state row renders when no questions exist for the date', function () {
+it('Fatwa Today premium refresh: helpful empty state renders when no questions exist for the date', function () {
     $response = $this->get('/fatwa-today.htm');
 
-    $response->assertOk()->assertSee('لا تـوجـــد فتاوى مضافـــة حاليا لهذا التصنيف');
+    $response->assertOk()->assertSee('لا توجد فتاوى مضافة في هذا التاريخ');
 });
 
 it('Fatwa Calendar Visual Dependency Audit (decision-log #45): loads the real fatawa/css/new-style.css that the calendar/portlet styling actually depends on, and it is genuinely reachable on disk', function () {
@@ -145,8 +146,8 @@ it('Fatwa Date Route Completion (decision-log #46): /fatwa-date-{d}-{m}-{y}-{pag
     $response->assertOk()
         ->assertSee('Added on the requested date')
         ->assertDontSee('Added on a different date')
-        // Same restored markup as fatwa-today.htm — one shared view/path.
-        ->assertSee('portlet box blue', false)
+        // Same redesigned markup as fatwa-today.htm — one shared view/path.
+        ->assertSee('w2a-fatwa-results', false)
         ->assertSee('calendar-days', false);
 });
 
@@ -167,7 +168,7 @@ it('Fatwa Date Route Completion: normalizes d/m/y the same way fatwa-today.php n
 it('Fatwa Date Route Completion: a genuinely unparseable date (month=13) falls back to the Unix epoch, matching date(\'Y-m-d\', false) exactly — real questions never match, empty state renders', function () {
     $this->get('/fatwa-date-1-13-2026-1.htm')
         ->assertOk()
-        ->assertSee('لا تـوجـــد فتاوى مضافـــة حاليا لهذا التصنيف');
+        ->assertSee('لا توجد فتاوى مضافة في هذا التاريخ');
 });
 
 it('Fatwa Date Route Completion: page 2 of a historical date renders the correct rows and correct pretty-URL pagination links, not ?page=', function () {

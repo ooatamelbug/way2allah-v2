@@ -1,24 +1,6 @@
 @extends('layouts.app')
 
-{{--
-    Legacy-Source Reconstruction (fatawa-channels.htm): production pretty
-    URL (`https://way2allah.com/fatawa-channels.htm`) currently 404s and
-    `modules.php` (the `.htaccess:288` dispatcher target) does not exist
-    in this snapshot — SOURCE_UNRECOVERABLE for that file. The real
-    handler, `fatawa/fatawa-channels.php` (read in full), is directly
-    recoverable and its own raw path
-    (`https://way2allah.com/fatawa/fatawa-channels.php`) is LIVE —
-    LIVE_RENDER_VERIFIED against that path, not the pretty URL.
-
-    fatawa-channels.php:12-13's real document title is
-    'عرض الفتاوى | حسب القنوات الفضائية' — a DIFFERENT string from
-    $title ('قائمة القنوات الفضائية', used only for the breadcrumb label
-    below), confirmed genuinely distinct against the live raw-path fetch.
-    Unlike channel_fatawa.php's title, this one does NOT already bake in
-    the sitename, so header.php's own unconditional ' - '.$sitename
-    append happens only once here (confirmed: title tag ends in a single
-    "- الطريق إلى الله", not doubled).
---}}
+{{-- Premium channel directory; document title and route contracts remain unchanged. --}}
 @section('title', 'عرض الفتاوى | حسب القنوات الفضائية')
 
 {{--
@@ -32,6 +14,10 @@
 --}}
 @push('styles')
     <link href="https://fonts.googleapis.com/css?family=Cairo|Reem+Kufi" rel="stylesheet">
+@endpush
+
+@push('page-styles')
+    <link href="/assets/frontend/layout/css/content-refresh.css" rel="stylesheet" type="text/css">
 @endpush
 
 @section('content')
@@ -54,59 +40,38 @@
         </ul>
     </div>
 
-    {{--
-        fatawa-channels.php:26-67's real portlet + channel grid — a
-        previously bare <ul><li><a>text</a></li></ul> list, no images, no
-        grid, no portlet. Reconstructed exactly from source: outer
-        portlet-body carries a genuine legacy typo class, `co-sm-12` (not
-        `col-sm-12`) — confirmed present in the live raw-path fetch too,
-        reproduced verbatim rather than "corrected" (an inert, harmless
-        class name, same byte-parity ethos already applied to other
-        confirmed legacy quirks in this migration). Caption text keeps its
-        real trailing 3 spaces (source + live-verified). The "بدون قناة"
-        (no-channel) entry is unconditional, always first, and — per the
-        controller's own already-correct implementation — outside the
-        paginated query entirely, matching fatawa-channels.php:38-44
-        exactly (unchanged, not touched by this task).
-
-        Pagination: kept as Laravel's `->links()`, matching the
-        already-established precedent from this page's own sibling
-        (fatawa-channel-{id}.htm) — legacy's own custom pager
-        (fatawa/functions.php:708-751) is SOURCE_CONFIRMED but
-        deliberately not reproduced, same reasoning as that sibling.
-    --}}
-    <div class="row service-box margin-bottom-40">
-        <div class="col-md-12 col-sm-12 nopadding">
-            <div id="" class="col-md-12 col-sm-12">
-                <div class="portlet box blue">
-                    <div class="portlet-title">
-                        <div class="caption"> <i class="fa fa-child"></i>قائمة القنوات الفضائية   </div>
-                    </div>
-
-                    <div class="portlet-body col-lg-12 col-md-12 co-sm-12 col-xs-12">
-                        {{ $channels->links() }}
-                        <div class="portlet-body">
-                            <div class="channel_logo col-lg-3 col-md-3 col-sm-6 col-xs-12">
-                                <a href="/fatawa-channel-0.htm" class="tt">
-                                    <span class="attt" style="width:130px;height:130px;">
-                                        <img src="/images/channels/0.png" class="img-responsive center-block" height="120" width="120" alt="بدون قناة">
-                                    </span>
-                                </a>
-                            </div>
-                            @foreach ($channels as $channel)
-                                <div class="channel_logo col-lg-3 col-md-3 col-sm-6 col-xs-12">
-                                    <a href="/fatawa-channel-{{ $channel->id }}.htm" class="tt">
-                                        <span class="attt" style="width:130px;height:130px;">
-                                            <img src="/images/channels/{{ $channel->id }}.png" class="img-responsive center-block" height="120" width="120" alt="{{ $channel->title }}">
-                                        </span>
-                                    </a>
-                                </div>
-                            @endforeach
-                        </div>
-                        {{ $channels->links() }}
-                    </div>
-                </div>
+    {{-- The unconditional no-channel entry remains first; paginated channel data follows. --}}
+    <div class="w2a-refresh-page w2a-fatawa-channels-page">
+        <x-content.premium-panel
+            title="قائمة القنوات الفضائية"
+            icon="fa-television"
+            description="تصفّح الفتاوى حسب القناة الفضائية التي عُرضت عليها."
+        >
+            <div class="w2a-channel-grid">
+                <a href="/fatawa-channel-0.htm" class="w2a-channel-card">
+                    <span class="w2a-channel-card__logo">
+                        <img src="/images/channels/0.png" width="120" height="120" alt="بدون قناة" decoding="async">
+                    </span>
+                    <span class="w2a-channel-card__content">
+                        <strong>فتاوى بدون قناة</strong>
+                        <span>استعرض الفتاوى <i class="fa fa-angle-left" aria-hidden="true"></i></span>
+                    </span>
+                </a>
+                @foreach ($channels as $channel)
+                    <a href="/fatawa-channel-{{ $channel->id }}.htm" class="w2a-channel-card">
+                        <span class="w2a-channel-card__logo">
+                            <img src="/images/channels/{{ $channel->id }}.png" width="120" height="120" alt="{{ $channel->title }}" loading="lazy" decoding="async">
+                        </span>
+                        <span class="w2a-channel-card__content">
+                            <strong>{{ $channel->title }}</strong>
+                            <span>استعرض الفتاوى <i class="fa fa-angle-left" aria-hidden="true"></i></span>
+                        </span>
+                    </a>
+                @endforeach
             </div>
-        </div>
+            <div class="w2a-refresh-pagination" aria-label="صفحات القنوات">
+                {{ $channels->links() }}
+            </div>
+        </x-content.premium-panel>
     </div>
 @endsection

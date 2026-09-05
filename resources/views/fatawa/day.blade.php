@@ -1,58 +1,4 @@
-{{--
-    Fatwa Today Visual/Structural Parity Pass (decision-log #44). Full
-    re-read of `fatawa/fatwa-today.php` (362 lines) and its
-    `get_all_questions_date()` per-row markup (`fatawa/functions.php:454-522`).
-    Restored: the "فتاوى مختارة" (featured) portlet + `.thumbs` grid, the
-    "تقويم الطريق إلى الله" calendar portlet (static shell AND its client-side
-    widget — pure presentation, no new data dependency, see
-    FatwaDayController's own docblock), the results portlet wrapper/title/
-    icon, the real per-row `<tr>` structure (question+author two-column
-    header, "مكان إصدار الفتوى" channel block), the real empty-state row,
-    and the page-specific `<style>` block — all verbatim from source.
-
-    Fatwa Date Route Completion (decision-log #46): pagination now uses
-    `fatawa.partials.pagination`, reproducing legacy's real
-    `pagination()` markup/windowing (including its own off-by-one `$num`
-    quirk) with correct pretty-URL-per-page generation via the `$pageUrl`
-    closure the controller supplies — no longer Laravel's default
-    `$questions->links()`, which only ever produced `?page=N` query
-    strings. This was upgraded now that `/fatwa-date-{d}-{m}-{y}-{page}.htm`
-    is in scope and needs its own distinct per-page URL shape; see the
-    partial's own docblock for the full reasoning. Placement (rendered
-    twice — above and below the table) is unchanged from the original
-    parity pass.
-
-    No breadcrumb: `fatwa-today.php` never calls `page_bar()`/`title()`/
-    `breadcrumb()` (confirmed — those calls exist elsewhere in
-    `fatawa/functions.php` for OTHER fatawa pages, not this one) — legacy
-    genuinely has none here, so `<x-page-chrome>` is correctly not used.
-
-    Per-row date: legacy's own per-row date span is commented out in
-    source (`fatawa/functions.php:507-512`, wrapped in an HTML comment) —
-    genuinely dead/unrendered in legacy too, so it is not shown here either.
-
-    Fatwa Calendar Visual Dependency Audit (decision-log #45): the
-    calendar's actual styling (`.calendar`, `.calendar-ympicker`,
-    `.calendar-header`, `.calendar-days`, `.calendar-body`, plus
-    `.fatawa-mokhtara`/`.calendar-block`'s portlet background/border and
-    `.pagination`'s styling) lives entirely in `fatawa/css/new-style.css`
-    (656 lines) — a real file `fatwa-today.php:20-22` itself explicitly
-    `<link>`s via its own `$header['css']['custom']`, NOT part of the
-    inline `<style>` block below. This was missed in the original parity
-    pass (only the inline block was ported). Root cause: the file was
-    simply unreachable under `public/` (no `public/fatawa` path existed at
-    all — the same already-documented `ASSET_UNREACHABLE_LOCALLY` gap
-    affecting 6 other, unrelated fatawa pages — `topics-index`,
-    `topics-show`, `question-all`, `channels-index`, `channel-show`,
-    `questions` — none of which are touched by this fix). Fixed narrowly,
-    matching this codebase's own existing `public/gallery/lightbox`
-    precedent (a single nested subdirectory symlink, not the whole
-    `fatawa/` tree, which also contains live legacy PHP scripts that must
-    stay unreachable): `public/fatawa/css -> ../../../legacy-project/fatawa/css`.
-    No image/font `url()` dependency in the stylesheet (grepped, none
-    found) and no additional JS/plugin dependency (the calendar's own
-    widget only needs jQuery, already loaded sitewide).
---}}
+{{-- Premium fatwa-day presentation; date routes, pagination, and calendar JavaScript contracts remain unchanged. --}}
 @extends('layouts.app')
 
 @section('title', 'الفتاوى بتاريخ الإضافة')
@@ -94,6 +40,10 @@
     </style>
 @endpush
 
+@push('page-styles')
+    <link href="/assets/frontend/layout/css/content-refresh.css" rel="stylesheet" type="text/css">
+@endpush
+
 @php
     $calDate = \Carbon\Carbon::parse($date);
     // Fatwa Date Route Completion (decision-log #46): legacy's own
@@ -109,116 +59,98 @@
 @endphp
 
 @section('content')
-    <br style="clear: left;">
-    <div class="row service-box">
-        <div class="col-xs-12 col-sm-5 fl-l">
-            <div class="col-md-12 col-sm-12 fatawa-mokhtara">
-                <div class="portlet box blue">
-                    <div class="portlet-title">
-                        <div class="caption"><i class="fa fa-hand-pointer-o"></i>فتاوى مختارة </div>
-                    </div>
+    <div class="w2a-refresh-page w2a-fatwa-day-page">
+        <div class="w2a-fatwa-day-hero">
+            <x-content.premium-panel
+                title="فتاوى مختارة"
+                icon="fa-hand-pointer-o"
+                description="إجابات مختارة بعناية عن أسئلة تهم المسلم في حياته اليومية."
+                class="w2a-featured-fatwas"
+            >
+                <div class="w2a-featured-fatwa-grid">
+                    @forelse ($featured as $item)
+                        <a class="w2a-featured-fatwa-card" href="/fatawa-all-{{ str_replace('|', '', $item->general_question_id) }}.htm#{{ $item->id }}">
+                            <span class="w2a-featured-fatwa-card__icon" aria-hidden="true"><i class="fa fa-question"></i></span>
+                            <strong>{{ $item->question_text }}</strong>
+                            <span>اقرأ الفتوى <i class="fa fa-angle-left" aria-hidden="true"></i></span>
+                        </a>
+                    @empty
+                        <p class="w2a-empty-state">لا توجد فتاوى مختارة حالياً.</p>
+                    @endforelse
                 </div>
-                <div class="row">
-                    @foreach ($featured as $item)
-                        <div class="thumbs col-xs-6">
-                            <a href="/fatawa-all-{{ str_replace('|', '', $item->general_question_id) }}.htm#{{ $item->id }}">
-                                <img src="/images/tvnoise.gif" alt="{{ $item->question_text }}" width="160" height="110">{{ $item->question_text }}
-                            </a>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-        </div>
-        <div class="col-xs-12 col-sm-7 fl-l">
-            <div class="col-md-12 col-xs-12 calendar-block">
-                <div class="portlet box blue">
-                    <div class="portlet-title">
-                        <div class="caption"><i class="fa fa-calendar"></i>تقويم الطريق إلى الله </div>
-                    </div>
-                </div>
-                <div>
-                    <div class="calendar">
-                        <div class="group calendar-header">
-                            <p class="pointer center monthname">&nbsp;</p>
-                            <p class="pointer arrow minusmonth"><span>&rarr;</span></p>
-                            <p class="pointer arrow addmonth"><span>&larr;</span></p>
-                        </div>
+            </x-content.premium-panel>
 
-                        <ul class="group calendar-days">
-                            <li>السبت</li>
-                            <li>الأحد</li>
-                            <li>الاثنين</li>
-                            <li>الثلاثاء</li>
-                            <li>الاربعاء</li>
-                            <li>الخميس</li>
-                            <li>الجمعه</li>
-                        </ul>
-                        <ul class="group calendar-body">
-                            <!-- Dates go in here -->
-                        </ul>
+            <x-content.premium-panel
+                title="تقويم الطريق إلى الله"
+                icon="fa-calendar"
+                description="اختر يوماً للاطلاع على الفتاوى التي أضيفت فيه."
+                class="w2a-fatwa-calendar-panel"
+            >
+                <div class="calendar" aria-label="تقويم الفتاوى">
+                    <div class="group calendar-header">
+                        <p class="pointer center monthname" aria-live="polite">&nbsp;</p>
+                        <p class="pointer arrow minusmonth"><span aria-label="الشهر السابق">&rarr;</span></p>
+                        <p class="pointer arrow addmonth"><span aria-label="الشهر التالي">&larr;</span></p>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-md-12 col-sm-12">
-            <div class="portlet box blue date_fatawa">
-                <div class="portlet-title">
-                    <div class="caption"> <i class="fa fa-calendar"></i>الفتاوى المضافة بتاريخ
-                        {{ $displayDate }}</div>
-                </div>
-                <div class="portlet-body">
-                    @include('fatawa.partials.pagination')
-                    <table class="table table-striped table-hover" id="sample_5">
-                        <tbody>
-                            @forelse ($questions as $question)
-                                <tr>
-                                    <td class="">
-                                        <div class="row">
-                                            <div class="col-lg-12">
-                                                <h5>
-                                                    <div class="row">
-                                                        <div class="col-sm-12 col-lg-8">
-                                                            <a href="/fatawa-all-{{ str_replace('|', '', $question->general_question_id) }}.htm#{{ $question->id }}">{{ $question->question_text }}</a>
-                                                        </div>
 
-                                                        <div class="col-sm-12 col-lg-4">
-                                                            الشيخ:
-                                                            <a href="/auther-questions-{{ $question->auther_id }}.htm">{{ $question->auth_prename }} {{ $question->auth_name }}</a>
-                                                        </div>
-                                                    </div>
-                                                </h5>
-                                                <div class="row page-header color_00a">
-                                                    <div class="col-sm-12 col-xs-12">
-                                                        <span class="">
-                                                            <i class="fa fa-play-circle-o"></i>
-                                                            مكان إصدار الفتوى:
-                                                            @if ($question->channel_exists_id)
-                                                                <a href="/fatawa-channel-{{ $question->channel_id }}.htm">
-                                                                    <img width="24" height="24" border="0" src="/images/channels/{{ $question->channel_id }}.png" alt="">
-                                                                </a>
-                                                            @else
-                                                                <a href="/fatawa-channel-0.htm"> بدون قناه </a>
-                                                            @endif
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="5">لا تـوجـــد فتاوى مضافـــة حاليا لهذا التصنيف</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                    @include('fatawa.partials.pagination')
+                    <ul class="group calendar-days" aria-hidden="true">
+                        <li>السبت</li>
+                        <li>الأحد</li>
+                        <li>الاثنين</li>
+                        <li>الثلاثاء</li>
+                        <li>الأربعاء</li>
+                        <li>الخميس</li>
+                        <li>الجمعة</li>
+                    </ul>
+                    <ul class="group calendar-body">
+                        <!-- Dates go in here -->
+                    </ul>
                 </div>
-            </div>
+            </x-content.premium-panel>
         </div>
+
+        <x-content.premium-panel
+            :title="'الفتاوى المضافة بتاريخ '.$displayDate"
+            icon="fa-calendar-check-o"
+            description="أحدث الأسئلة والإجابات المنشورة في التاريخ المحدد."
+            class="w2a-fatwa-results"
+        >
+            @include('fatawa.partials.pagination')
+            <div class="w2a-fatwa-list" id="sample_5">
+                @forelse ($questions as $question)
+                    <article class="w2a-fatwa-row">
+                        <span class="w2a-fatwa-row__icon" aria-hidden="true"><i class="fa fa-commenting-o"></i></span>
+                        <div class="w2a-fatwa-row__main">
+                            <a class="w2a-fatwa-row__question" href="/fatawa-all-{{ str_replace('|', '', $question->general_question_id) }}.htm#{{ $question->id }}">{{ $question->question_text }}</a>
+                            <div class="w2a-fatwa-row__meta">
+                                <span><i class="fa fa-user" aria-hidden="true"></i> الشيخ: <a href="/auther-questions-{{ $question->auther_id }}.htm">{{ $question->auth_prename }} {{ $question->auth_name }}</a></span>
+                                <span>
+                                    <i class="fa fa-television" aria-hidden="true"></i>
+                                    مكان إصدار الفتوى:
+                                    @if ($question->channel_exists_id)
+                                        <a class="w2a-fatwa-channel" href="/fatawa-channel-{{ $question->channel_id }}.htm" aria-label="عرض فتاوى القناة">
+                                            <img width="28" height="28" src="/images/channels/{{ $question->channel_id }}.png" alt="شعار القناة" loading="lazy" decoding="async">
+                                        </a>
+                                    @else
+                                        <a href="/fatawa-channel-0.htm">بدون قناة</a>
+                                    @endif
+                                </span>
+                            </div>
+                        </div>
+                        <a class="w2a-fatwa-row__action" href="/fatawa-all-{{ str_replace('|', '', $question->general_question_id) }}.htm#{{ $question->id }}" aria-label="قراءة الفتوى">
+                            <i class="fa fa-angle-left" aria-hidden="true"></i>
+                        </a>
+                    </article>
+                @empty
+                    <div class="w2a-empty-state">
+                        <i class="fa fa-calendar-times-o" aria-hidden="true"></i>
+                        <strong>لا توجد فتاوى مضافة في هذا التاريخ</strong>
+                        <span>استخدم التقويم لاختيار يوم آخر.</span>
+                    </div>
+                @endforelse
+            </div>
+            @include('fatawa.partials.pagination')
+        </x-content.premium-panel>
     </div>
 
     @push('scripts')

@@ -62,6 +62,7 @@
     --}}
     @stack('styles')
     <link href="/assets/frontend/layout/css/premium-ui.css" rel="stylesheet" type="text/css">
+    @stack('page-styles')
 </head>
 <body class="corporate">
 <a class="w2a-skip-link" href="#main-content">انتقل إلى المحتوى الرئيسي</a>
