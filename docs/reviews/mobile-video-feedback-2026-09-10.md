@@ -136,3 +136,28 @@ Docker timed out. Consequently the final extra visual recheck (including the las
 close-glyph and long-title refinements) could not be completed; the preview needs
 the existing local database containers running again. No production deployment
 or database migration was performed.
+
+
+## Follow-up verification after Docker was restored
+
+The user restored Docker, and the local site at `http://localhost:8000/index.php`
+loaded successfully. The previously blocked final checks are now complete:
+
+- The fatwa video on `/fatawa-all-168.htm` (second answer, 15162) actually played.
+  The browser reported readyState 4, paused false, duration 125.64 seconds, and
+  playback advancing past 7.38 seconds. The picture was visible inside the mobile
+  dialog and the close control remained accessible.
+- The friend dialog's close glyph is visible and usable. The form was opened and
+  dismissed without submitting anything.
+- The full mobile hero artwork, separate caption/navigation, and centered app
+  badges were visually confirmed. Long sidebar titles were checked at 320px:
+  14px font size, 25.2px line height, no line clamping, no horizontal overflow.
+- The YouTube quality action emitted the correct embed URL
+  `https://www.youtube.com/embed/q1-HyMYFoGQ?autoplay=1`. Network inspection tied
+  that exact document request to `net::ERR_BLOCKED_BY_CLIENT` (blocked reason:
+  other). The blank iframe in this test browser therefore remains a browser-side
+  verification limitation; YouTube streaming is not claimed as verified.
+
+This supersedes the local-environment blocker and native-video uncertainty above.
+No further application changes were required. The earlier 185 passing tests and
+static-analysis result remain applicable. Browser viewport overrides were reset.
