@@ -284,7 +284,7 @@ it('showAll: the icon/action row appears AFTER the details table, answer2.php\'s
     $content = $this->get('/fatawa-all-100.htm')->getContent();
 
     $tablePos = strpos($content, '</table>');
-    $iconRowPos = strpos($content, 'jumbotron-icon');
+    $iconRowPos = strpos($content, 'class="w2a-fatwa-actions"');
 
     expect($tablePos)->not->toBeFalse();
     expect($iconRowPos)->toBeGreaterThan($tablePos);

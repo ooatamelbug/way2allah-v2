@@ -15,28 +15,13 @@
 --}}
 @section('title', $pageTitle.' - '.config('app.name'))
 
-{{--
-    var-item-{id}.htm parity: item.php:5 register_css('css/custom.css')
-    (unconditional, same mechanism as var-group-{id}.htm, resolves to
-    https://way2allah.com/css/custom.css). item.php:63-64 register_js(
-    'scripts/w2a_play.js',2)/register_js('scripts/anasheed_scripts.js',2)
-    — $plugin=2 means new_functions.php's register_js() pushes the path
-    RAW, unprefixed by $siteurl (same un-prefixed-but-root-page-relative
-    shape already established for register_script() elsewhere in this
-    project). Both scripts confirmed genuinely LOADED and ACTUALLY_EFFECTIVE
-    (not dead): w2a_play.js makes a real AJAX POST to get-mada-player.htm
-    (Laravel: /media-player) and injects the response into #w2a_main_player;
-    anasheed_scripts.js wires the real comment/send-friend modal forms to
-    their own real backend endpoints (already implemented — storeComment()/
-    sendToFriend() below — this batch only restores the front-end markup/
-    wiring those endpoints were always missing).
---}}
+{{-- Retain the page's legacy styles and engagement forms. Playback uses the
+     shared media-player component below, without the competing legacy script. --}}
 @push('styles')
     <link href="/css/custom.css" rel="stylesheet" type="text/css"/>
 @endpush
 
 @push('scripts')
-    <script src="/scripts/w2a_play.js" type="text/javascript"></script>
     <script src="/scripts/anasheed_scripts.js" type="text/javascript"></script>
 @endpush
 
@@ -70,7 +55,7 @@
         </ul>
     </div>
 
-    <div class="row service-box margin-bottom-40 sh-w2a-block">
+    <div class="row service-box margin-bottom-40 w2a-media-layout sh-w2a-block">
         <div class="col-lg-9 col-md-8 col-sm-7 nopadding">
             <div class="portlet box blue">
                 <div class="portlet-title">

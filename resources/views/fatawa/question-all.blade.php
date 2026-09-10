@@ -18,7 +18,7 @@
     This view reproduces `answer2.php` (re-read in full for this task):
     two-column `<th width="25%" class="w20">` question/answer rows,
     `class="answer-p"`, the icon/action row AFTER the details table, and
-    the (in `answer2.php`, uncommented/active) `#the_main_player` CSS.
+    original detail content. Mobile QA now uses the shared player and action controls.
 
     Deliberate, classified omissions from a byte-for-byte port (see the
     full report for the complete list):
@@ -79,14 +79,6 @@
         .page-header-fixed .header{
             position: relative !important;
         }
-        #the_main_player{
-            position: fixed;
-            z-index: 2147483647;
-            width: 875px;
-            top: 20%;
-            bottom: 10%;
-            max-width: 100%;
-        }
     </style>
 @endpush
 
@@ -144,7 +136,7 @@
         </ul>
     </div>
 
-    <div class="row service-box margin-bottom-40">
+    <div class="row service-box margin-bottom-40 w2a-media-layout">
         <div class="col-lg-9 col-md-8 col-sm-7 nopadding">
             {{--
                 answer2.php:93's adminAnswerControls($q,$cat_id,$id) —
@@ -215,32 +207,16 @@
                                         <input type="hidden" value="{{ $answer->num_download }}" id="num_download_hidden_{{ $loop->iteration }}">
                                     </tbody>
                                 </table>
-                                <br><br>
-                                <div class="row text-center jumbotron-icon">
-                                    <div class="col-xs-4 text-center mada-control-item watch_video{{ $loop->iteration }}">
-                                        <a onclick="w2a_play({{ $answer->id }}, 'fatawa')" style="cursor:pointer;">
-                                            <div class="badge blue">
-                                                <div class="circle"><i class="fa fa-youtube-play fa-4 text-blue"></i></div>
-                                            </div>
-                                            <h5>مشاهدة المادة</h5>
-                                        </a>
-                                    </div>
-                                    <div class="col-xs-4 text-center mada-control-item">
-                                        <a href="/fatawa-download-{{ $answer->id }}.htm" target="_blank">
-                                            <div class="badge blue">
-                                                <div class="circle"><i class="fa fa-floppy-o fa-4 text-blue"></i></div>
-                                            </div>
-                                            <h5>حفظ المادة</h5>
-                                        </a>
-                                    </div>
-                                    <div class="col-xs-4 text-center mada-control-item">
-                                        <a data-toggle="modal" data-target="#sendFriendModal{{ $answer->id }}" href="javascript:;" class="send-friend-btn">
-                                            <div class="badge blue">
-                                                <div class="circle"><i class="fa fa-envelope fa-4 text-blue"></i></div>
-                                            </div>
-                                            <h5>أرسل لصديق</h5>
-                                        </a>
-                                    </div>
+                                <div class="w2a-fatwa-actions">
+                                    <button type="button" class="w2a-action-btn w2a-action-play" onclick="w2a_play({{ $answer->id }}, 'fatawa')">
+                                        <i class="fa fa-play-circle" aria-hidden="true"></i> مشاهدة المادة
+                                    </button>
+                                    <a href="/fatawa-download-{{ $answer->id }}.htm" target="_blank" rel="noopener" class="w2a-action-btn w2a-action-download">
+                                        <i class="fa fa-download" aria-hidden="true"></i> حفظ المادة
+                                    </a>
+                                    <button type="button" data-toggle="modal" data-target="#sendFriendModal{{ $answer->id }}" class="w2a-action-btn w2a-action-share send-friend-btn">
+                                        <i class="fa fa-paper-plane" aria-hidden="true"></i> أرسل لصديق
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -320,14 +296,8 @@
                 established khotab-item-298784.htm precedent for this
                 exact shared component).
             --}}
-            <div class="col-md-12 col-sm-12" id="the_main_player">
-                <div class="panel panel-default">
-                    <div class="panel-heading" style="">
-                        <span class="clickable" data-effect="fadeOut"><i class="fa fa-times"></i></span>
-                    </div>
-                    <div class="panel-body" id="w2a_main_player"></div>
-                </div>
-            </div>
+            <x-content.media-player-panel />
+            <x-content.media-player-script />
         </div>
 
         @if ($categoryId)
@@ -364,40 +334,4 @@
         @endif
     </div>
 
-    @push('scripts')
-        {{--
-            Consolidated, real w2a_play(id,'fatawa') — see this file's top
-            docblock for why this is addressed by the answer's real `id`
-            (not legacy's page-ordinal `$k`) and why one definition
-            replaces legacy's N duplicated identical <script> blocks (one
-            per answer row, functionally a no-op redeclaration). Same
-            Laravel-native /media-player wiring already established for
-            khotab-item-298784.htm.
-        --}}
-        <script>
-            function w2a_play(id, type) {
-                $.ajax({
-                    url: '{{ route('media-player.show') }}',
-                    method: 'POST',
-                    data: {
-                        id: id,
-                        type: type,
-                        _token: $('meta[name="csrf-token"]').attr('content')
-                    },
-                    dataType: 'html',
-                    success: function (data) {
-                        $('#w2a_main_player').html(data);
-                        $('#the_main_player').fadeIn();
-                    }
-                });
-            }
-            $(document).ready(function () {
-                $('#the_main_player .clickable').click(function () {
-                    $('#the_main_player').fadeOut(350, function () {
-                        $('#w2a_main_player').html('');
-                    });
-                });
-            });
-        </script>
-    @endpush
 @endsection

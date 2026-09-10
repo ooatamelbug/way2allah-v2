@@ -64,7 +64,7 @@
         @endforeach
     </div>
 
-    <div class="row service-box margin-bottom-40">
+    <div class="row service-box margin-bottom-40 w2a-media-layout">
         <div class="col-lg-9 col-md-8 col-sm-7 nopadding">
             <div class="portlet box blue">
                 <div class="portlet-title">

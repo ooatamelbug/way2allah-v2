@@ -345,7 +345,7 @@ it('show: the play/watch button markup renders correctly (icon/label vary by ved
         ->and($video)->toContain('class="w2a-player-panel"')
         ->and(substr_count($video, 'id="the_main_player"'))->toBe(1)
         ->and(substr_count($video, 'id="w2a_main_player"'))->toBe(1)
-        ->and($video)->toContain('function w2a_play(id, type)');
+        ->and($video)->toContain('window.w2a_play = function (id, type)');
 
     $audio = $this->get('/khotab-item-2.htm')->assertOk()->getContent();
     expect($audio)->toContain('onclick="w2a_play(2,\'khotab\')"')

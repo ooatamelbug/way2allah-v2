@@ -45,13 +45,14 @@ it('show: hidden items remain viewable, matching legacy\'s confirmed lack of hid
 
 // ---- var-item-{id}.htm parity: css/custom.css, w2a_play.js/anasheed_scripts.js, watch/comment/send-friend controls, modals, player container ----
 
-it('show: loads css/custom.css, w2a_play.js, and anasheed_scripts.js (item.php:5,63-64)', function () {
+it('show: loads its styles, engagement script, and one shared player implementation', function () {
     DB::connection('main')->table('nuke_anasheed_anasheed')->insert(['id' => 1, 'title' => 'A Nasheed']);
 
     $content = $this->get('/var-item-1.htm')->assertOk()->getContent();
 
     expect($content)->toContain('/css/custom.css')
-        ->and($content)->toContain('/scripts/w2a_play.js')
+        ->and($content)->not->toContain('src="/scripts/w2a_play.js"')
+        ->and($content)->toContain('window.w2a_play = function (id, type)')
         ->and($content)->toContain('/scripts/anasheed_scripts.js');
 });
 
