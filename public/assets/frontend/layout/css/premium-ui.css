@@ -2724,7 +2724,6 @@ a.tt2 .tooltip2,
 .w2a-hero-arrow:hover {
     background: var(--w2a-primary-600) !important;
     opacity: 1 !important;
-    transform: translateY(-50%) scale(1.1) !important;
 }
 
 /* Dots Indicators */
@@ -7835,7 +7834,10 @@ div#the_main_player {
     max-width: none !important;
     height: 100dvh !important;
     margin: 0 !important;
-    padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)) !important;
+    padding: max(16px, env(safe-area-inset-top))
+        max(16px, env(safe-area-inset-right))
+        max(16px, env(safe-area-inset-bottom))
+        max(16px, env(safe-area-inset-left)) !important;
     overflow-y: auto !important;
     overscroll-behavior: contain;
     align-items: safe center;
@@ -7908,7 +7910,6 @@ div#the_main_player.is-open {
     white-space: normal;
     line-height: 1.7;
 }
-
 
 /* The fixed minimum metadata width also overflows narrow tablet columns. */
 .w2a-quality-card {
@@ -8106,7 +8107,6 @@ div#the_main_player.is-open {
     }
 }
 
-
 /* Keep all banner artwork visible; place captions and navigation below it. */
 @media (max-width: 575px) {
     .page-slider.container {
@@ -8195,7 +8195,8 @@ div#the_main_player.is-open {
         max-width: 100%;
     }
 
-    .w2a-hero-dot, .w2a-hero-dot.active {
+    .w2a-hero-dot,
+    .w2a-hero-dot.active {
         width: 24px !important;
         flex: 1 1 24px;
         height: 44px !important;
@@ -8206,7 +8207,7 @@ div#the_main_player.is-open {
     }
 
     .w2a-hero-dot::after {
-        content: '';
+        content: "";
         width: 6px;
         height: 6px;
         border-radius: 50%;
@@ -8221,7 +8222,8 @@ div#the_main_player.is-open {
 }
 
 @media (hover: none), (prefers-reduced-motion: reduce) {
-    .w2a-quality-card:hover, .w2a-media-layout .portlet.box:hover {
+    .w2a-quality-card:hover,
+    .w2a-media-layout .portlet.box:hover {
         transform: none !important;
     }
 }
@@ -8231,7 +8233,10 @@ div#the_main_player.is-open {
     width: 100% !important;
     height: 100dvh !important;
     margin: 0 !important;
-    padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)) !important;
+    padding: max(12px, env(safe-area-inset-top))
+        max(12px, env(safe-area-inset-right))
+        max(12px, env(safe-area-inset-bottom))
+        max(12px, env(safe-area-inset-left)) !important;
     overflow: auto !important;
 }
 
@@ -8266,11 +8271,13 @@ div#the_main_player.is-open {
     overscroll-behavior: contain;
 }
 
-.w2a-search-field, .w2a-date-range > .form-control {
+.w2a-search-field,
+.w2a-date-range > .form-control {
     min-width: 0;
 }
 
-.w2a-search-submit-btn, .w2a-search-cancel-btn {
+.w2a-search-submit-btn,
+.w2a-search-cancel-btn {
     min-height: 44px;
 }
 
@@ -8279,7 +8286,8 @@ div#the_main_player.is-open {
     height: auto !important;
 }
 
-.w2a-preacher-card, .w2a-item-card-content {
+.w2a-preacher-card,
+.w2a-item-card-content {
     min-width: 0;
 }
 
@@ -8312,7 +8320,8 @@ div#the_main_player.is-open {
         display: contents !important;
     }
 
-    .w2a-item-card-meta, .w2a-item-action-btn {
+    .w2a-item-card-meta,
+    .w2a-item-action-btn {
         grid-column: 1 / -1;
     }
 
@@ -8328,7 +8337,8 @@ div#the_main_player.is-open {
         white-space: normal !important;
     }
 
-    .w2a-search-modal-header, .w2a-search-modal-body {
+    .w2a-search-modal-header,
+    .w2a-search-modal-body {
         padding: 16px !important;
     }
 
@@ -8339,7 +8349,8 @@ div#the_main_player.is-open {
 
     .w2a-search-field .form-control,
     main input:not([type="checkbox"]):not([type="radio"]),
-    main select, main textarea {
+    main select,
+    main textarea {
         font-size: 16px !important;
     }
 
@@ -8353,7 +8364,8 @@ div#the_main_player.is-open {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .search-box[role="dialog"], .w2a-search-modal-card {
+    .search-box[role="dialog"],
+    .w2a-search-modal-card {
         transition: none !important;
     }
 }
