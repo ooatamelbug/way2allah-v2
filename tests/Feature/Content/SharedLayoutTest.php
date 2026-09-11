@@ -58,3 +58,18 @@ it('loads the global premium layer that owns responsive navigation, dialogs, pag
         ->toContain('url("images/way_bottom_content_bg.png")')
         ->toContain('url("images/way_footer_bg.jpg")');
 });
+
+it('offers supported search departments in the header instead of an unusable empty selector', function () {
+    $html = $this->get('/privacy')->assertOk()->getContent();
+    $document = new DOMDocument;
+    @$document->loadHTML('<?xml encoding="UTF-8">'.$html);
+    $xpath = new DOMXPath($document);
+    $options = $xpath->query('//select[@id="w2a_kh_dept"]/option');
+    $values = [];
+    foreach ($options as $option) {
+        $values[] = $option->getAttribute('value');
+    }
+
+    expect($values)->toContain('video', 'audio', 'fatawa', 'anasheed', 'dumped_files')
+        ->not->toContain('gallery', 'cds');
+});

@@ -41,7 +41,7 @@
         :breadcrumb="[['title' => 'غرفة الهداية']]"
     />
 
-    <div class="row service-box margin-bottom-40 sh-w2a-block">
+    <div class="row service-box margin-bottom-40 sh-w2a-block w2a-media-layout w2a-chat-layout">
         <div class="col-xs-12 col-sm-12 col-md-9 telawah-item-content">
             <div class="row">
                 {{--
