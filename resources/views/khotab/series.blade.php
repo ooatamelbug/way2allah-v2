@@ -7,7 +7,7 @@
     <x-page-chrome :heading="$pageHeading" :breadcrumb="$breadcrumbTrail" />
 
     <div class="row service-box margin-bottom-40">
-        <div class="col-lg-9 col-md-8 col-sm-7 nopadding">
+        <div class="col-lg-9 col-md-8 col-sm-7 nopadding flex flex-column gap-5">
             {{--
                 khotab-series-{id}.htm parity: khotab/series.php calls the
                 shared khotab/functions.php ListKhotab($ob, 'قائمة المواد', $hidden)
@@ -29,12 +29,12 @@
                 </div>
             </div>
 
-            @if(!empty($seriesModel->description))
+            @if (!empty($seriesModel->description))
                 <section aria-label="وصف السلسلة">{{ $seriesModel->description }}</section>
             @endif
         </div>
 
-        <aside class="col-lg-3 col-md-4 col-sm-5 nopadding" aria-label="الشريط الجانبي">
+        <aside class="col-lg-3 col-md-4 col-sm-5 nopadding flex flex-column gap-5" aria-label="الشريط الجانبي">
             {{-- G-13-03: series.php:118-126 — "الملف الشخصي" box, the series'
                  own author (series.php:31's $Series->author_id), unconditional
                  get_author_img() (no author_image DB-column check, unlike

@@ -55,7 +55,7 @@ it('the "الأكثر تحميلا" sidebar reuses ContentSidebarWidget::telawah
     $content = $this->get('/recite-news.htm')->assertOk()->getContent();
 
     expect($content)
-        ->toContain('downloaded_list')
+        ->toContain('w2a-sidebar-ranking-panel')
         ->toContain('High hits')
         ->toContain('/recite-item-2.htm');
 });
@@ -63,7 +63,7 @@ it('the "الأكثر تحميلا" sidebar reuses ContentSidebarWidget::telawah
 it('renders no sidebar portlet at all when there are zero telawah rows, matching most_downloaded_list()\'s own if($TotalList>0) wrapping the whole box', function () {
     $content = $this->get('/recite-news.htm')->assertOk()->getContent();
 
-    expect($content)->not->toContain('downloaded_list');
+    expect($content)->not->toContain('w2a-sidebar-ranking-panel');
 });
 
 it('page-specific CSS (fatawa/css/new-style.css) is loaded', function () {

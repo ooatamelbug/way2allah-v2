@@ -795,5 +795,44 @@
         mobileToggler.setAttribute("aria-expanded", expanded ? "false" : "true");
       });
     }
+
+    // 15. Global Modal Error Reset Handler
+    // Ensures any .modal-error elements inside any Bootstrap modal are hidden by default on open
+    if (window.jQuery) {
+      window.jQuery(document).on("show.bs.modal", ".modal", function () {
+        window.jQuery(this).find(".modal-error").hide();
+      });
+    } else {
+      document.addEventListener("show.bs.modal", function (e) {
+        if (e.target && e.target.classList.contains("modal")) {
+          e.target.querySelectorAll(".modal-error").forEach(function (el) {
+            el.style.display = "none";
+          });
+        }
+      });
+    }
+
+    // 16. Sidebar ul.news Line Clamping Helper
+    // Wraps raw text nodes inside ul.news > li > a into .w2a-news-title so that
+    // multi-line text is clamped to 2 lines with ellipsis across all pages
+    var newsLinks = document.querySelectorAll("ul.news > li > a");
+    newsLinks.forEach(function (link) {
+      if (!link.querySelector(".w2a-news-title")) {
+        var textNodes = Array.prototype.filter.call(
+          link.childNodes,
+          function (node) {
+            return node.nodeType === Node.TEXT_NODE && node.nodeValue.trim().length > 0;
+          }
+        );
+        if (textNodes.length > 0) {
+          var span = document.createElement("span");
+          span.className = "w2a-news-title";
+          textNodes.forEach(function (tn) {
+            span.appendChild(tn);
+          });
+          link.appendChild(span);
+        }
+      }
+    });
   });
 })();

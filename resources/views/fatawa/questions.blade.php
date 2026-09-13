@@ -24,7 +24,7 @@
     output; a consistent, sitewide, already-established deferral, not a
     gap introduced or newly ignored here.
 --}}
-@section('title', 'الفتاوى المرئية | '.$categoryModel->title.' | موضوع '.$topicModel->topic_name)
+@section('title', 'الفتاوى المرئية | ' . $categoryModel->title . ' | موضوع ' . $topicModel->topic_name)
 
 {{--
     subtobics.php:22-24 registers fatawa/css/new-style.css and the
@@ -75,59 +75,48 @@
     </div>
 
     <div class="row service-box margin-bottom-40">
-        <div class="col-lg-9 col-md-8 col-sm-7 nopadding">
+        <div class="col-lg-9 col-md-8 col-sm-7 nopadding flex flex-column gap-5">
             {{-- get_all_questions() — the WHOLE portlet is gated on count > 0 (subtobics.php:44), unlike tobics.php's unconditional topics portlet. --}}
             @if ($generalQuestions->total() > 0)
                 <div id="" class="col-md-12 col-sm-12">
-                    <div class="portlet box blue">
-                        <div class="portlet-title">
-                            <div class="caption"> <i class="fa fa-question"></i>الأسئلة المضافة في الموضوع   </div>
+                    <x-content.premium-panel title="الأسئلة المضافة في الموضوع" icon="fa-question">
+                        {{ $generalQuestions->onEachSide(1)->links('components.content.premium-pagination') }}
+                        <div class="w2a-fatwa-questions-list">
+                            @foreach ($generalQuestions as $question)
+                                <div class="w2a-fatwa-question-card">
+                                    <div class="w2a-fatwa-question-card__header">
+                                        <h5>
+                                            <a href="/fatawa-all-{{ $question->id }}.htm">{{ $question->question_text }}</a>
+                                        </h5>
+                                    </div>
+                                    <div class="w2a-fatwa-question-card__meta">
+                                        <div class="w2a-fatwa-question-card__badges">
+                                            <span class="w2a-fatwa-question-badge w2a-fatwa-question-badge--answers">
+                                                <i class="fa fa-play-circle-o"></i>
+                                                عدد الفتاوى:
+                                                {{ $answerCounts[$question->id] ?? 0 }}
+                                            </span>
+                                            <span class="w2a-fatwa-question-badge w2a-fatwa-question-badge--views">
+                                                <i class="fa fa-eye"></i>
+                                                المشاهدات:
+                                                {{ $question->num_view }}
+                                            </span>
+                                        </div>
+                                        <a href="/fatawa-all-{{ $question->id }}.htm" class="w2a-fatwa-question-card__cta">
+                                            <span>عرض الفتاوى والإجابات</span>
+                                            <i class="fa fa-angle-right" aria-hidden="true"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            @endforeach
                         </div>
-                        <div class="portlet-body series-overflow">
-                            <div class="portlet-body">
-                                {{ $generalQuestions->onEachSide(1)->links('components.content.premium-pagination') }}
-                                <table class="table table-striped table-hover" id="sample_5">
-                                    <tbody>
-                                        @foreach ($generalQuestions as $question)
-                                            <tr>
-                                                <td class="">
-                                                    <div class="row">
-                                                        <div class="col-lg-12">
-                                                            <h5>
-                                                                <a href="/fatawa-all-{{ $question->id }}.htm">{{ $question->question_text }}</a>
-                                                            </h5>
-                                                            <div class="row page-header color_00a">
-                                                                <div class="col-sm-6 col-xs-12">
-                                                                    <span class="">
-                                                                        <i class="fa fa-play-circle-o"></i>
-                                                                        عدد الفتاوى:
-                                                                        {{ $answerCounts[$question->id] ?? 0 }}
-                                                                    </span>
-                                                                </div>
-                                                                <div class="col-sm-6 col-xs-12">
-                                                                    <span class="">
-                                                                        <i class="fa fa-eye"></i>
-                                                                        المشاهدات:
-                                                                        {{ $question->num_view }}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                                {{ $generalQuestions->onEachSide(1)->links('components.content.premium-pagination') }}
-                            </div>
-                        </div>
-                    </div>
+                        {{ $generalQuestions->onEachSide(1)->links('components.content.premium-pagination') }}
+                    </x-content.premium-panel>
                 </div>
             @endif
 
             {{-- topic description — bare portlet-body, no title/caption/icon, gated on non-empty (subtobics.php:81). --}}
-            @if (! empty($topicModel->description))
+            @if (!empty($topicModel->description))
                 <div id="" class="col-md-12 col-sm-12">
                     <div class="portlet box blue">
                         <div class="portlet-body ">
@@ -140,43 +129,11 @@
             @endif
         </div>
 
-        <aside class="col-lg-3 col-md-4 col-sm-5 nopadding" aria-label="الشريط الجانبي">
-            {{--
-                mostdownload($cat_id)/recentlyadd($cat_id) — CATEGORY-scoped
-                (confirmed via subtobics.php:104/117, not assumed to match
-                tobics.php). Same real link shape as topics-show.blade.php's
-                already-fixed sidebar: /fatawa-all-{general_question_id}.htm#{id},
-                class="add".
-            --}}
-            <div class="col-md-12 col-sm-12">
-                <div class="portlet box blue">
-                    <div class="portlet-title">
-                        <div class="caption"><i class="fa fa-download"></i>الأكثر تحميلا </div>
-                    </div>
-                    <div class="portlet-body ">
-                        <ul class="news">
-                            @foreach ($mostDownloaded as $item)
-                                <li><a href="/fatawa-all-{{ str_replace('|', '', (string) $item->general_question_id) }}.htm#{{ $item->id }}" class="add">{{ $item->question_text }}</a></li>
-                            @endforeach
-                        </ul>
-                    </div>
-                </div>
-            </div>
+        <aside class="col-lg-3 col-md-4 col-sm-5 nopadding flex flex-column gap-5" aria-label="الشريط الجانبي">
+            <x-content.sidebar-ranking title="الأكثر تحميلا" icon="fa-download" :items="$mostDownloaded" type="fatawa"
+                meta="downloads" />
 
-            <div class="col-md-12 col-sm-12">
-                <div class="portlet box blue">
-                    <div class="portlet-title">
-                        <div class="caption"><i class="fa fa-plus"></i>جديد المواد </div>
-                    </div>
-                    <div class="portlet-body ">
-                        <ul class="news">
-                            @foreach ($mostRecent as $item)
-                                <li><a href="/fatawa-all-{{ str_replace('|', '', (string) $item->general_question_id) }}.htm#{{ $item->id }}" class="add">{{ $item->question_text }}</a></li>
-                            @endforeach
-                        </ul>
-                    </div>
-                </div>
-            </div>
+            <x-content.sidebar-ranking title="جديد المواد" icon="fa-plus" :items="$mostRecent" type="fatawa" meta="recent" />
         </aside>
     </div>
 @endsection

@@ -647,7 +647,6 @@ div.page-bar h3.page-title {
     border: 1px solid var(--w2a-border) !important;
     overflow: hidden !important;
     background-color: var(--w2a-surface) !important;
-    margin-bottom: 32px !important;
     transition:
         transform var(--w2a-motion-normal),
         box-shadow var(--w2a-motion-normal) !important;
@@ -663,7 +662,6 @@ div.page-bar h3.page-title {
     background: transparent !important;
     padding: 20px 24px 12px 24px !important;
     border-bottom: none !important;
-    margin-bottom: 8px !important;
 }
 
 .portlet.box > .portlet-title > .caption {
@@ -882,7 +880,7 @@ ul.vars li span.var_time,
     font-size: 12px !important;
     font-weight: 400 !important;
     color: var(--w2a-ink-500) !important;
-    margin-top: 2px !important;
+    margin-top: 6px !important;
     display: block !important;
 }
 
@@ -2481,7 +2479,7 @@ span.w2a-homecss-sub {
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
-    margin-top: 4px !important;
+    margin-top: 6px !important;
 }
 
 span.w2a-homecss-sub i.fa {
@@ -4270,7 +4268,7 @@ button.mobi-toggler {
 .w2a-top-item-body {
     display: flex !important;
     flex-direction: column !important;
-    gap: 4px !important;
+    gap: 6px !important;
 }
 
 .w2a-top-item-title-link {
@@ -4278,11 +4276,11 @@ button.mobi-toggler {
 }
 
 .w2a-top-item-title {
-    font-size: 13px !important;
+    font-size: 14px !important;
     font-weight: 700 !important;
     color: var(--w2a-ink-900) !important;
     margin: 0 !important;
-    line-height: 1.3 !important;
+    line-height: 1.7 !important;
     display: -webkit-box !important;
     -webkit-line-clamp: 2 !important;
     -webkit-box-orient: vertical !important;
@@ -6722,6 +6720,7 @@ button.mobi-toggler {
     border-radius: var(--w2a-radius-full) !important;
     box-shadow: 0 0 10px #10b981 !important;
     animation: w2a-pulse 1.8s infinite !important;
+    display: none;
 }
 
 .w2a-player-close-btn {
@@ -7465,7 +7464,7 @@ body.modal-open {
 
 .modal .modal-header {
     display: flex !important;
-    align-items: flex-start !important;
+    align-items: center !important;
     justify-content: space-between !important;
     padding: 20px 22px !important;
     color: #ffffff !important;
@@ -7947,6 +7946,10 @@ div#the_main_player.is-open {
         height: auto !important;
         flex: none !important;
         margin-bottom: 20px !important;
+    }
+
+    .w2a-media-layout .flex.flex-column.gap-5 .portlet.box {
+        margin-bottom: 0 !important;
     }
 
     .w2a-media-layout .portlet.box > .portlet-title {

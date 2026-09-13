@@ -40,7 +40,7 @@
 --}}
 @extends('layouts.app')
 
-@section('title', $authorModel->prename.' '.$authorModel->name)
+@section('title', $authorModel->prename . ' ' . $authorModel->name)
 
 @push('styles')
     <link rel="stylesheet" href="/fatawa/css/new-style.css">
@@ -53,50 +53,53 @@
                 <i class="fa fa-home"></i>
                 <a href="/fatawa-authors.htm">قائمة الدعاة</a>
             </li>
-            <li> <i class="fa fa-angle-right"></i>
-                <a href="/auther-questions-{{ $authorModel->id }}.htm">{{ $authorModel->prename }} {{ $authorModel->name }} </a></li>
+            <li> <i class="fa fa-angle-right"></i><a href="/auther-questions-{{ $authorModel->id }}.htm">{{ $authorModel->prename }} {{ $authorModel->name }} </a></li>
         </ul>
     </div>
 
     <div class="row service-box margin-bottom-40">
-        <div class="col-lg-9 col-md-8 col-sm-7 nopadding">
+        <div class="col-lg-9 col-md-8 col-sm-7 nopadding flex flex-column gap-5">
             <div class="col-md-12 col-sm-12">
-                <div class="portlet box blue">
+                <div class="portlet box">
                     <div class="portlet-title">
                         <div class="caption"> <i class="fa fa-question"></i>الأسئلة التى أفتى بها الشيخ </div>
                     </div>
                     <div class="portlet-body series-overflow series-overflow-auto">
                         <div class="portlet-body">
                             @include('fatawa.partials.pagination', ['questions' => $generalQuestions])
-                            <table class="table table-striped table-hover" id="sample_5">
-                                <tbody>
-                                    @php $rowNumber = $generalQuestions->firstItem() ?? 1; @endphp
-                                    @foreach ($generalQuestions as $question)
-                                        <tr>
-                                            <td class="table_order">{{ $rowNumber++ }}</td>
-                                            <td class="">
-                                                <div class="row">
-                                                    <div class="col-lg-12">
-                                                        <h5>
-                                                            <a href="/auther-all-fatawa-{{ $authorModel->id }}-{{ $question->id }}.htm">{{ $question->question_text }}</a>
-                                                        </h5>
-                                                        @if ($question->topic)
-                                                            <div class="row page-header color_00a">
-                                                                <div class="col-xs-12">
-                                                                    الموضوع التابع له السؤال:
-                                                                    <span class="text-blue">
-                                                                        <a href="/fatawa-group-{{ $question->topic->id }}-{{ $question->topic->parent_id }}.htm">{{ $question->topic->topic_name }}</a>
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        @endif
-                                                    </div>
+                            <div class="w2a-fatwa-questions-list" role="list">
+                                @php $rowNumber = $generalQuestions->firstItem() ?? 1; @endphp
+                                @foreach ($generalQuestions as $question)
+                                    <div class="w2a-fatwa-question-card" role="listitem">
+                                        <div class="w2a-fatwa-question-card__top">
+                                            <span class="table_order w2a-card-order">{{ $rowNumber++ }}</span>
+                                            <div class="w2a-fatwa-question-card__title-wrap">
+                                                <h5>
+                                                    <a
+                                                        href="/auther-all-fatawa-{{ $authorModel->id }}-{{ $question->id }}.htm">{{ $question->question_text }}</a>
+                                                </h5>
+                                            </div>
+                                        </div>
+                                        <div class="w2a-fatwa-question-card__meta">
+                                            @if ($question->topic)
+                                                <div class="w2a-fatwa-question-topic-chip">
+                                                    <i class="fa fa-folder-open-o" aria-hidden="true"></i>
+                                                    <span class="w2a-fatwa-topic-label">الموضوع التابع له السؤال:</span>
+                                                    <a href="/fatawa-group-{{ $question->topic->id }}-{{ $question->topic->parent_id }}.htm"
+                                                        class="w2a-fatwa-topic-link">{{ $question->topic->topic_name }}</a>
                                                 </div>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
+                                            @else
+                                                <div></div>
+                                            @endif
+                                            <a href="/auther-all-fatawa-{{ $authorModel->id }}-{{ $question->id }}.htm"
+                                                class="w2a-fatwa-question-card__cta">
+                                                <span>عرض الفتوى والإجابة</span>
+                                                <i class="fa fa-angle-right" aria-hidden="true"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
                             @include('fatawa.partials.pagination', ['questions' => $generalQuestions])
                         </div>
                     </div>
@@ -104,7 +107,7 @@
             </div>
         </div>
 
-        <div class="col-lg-3 col-md-4 col-sm-5 nopadding">
+        <div class="col-lg-3 col-md-4 col-sm-5 nopadding flex flex-column gap-5">
             <div class="col-md-12 col-sm-12">
                 <div class="portlet box blue">
                     <div class="portlet-title">
@@ -115,7 +118,7 @@
                     <div class="portlet-body">
                         <ul class="news">
                             @foreach ($mostDownloaded as $item)
-                                <li><a href="/fatawa-all-{{ str_replace('|', '', $item->general_question_id) }}.htm#{{ $item->id }}" class="add">{{ $item->question_text }}</a></li>
+                                <li><a href="/fatawa-all-{{ str_replace('|', '', $item->general_question_id) }}.htm#{{ $item->id }}" class="add"><span class="w2a-news-title">{{ $item->question_text }}</span></a></li>
                             @endforeach
                         </ul>
                     </div>
@@ -131,7 +134,7 @@
                     <div class="portlet-body">
                         <ul class="news">
                             @foreach ($mostRecent as $item)
-                                <li><a href="/fatawa-all-{{ str_replace('|', '', $item->general_question_id) }}.htm#{{ $item->id }}" class="add">{{ $item->question_text }}</a></li>
+                                <li><a href="/fatawa-all-{{ str_replace('|', '', $item->general_question_id) }}.htm#{{ $item->id }}" class="add"><span class="w2a-news-title">{{ $item->question_text }}</span></a></li>
                             @endforeach
                         </ul>
                     </div>

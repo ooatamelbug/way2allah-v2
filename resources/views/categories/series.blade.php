@@ -34,14 +34,15 @@
             <li><i class="fa fa-home"></i><a href="/">الرئيسية</a><i class="fa fa-angle-right"></i></li>
             <li><a href="/categories.htm">التصنيفات الموضوعية</a><i class="fa fa-angle-right"></i></li>
             @foreach ($categoryBreadcrumbTrail as $crumb)
-                <li><a href="/category-{{ $crumb->id }}.htm">{{ $crumb->title }}</a><i class="fa fa-angle-right"></i></li>
+                <li><a href="/category-{{ $crumb->id }}.htm">{{ $crumb->title }}</a><i class="fa fa-angle-right"></i>
+                </li>
             @endforeach
             <li>سلسلة {{ $seriesModel->title }}</li>
         </ul>
     </div>
 
     <div class="row service-box margin-bottom-40">
-        <div class="col-lg-9 col-md-8 col-sm-7 nopadding">
+        <div class="col-lg-9 col-md-8 col-sm-7 nopadding flex flex-column gap-5">
             @if ($items->isNotEmpty())
                 <div class="col-md-12 col-sm-12">
                     <div class="portlet box blue">
@@ -82,11 +83,13 @@
             @endif
         </div>
 
-        <aside class="col-lg-3 col-md-4 col-sm-5 nopadding w2a-series-sidebar" aria-label="معلومات وتنزيلات السلسلة">
+        <aside class="col-lg-3 col-md-4 col-sm-5 nopadding w2a-series-sidebar flex flex-column gap-5"
+            aria-label="معلومات وتنزيلات السلسلة">
             <div class="col-md-12 col-sm-12">
                 <section class="portlet box blue w2a-series-download-widget" aria-labelledby="series-download-title">
                     <div class="portlet-title">
-                        <h2 class="caption" id="series-download-title"><i class="fa fa-cloud-download" aria-hidden="true"></i> تنزيل مواد السلسلة</h2>
+                        <h2 class="caption" id="series-download-title"><i class="fa fa-cloud-download"
+                                aria-hidden="true"></i> تنزيل مواد السلسلة</h2>
                     </div>
                     <div class="portlet-body">
                         <x-content.series-download-panel :series="$seriesModel" :category="$categoryModel" />
@@ -108,13 +111,15 @@
             <div class="col-md-12 col-sm-12">
                 <section class="portlet box blue w2a-series-list-widget" aria-labelledby="most-downloaded-title">
                     <div class="portlet-title">
-                        <h2 class="caption" id="most-downloaded-title"><i class="fa fa-cloud-download" aria-hidden="true"></i> الأكثر تحميلا</h2>
+                        <h2 class="caption" id="most-downloaded-title"><i class="fa fa-cloud-download"
+                                aria-hidden="true"></i> الأكثر تحميلا</h2>
                     </div>
                     <div class="portlet-body">
                         @if ($mostDownloaded->isNotEmpty())
                             <x-content.top-items :items="$mostDownloaded" />
                         @else
-                            <p class="w2a-series-empty-state"><i class="fa fa-inbox" aria-hidden="true"></i> لا توجد مواد متاحة حاليًا</p>
+                            <p class="w2a-series-empty-state"><i class="fa fa-inbox" aria-hidden="true"></i> لا توجد مواد
+                                متاحة حاليًا</p>
                         @endif
                     </div>
                 </section>
@@ -123,13 +128,15 @@
             <div class="col-md-12 col-sm-12">
                 <section class="portlet box blue w2a-series-list-widget" aria-labelledby="most-recent-title">
                     <div class="portlet-title">
-                        <h2 class="caption" id="most-recent-title"><i class="fa fa-clock-o" aria-hidden="true"></i> جديد المواد</h2>
+                        <h2 class="caption" id="most-recent-title"><i class="fa fa-clock-o" aria-hidden="true"></i> جديد
+                            المواد</h2>
                     </div>
                     <div class="portlet-body">
                         @if ($mostRecent->isNotEmpty())
                             <x-content.top-items :items="$mostRecent" mode="time" />
                         @else
-                            <p class="w2a-series-empty-state"><i class="fa fa-inbox" aria-hidden="true"></i> لا توجد مواد متاحة حاليًا</p>
+                            <p class="w2a-series-empty-state"><i class="fa fa-inbox" aria-hidden="true"></i> لا توجد مواد
+                                متاحة حاليًا</p>
                         @endif
                     </div>
                 </section>

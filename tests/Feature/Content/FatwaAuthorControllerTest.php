@@ -78,7 +78,7 @@ it('show: restores the real legacy breadcrumb, portlet wrapper, and table_order 
         ->toContain('<i class="fa fa-question"></i>الأسئلة التى أفتى بها الشيخ')
         ->toContain('<link rel="stylesheet" href="/fatawa/css/new-style.css">')
         // get_all_auther_questions()'s real $i=$offset+1 row numbering.
-        ->toContain('<td class="table_order">1</td>');
+        ->toContain('class="table_order w2a-card-order">1</span>');
 });
 
 it('show: sidebar links use the real fatawa-all-{general_id}.htm#{id} shape (functions.php:688/701), not fatawa-download-{id}.htm', function () {
@@ -91,7 +91,7 @@ it('show: sidebar links use the real fatawa-all-{general_id}.htm#{id} shape (fun
     $content = $this->get('/auther-questions-5.htm')->assertOk()->getContent();
 
     expect($content)
-        ->toContain('<a href="/fatawa-all-900.htm#42" class="add">Downloaded item</a>')
+        ->toContain('<a href="/fatawa-all-900.htm#42" class="add"><span class="w2a-news-title">Downloaded item</span></a>')
         ->not->toContain('/fatawa-download-42.htm');
 });
 

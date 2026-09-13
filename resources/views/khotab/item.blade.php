@@ -17,18 +17,21 @@
     route, not the dead `khotab-item-pdf-{id}.htm` pattern.
 --}}
 
-@section('title', $khotabItem->title . ' - ' . ($khotabItem->authorModel->prename ?? '') . ' ' . ($khotabItem->authorModel->name ?? ''))
+@section('title', $khotabItem->title . ' - ' . ($khotabItem->authorModel->prename ?? '') . ' ' .
+    ($khotabItem->authorModel->name ?? ''))
 
-@push('page-styles')
-    <link href="/assets/frontend/layout/css/content-refresh.css" rel="stylesheet" type="text/css">
-@endpush
+    @push('page-styles')
+        <link href="/assets/frontend/layout/css/content-refresh.css" rel="stylesheet" type="text/css">
+    @endpush
 
-@php
-    $khotabOp = $khotabItem->vedio ? 'video' : 'audio';
-    // item.php:92,96 — 'الصوتيات' (with the definite article), not 'صوتيات'.
-    $khotabSectionLabel = $khotabItem->vedio ? 'المرئيات' : 'الصوتيات';
-    $khotabAuthorName = trim(($khotabItem->authorModel->prename ?? '').' '.($khotabItem->authorModel->name ?? ''));
-@endphp
+    @php
+        $khotabOp = $khotabItem->vedio ? 'video' : 'audio';
+        // item.php:92,96 — 'الصوتيات' (with the definite article), not 'صوتيات'.
+        $khotabSectionLabel = $khotabItem->vedio ? 'المرئيات' : 'الصوتيات';
+        $khotabAuthorName = trim(
+            ($khotabItem->authorModel->prename ?? '') . ' ' . ($khotabItem->authorModel->name ?? ''),
+        );
+    @endphp
 
 @section('content')
     {{--
@@ -60,27 +63,26 @@
             <li><a href=""> {{ $khotabItem->title }}</a><i class=""></i></li>
         </ul>
         @foreach ($categoryChains as $chain)
-            @foreach ($chain as $category)<span><img src="/images/arrowbullet.png" alt="" />&nbsp;<b><a href="/category-{{ $category->id }}.htm">{{ $category->title }}</a></b>&nbsp;</span>@if (!$loop->last)&nbsp;&nbsp;&nbsp;@endif @endforeach
+            @foreach ($chain as $category)
+                <span><img src="/images/arrowbullet.png" alt="" />&nbsp;<b><a href="/category-{{ $category->id }}.htm">{{ $category->title }}</a></b>&nbsp;</span>
+                @if (!$loop->last)
+                    &nbsp;&nbsp;&nbsp;
+                @endif
+            @endforeach
         @endforeach
     </div>
 
     <div class="row service-box margin-bottom-40 w2a-media-layout">
-        <div class="col-lg-9 col-md-8 col-sm-7 nopadding">
+        <div class="col-lg-9 col-md-8 col-sm-7 nopadding flex flex-column gap-5">
             <div class="portlet box blue">
                 <div class="portlet-title">
                     <div class="caption"><i class="fa fa-video-camera"></i> تفاصيل المادة</div>
                 </div>
                 <div class="portlet-body">
-                    <x-content.media-details-card
-                        :item="$khotabItem"
-                        module="khotab"
-                        :date="$khotabItem->time ? date('Y-m-d', $khotabItem->time) : ''"
-                        :size="\App\Domain\Content\Support\LegacyFileSizeFormatter::format((int) ($khotabItem->linksize ?? 0))"
-                        :download-url="'/khotab-download-'.$khotabItem->id.'.htm'"
-                        :pdf-url="'/khotab-item-pdf-'.$khotabItem->id.'.htm'"
-                        :pdf-count="$khotabItem->pdf"
-                        :notes="$khotabItem->notes"
-                    />
+                    <x-content.media-details-card :item="$khotabItem" module="khotab" :date="$khotabItem->time ? date('Y-m-d', $khotabItem->time) : ''" :size="\App\Domain\Content\Support\LegacyFileSizeFormatter::format(
+                        (int) ($khotabItem->linksize ?? 0),
+                    )"
+                        :download-url="'/khotab-download-' . $khotabItem->id . '.htm'" :pdf-url="'/khotab-item-pdf-' . $khotabItem->id . '.htm'" :pdf-count="$khotabItem->pdf" :notes="$khotabItem->notes" />
                 </div>
             </div>
 
@@ -111,11 +113,13 @@
                 send_friend_modal() — restored verbatim from
                 khotab/functions.php:1060-1092,1155-1199.
             --}}
-            <div class="modal fade" id="commentsModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="commentsModalLabel">
+            <div class="modal fade" id="commentsModal" tabindex="-1" role="dialog" aria-modal="true"
+                aria-labelledby="commentsModalLabel">
                 <div class="modal-dialog" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <button type="button" class="close" data-dismiss="modal" aria-label="إغلاق النافذة"> <span aria-hidden="true">&times;</span> </button>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="إغلاق النافذة"> <span
+                                    aria-hidden="true">&times;</span> </button>
                             <h4 class="modal-title" id="commentsModalLabel">اضافة تعليق على : {{ $khotabItem->title }}</h4>
                         </div>
                         <div class="modal-body" id="modal-comment-body">
@@ -127,29 +131,36 @@
                                 <input type="hidden" name="khotab_id" id="khotab_id" value="{{ $khotabItem->id }}" />
                                 <div class="form-group">
                                     <label for="user_nickname">اسمك المستعار</label>
-                                    <input name="user_nickname" id="user_nickname" class="form-control" placeholder="اسمك المستعار" />
-                                    <div class="modal-error alert alert-danger" id="user_nickname_error">يجب عليك ادخال اسمك المستعار</div>
+                                    <input name="user_nickname" id="user_nickname" class="form-control"
+                                        placeholder="اسمك المستعار" />
+                                    <div class="modal-error alert alert-danger" id="user_nickname_error" style="display: none;">يجب عليك ادخال اسمك
+                                        المستعار</div>
                                 </div>
                                 <div class="form-group">
                                     <label for="user_comment">نص التعليق</label>
-                                    <textarea name="user_comment" id="user_comment" cols="30" rows="10" class="form-control" placeholder="نص التعليق"></textarea>
-                                    <div class="modal-error alert alert-danger" id="user_comment_error">يجب عليك ادخال تعليقك</div>
+                                    <textarea name="user_comment" id="user_comment" cols="30" rows="10" class="form-control"
+                                        placeholder="نص التعليق"></textarea>
+                                    <div class="modal-error alert alert-danger" id="user_comment_error" style="display: none;">يجب عليك ادخال
+                                        تعليقك</div>
                                 </div>
                             </form>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" id="send_comment" data-loading-text="جارى الارسال ......" class="btn btn-primary"> ارسل التعليق </button>
+                            <button type="button" id="send_comment" data-loading-text="جارى الارسال ......"
+                                class="btn btn-primary"> ارسل التعليق </button>
                             <button type="button" class="btn btn-default" data-dismiss="modal"> اغلاق </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="modal fade" id="sendFriendModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="sendFriendModalLabel">
+            <div class="modal fade" id="sendFriendModal" tabindex="-1" role="dialog" aria-modal="true"
+                aria-labelledby="sendFriendModalLabel">
                 <div class="modal-dialog" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <button type="button" class="close" data-dismiss="modal" aria-label="إغلاق النافذة"> <span aria-hidden="true">&times;</span> </button>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="إغلاق النافذة"> <span
+                                    aria-hidden="true">&times;</span> </button>
                             <h4 class="modal-title" id="sendFriendModalLabel">ارسل مادة : {{ $khotabItem->title }}</h4>
                         </div>
                         <div class="modal-body" id="modal-sendFriend-body">
@@ -162,38 +173,48 @@
                                      — that exact id is already used by #commentsModal's own hidden input above;
                                      legacy has a genuine duplicate-id bug here (two elements, same id, same page).
                                      Not reproduced — this field isn't read by name via #id anywhere. --}}
-                                <input type="hidden" name="khotab_id" id="khotab_id_friend" value="{{ $khotabItem->id }}" />
+                                <input type="hidden" name="khotab_id" id="khotab_id_friend"
+                                    value="{{ $khotabItem->id }}" />
                                 <div class="form-group">
                                     <label for="your_name">اسمك </label>
-                                    <input type="text" name="your_name" id="your_name" class="form-control" placeholder="اسمك" />
-                                    <div class="modal-error alert alert-danger" id="your_name_error">يجب عليك ادخال اسمك</div>
+                                    <input type="text" name="your_name" id="your_name" class="form-control"
+                                        placeholder="اسمك" />
+                                    <div class="modal-error alert alert-danger" id="your_name_error" style="display: none;">يجب عليك ادخال اسمك
+                                    </div>
                                 </div>
                                 <div class="form-group">
                                     <label for="your_email">بريدك الالكتروني </label>
-                                    <input type="email" name="your_email" id="your_email" class="form-control" placeholder="بريدك الالكتروني" />
-                                    <div class="modal-error alert alert-danger" id="your_email_error">يجب عليك ادخال بريدك االكتروني بصيغة صحيحة</div>
+                                    <input type="email" name="your_email" id="your_email" class="form-control"
+                                        placeholder="بريدك الالكتروني" />
+                                    <div class="modal-error alert alert-danger" id="your_email_error" style="display: none;">يجب عليك ادخال بريدك
+                                        االكتروني بصيغة صحيحة</div>
                                 </div>
                                 <div class="form-group">
                                     <label for="friend_name">اسم صديقك </label>
-                                    <input type="text" name="friend_name" id="friend_name" class="form-control" placeholder="اسم صديقك" />
-                                    <div class="modal-error alert alert-danger" id="friend_name_error">يجب عليك ادخال اسم صديقك</div>
+                                    <input type="text" name="friend_name" id="friend_name" class="form-control"
+                                        placeholder="اسم صديقك" />
+                                    <div class="modal-error alert alert-danger" id="friend_name_error" style="display: none;">يجب عليك ادخال اسم
+                                        صديقك</div>
                                 </div>
                                 <div class="form-group">
                                     <label for="friend_email">بريد صديقك </label>
-                                    <input type="email" name="friend_email" id="friend_email" class="form-control" placeholder="بريد صديقك" />
-                                    <div class="modal-error alert alert-danger" id="friend_email_error"> يجب عليك ادخال بريد صديقك بصيغة صحيحة </div>
+                                    <input type="email" name="friend_email" id="friend_email" class="form-control"
+                                        placeholder="بريد صديقك" />
+                                    <div class="modal-error alert alert-danger" id="friend_email_error" style="display: none;"> يجب عليك ادخال
+                                        بريد صديقك بصيغة صحيحة </div>
                                 </div>
                             </form>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" id="send_friend" data-loading-text="جارى الارسال ......" class="btn btn-primary"> ارسل لصديقك </button>
+                            <button type="button" id="send_friend" data-loading-text="جارى الارسال ......"
+                                class="btn btn-primary"> ارسل لصديقك </button>
                             <button type="button" class="btn btn-default" data-dismiss="modal"> اغلاق </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            @if($khotabItem->mirrors->isNotEmpty())
+            @if ($khotabItem->mirrors->isNotEmpty())
                 <div class="portlet box blue">
                     <div class="portlet-title">
                         <div class="caption"><i class="fa fa-clone"></i> قائمة الجودات المختلفة للمادة</div>
@@ -204,7 +225,7 @@
                 </div>
             @endif
 
-            @if($comments !== null && $comments->isNotEmpty())
+            @if ($comments !== null && $comments->isNotEmpty())
                 <div class="portlet box blue">
                     <div class="portlet-title">
                         <div class="caption"><i class="fa fa-comments"></i> تعليقات الزوار على المادة</div>
@@ -216,7 +237,7 @@
             @endif
         </div>
 
-        <aside class="col-lg-3 col-md-4 col-sm-5 nopadding" aria-label="الشريط الجانبي">
+        <aside class="col-lg-3 col-md-4 col-sm-5 nopadding flex flex-column gap-5" aria-label="الشريط الجانبي">
             <div class="col-md-12 col-sm-12">
                 <div class="portlet box blue">
                     <div class="portlet-title">
@@ -246,12 +267,8 @@
             </div>
 
             <div class="col-md-12 col-sm-12 w2a-khotab-sidebar-refresh">
-                <x-content.premium-panel
-                    title="الأكثر تحميلاً"
-                    icon="fa-cloud-download"
-                    description="المواد الأكثر إقبالاً من زوار الموقع."
-                    class="w2a-sidebar-ranking-panel"
-                >
+                <x-content.premium-panel title="الأكثر تحميلاً" icon="fa-cloud-download"
+                    description="المواد الأكثر إقبالاً من زوار الموقع." class="w2a-sidebar-ranking-panel">
                     @if ($mostDownloaded->isNotEmpty())
                         <x-content.top-items :items="$mostDownloaded" mode="hits" />
                     @else
@@ -261,12 +278,8 @@
             </div>
 
             <div class="col-md-12 col-sm-12 w2a-khotab-sidebar-refresh">
-                <x-content.premium-panel
-                    title="جديد المواد"
-                    icon="fa-clock-o"
-                    description="أحدث ما أضيف إلى مكتبة المرئيات والصوتيات."
-                    class="w2a-sidebar-ranking-panel"
-                >
+                <x-content.premium-panel title="جديد المواد" icon="fa-clock-o"
+                    description="أحدث ما أضيف إلى مكتبة المرئيات والصوتيات." class="w2a-sidebar-ranking-panel">
                     @if ($mostRecent->isNotEmpty())
                         <x-content.top-items :items="$mostRecent" mode="time" />
                     @else
@@ -297,9 +310,14 @@
     --}}
     @push('scripts')
         <script>
-            $(document).ready(function () {
-                $('.send-comment-btn').click(function () {
+            $(document).ready(function() {
+                $('#commentsModal, #sendFriendModal').on('show.bs.modal', function () {
+                    $(this).find('.modal-error').hide();
+                });
+
+                $('.send-comment-btn').click(function() {
                     $('#comments_form').show();
+                    $('#commentsModal .modal-error').hide();
                     $('#modal-comment-body .sending-result').remove();
                     $('#send_comment').show();
                     $('#send_comment').removeAttr('disabled');
@@ -307,7 +325,7 @@
                     $('#user_nickname').val('');
                     $('#user_comment').val('');
                 });
-                $('#send_comment').click(function () {
+                $('#send_comment').click(function() {
                     var userNickname = $('#user_nickname').val();
                     var userComment = $('#user_comment').val();
                     if (!userNickname) {
@@ -330,13 +348,16 @@
                             _token: $('#comments_form input[name="_token"]').val()
                         },
                         dataType: 'html',
-                        success: function (data) {
+                        success: function(data) {
                             if (data == 1) {
-                                msg = '<div class="sending-result alert alert-success">شكرا لك ، تم اضافة التعليق بنجاح وسوف يتم نشره بعد مراجعته من قبل الادارة</div>';
+                                msg =
+                                    '<div class="sending-result alert alert-success">شكرا لك ، تم اضافة التعليق بنجاح وسوف يتم نشره بعد مراجعته من قبل الادارة</div>';
                             } else if (data == 2) {
-                                msg = '<div class="sending-result alert alert-danger">عفوا ، يجب عليك ادخال اسمك المستعار</div>';
+                                msg =
+                                    '<div class="sending-result alert alert-danger">عفوا ، يجب عليك ادخال اسمك المستعار</div>';
                             } else if (data == 3) {
-                                msg = '<div class="sending-result alert alert-danger">عفوا ، يجب عليك ادخال التعليق</div>';
+                                msg =
+                                    '<div class="sending-result alert alert-danger">عفوا ، يجب عليك ادخال التعليق</div>';
                             }
                             $('#comments_form').hide();
                             $('#modal-comment-body').append(msg);
@@ -344,15 +365,16 @@
                         }
                     });
                 });
-                $('#user_nickname').keyup(function () {
+                $('#user_nickname').keyup(function() {
                     $('#user_nickname_error').hide();
                 });
-                $('#user_comment').keyup(function () {
+                $('#user_comment').keyup(function() {
                     $('#user_comment_error').hide();
                 });
 
-                $('.send-friend-btn').click(function () {
+                $('.send-friend-btn').click(function() {
                     $('#sendFriend_form').show();
+                    $('#sendFriendModal .modal-error').hide();
                     $('#modal-sendFriend-body .sending-result').remove();
                     $('#send_friend').show();
                     $('#send_friend').removeAttr('disabled');
@@ -362,24 +384,25 @@
                     $('#friend_name').val('');
                     $('#friend_email').val('');
                 });
-                $('#your_name').keyup(function () {
+                $('#your_name').keyup(function() {
                     $('#your_name_error').hide();
                 });
-                $('#your_email').keyup(function () {
+                $('#your_email').keyup(function() {
                     $('#your_email_error').hide();
                 });
-                $('#friend_name').keyup(function () {
+                $('#friend_name').keyup(function() {
                     $('#friend_name_error').hide();
                 });
-                $('#friend_email').keyup(function () {
+                $('#friend_email').keyup(function() {
                     $('#friend_email_error').hide();
                 });
-                $('#send_friend').click(function () {
+                $('#send_friend').click(function() {
                     var yourName = $('#your_name').val();
                     var yourEmail = $('#your_email').val();
                     var friendName = $('#friend_name').val();
                     var friendEmail = $('#friend_email').val();
-                    var emailPattern = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+                    var emailPattern =
+                        /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
                     if (!yourName) {
                         $('#your_name_error').show();
                         return false;
@@ -410,11 +433,13 @@
                             _token: $('#sendFriend_form input[name="_token"]').val()
                         },
                         dataType: 'html',
-                        success: function (data) {
+                        success: function(data) {
                             if (data == 1) {
-                                msg = '<div class="sending-result alert alert-success">شكرا لك ، تم ارسال المادة الى صديقك بنجاح</div>';
+                                msg =
+                                    '<div class="sending-result alert alert-success">شكرا لك ، تم ارسال المادة الى صديقك بنجاح</div>';
                             } else if (data == 2) {
-                                msg = '<div class="sending-result alert alert-danger">عفوا ، يجب عليك اكمال البيانات المطلوبة</div>';
+                                msg =
+                                    '<div class="sending-result alert alert-danger">عفوا ، يجب عليك اكمال البيانات المطلوبة</div>';
                             }
                             $('#sendFriend_form').hide();
                             $('#modal-sendFriend-body').append(msg);
@@ -424,6 +449,5 @@
                 });
             });
         </script>
-
     @endpush
 @endsection

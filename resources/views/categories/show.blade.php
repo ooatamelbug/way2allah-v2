@@ -7,7 +7,7 @@
     <x-page-chrome :heading="$categoryModel->title" :breadcrumb="$breadcrumbTrail" />
 
     <div class="row service-box margin-bottom-40">
-        <div class="col-lg-9 col-md-8 col-sm-7 nopadding">
+        <div class="col-lg-9 col-md-8 col-sm-7 nopadding flex flex-column gap-5">
             {{--
                 Final Conditional-Branch Audit (category-487.htm):
                 categories/functions.php's ListMediaCoverage() (lines
@@ -34,42 +34,49 @@
                 <div id="" class="col-md-12 col-sm-12">
                     <div class="portlet box blue">
                         <div class="portlet-title">
-                            <div class="caption"><i class="fa fa-star" aria-hidden="true"></i> برامج حصرية لشبكة الطريق إلى الله</div>
+                            <div class="caption"><i class="fa fa-star" aria-hidden="true"></i> برامج حصرية لشبكة الطريق إلى
+                                الله</div>
                         </div>
                         <div class="portlet-body ">
                             <div class="w2a-exclusive-shows-wrap">
                                 <div class="w2a-exclusive-shows-grid">
-                                @foreach ($mediaCoverageSubcategories as $item)
-                                    @php($logo = match ((int) $item->id) {
-                                        613 => '/images/logos/Salon.gif',
-                                        612 => '/images/logos/wasabeko.gif',
-                                        611 => '/images/logos/LwAreftmoh.gif',
-                                        610 => '/images/logos/AlamtanyAya.gif',
-                                        609 => '/images/logos/KadaShbab.gif',
-                                        603 => '/images/logos/AbgadiaAsaria.gif',
-                                        601 => '/images/logos/RamdanKarab.gif',
-                                        592 => '/images/logos/ayatTotla.gif',
-                                        562 => '/images/logos/AnRab.gif',
-                                        618 => '/images/logos/RamdanKarab6.gif',
-                                        default => '/images/tvnoise.gif',
-                                    })
-                                    <a href="/category-{{ $item->id }}.htm" class="w2a-exclusive-card">
-                                        <div class="w2a-exclusive-banner-wrap">
-                                            <img src="{{ $logo }}" alt="{{ $item->title }}" class="w2a-exclusive-banner-img" width="240" height="160" loading="lazy" decoding="async">
-                                            <span class="w2a-exclusive-badge"><i class="fa fa-star" aria-hidden="true"></i> برنامج حصري</span>
-                                            <span class="w2a-exclusive-overlay" aria-hidden="true">
-                                                <span class="w2a-exclusive-overlay-icon"><i class="fa fa-play"></i></span>
-                                            </span>
-                                        </div>
-                                        <div class="w2a-exclusive-body">
-                                            <h3 class="w2a-exclusive-title">{{ $item->title }}</h3>
-                                            <div class="w2a-exclusive-cta">
-                                                <span>تصفح البرنامج</span>
-                                                <i class="fa fa-angle-right" aria-hidden="true"></i>
+                                    @foreach ($mediaCoverageSubcategories as $item)
+                                        @php(
+    $logo = match ((int) $item->id) {
+        613 => '/images/logos/Salon.gif',
+        612 => '/images/logos/wasabeko.gif',
+        611 => '/images/logos/LwAreftmoh.gif',
+        610 => '/images/logos/AlamtanyAya.gif',
+        609 => '/images/logos/KadaShbab.gif',
+        603 => '/images/logos/AbgadiaAsaria.gif',
+        601 => '/images/logos/RamdanKarab.gif',
+        592 => '/images/logos/ayatTotla.gif',
+        562 => '/images/logos/AnRab.gif',
+        618 => '/images/logos/RamdanKarab6.gif',
+        default => '/images/tvnoise.gif'
+    }
+)
+                                        <a href="/category-{{ $item->id }}.htm" class="w2a-exclusive-card">
+                                            <div class="w2a-exclusive-banner-wrap">
+                                                <img src="{{ $logo }}" alt="{{ $item->title }}"
+                                                    class="w2a-exclusive-banner-img" width="240" height="160"
+                                                    loading="lazy" decoding="async">
+                                                <span class="w2a-exclusive-badge"><i class="fa fa-star"
+                                                        aria-hidden="true"></i> برنامج حصري</span>
+                                                <span class="w2a-exclusive-overlay" aria-hidden="true">
+                                                    <span class="w2a-exclusive-overlay-icon"><i
+                                                            class="fa fa-play"></i></span>
+                                                </span>
                                             </div>
-                                        </div>
-                                    </a>
-                                @endforeach
+                                            <div class="w2a-exclusive-body">
+                                                <h3 class="w2a-exclusive-title">{{ $item->title }}</h3>
+                                                <div class="w2a-exclusive-cta">
+                                                    <span>تصفح البرنامج</span>
+                                                    <i class="fa fa-angle-right" aria-hidden="true"></i>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    @endforeach
                                 </div>
                             </div>
                         </div>
@@ -149,7 +156,7 @@
                 wrapper — the previous markup was a bare <section>, no
                 portlet/wrapper at all.
             --}}
-            @if(!empty($categoryModel->description))
+            @if (!empty($categoryModel->description))
                 <div id="" class="col-md-12 col-sm-12">
                     <div class="portlet box blue">
                         <div class="portlet-body ">
@@ -190,7 +197,7 @@
             same as the already-established day.blade.php precedent for
             this identical shared function — functionally inert either way.
         --}}
-        <aside class="col-lg-3 col-md-4 col-sm-5 nopadding" aria-label="الشريط الجانبي">
+        <aside class="col-lg-3 col-md-4 col-sm-5 nopadding flex flex-column gap-5" aria-label="الشريط الجانبي">
             <div id="" class="col-md-12 col-sm-12">
                 <div class="portlet box blue">
                     <div class="portlet-title">

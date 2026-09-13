@@ -15,7 +15,7 @@
     the layout's single `@yield('title') - {{ config('app.name') }}`
     already matches the live-confirmed single-suffix output exactly.
 --}}
-@section('title', 'الفتاوى المرئية | '.$categoryModel->title)
+@section('title', 'الفتاوى المرئية | ' . $categoryModel->title)
 
 {{--
     tobics.php:16-18 registers fatawa/css/new-style.css and the
@@ -69,7 +69,7 @@
     </div>
 
     <div class="row service-box margin-bottom-40">
-        <div class="col-lg-9 col-md-8 col-sm-7 nopadding">
+        <div class="col-lg-9 col-md-8 col-sm-7 nopadding flex flex-column gap-5">
             {{-- under_this_tasnif($id) — the whole portlet is gated on non-empty results (tobics.php:32's `if ($tasnif != '')`), unlike the topics portlet below which always renders. --}}
             @if ($subCategories->isNotEmpty())
                 <div id="" class="col-md-12 col-sm-12">
@@ -77,7 +77,8 @@
                         <div class="portlet-title">
                             <div class="caption">
                                 <img src="/assets/img/window.png">
-                                التصنيفات المدرجة تحت هذا التصنيف </div>
+                                التصنيفات المدرجة تحت هذا التصنيف
+                            </div>
                         </div>
                         <div class="portlet-body ">
                             <div class="portlet-body">
@@ -92,7 +93,7 @@
                                         @foreach ($subCategories as $index => $sub)
                                             <tr>
                                                 <td>{{ $index + 1 }}</td>
-                                                <td><a href="/fatawa-topics-{{ $sub->id }}-1.htm">{{ $sub->title }}</a> </td>
+                                                <td><a href="/fatawa-topics-{{ $sub->id }}-1.htm">{{ $sub->title }}</a></td>
                                             </tr>
                                         @endforeach
                                     </tbody>
@@ -109,43 +110,37 @@
                     <div class="portlet-title">
                         <div class="caption">
                             <img src="/assets/img/quran-book (1).png">
-                            الموضوعات المضافة في التصنيف </div>
+                            الموضوعات المضافة في التصنيف
+                        </div>
                     </div>
-                    <div class="portlet-body ">
-                        <div class="portlet-body series-overflow series-overflow-auto">
-                            <table class="table table-striped table-hover" id="sample_5">
-                                <tbody>
-                                    {{-- Route order: topic id first, category id second (.htaccess:301-302's t_id=$1&cat_id=$2). --}}
-                                    @foreach ($topics as $topic)
-                                        <tr>
-                                            <td class="">
-                                                <div class="row">
-                                                    <div class="col-lg-12">
-                                                        <h5>
-                                                            <a href="/fatawa-group-{{ $topic->id }}-{{ $categoryModel->id }}.htm">{{ $topic->topic_name }}</a>
-                                                        </h5>
-                                                        <div class="row page-header color_00a">
-                                                            <div class="col-sm-6 col-xs-12">
-                                                                <span class="">
-                                                                    <i class="fa fa-play-circle-o"></i>
-                                                                    عدد الأسئلة:
-                                                                    {{ $questionCounts[$topic->id] ?? 0 }}
-                                                                </span>
-                                                            </div>
-                                                            <div class="col-sm-6 col-xs-12">
-                                                                <span class="">
-                                                                    <i class="fa fa-calendar-o"></i>
-                                                                    {{ \App\Domain\Content\Support\ArabicDateConverter::convert($topic->db_insertion_date ?? '') }}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
+                    <div class="portlet-body">
+                        <div class="w2a-topics-cards-grid" role="list">
+                            {{-- Route order: topic id first, category id second (.htaccess:301-302's t_id=$1&cat_id=$2). --}}
+                            @foreach ($topics as $topic)
+                                <div class="w2a-topic-grid-card" role="listitem">
+                                    <div class="w2a-topic-grid-card__header">
+                                        <div class="w2a-topic-grid-card__icon" aria-hidden="true">
+                                            <i class="fa fa-book"></i>
+                                        </div>
+                                        <div class="w2a-topic-grid-card__title-wrap">
+                                            <h5><a href="/fatawa-group-{{ $topic->id }}-{{ $categoryModel->id }}.htm">{{ $topic->topic_name }}</a></h5>
+                                        </div>
+                                    </div>
+                                    <div class="w2a-topic-grid-card__meta">
+                                        <div class="w2a-topic-grid-card__meta-chips">
+                                            <span class="w2a-topic-grid-card__chip w2a-topic-grid-card__chip--count">
+                                                <i class="fa fa-play-circle-o"></i>
+                                                عدد الأسئلة:
+                                                {{ $questionCounts[$topic->id] ?? 0 }}
+                                            </span>
+                                            <span class="w2a-topic-grid-card__chip">
+                                                <i class="fa fa-calendar-o"></i>
+                                                {{ \App\Domain\Content\Support\ArabicDateConverter::convert($topic->db_insertion_date ?? '') }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
                         </div>
                         {{ $topics->onEachSide(1)->links('components.content.premium-pagination') }}
                     </div>
@@ -153,7 +148,7 @@
             </div>
         </div>
 
-        <aside class="col-lg-3 col-md-4 col-sm-5 nopadding" aria-label="الشريط الجانبي">
+        <aside class="col-lg-3 col-md-4 col-sm-5 nopadding flex flex-column gap-5" aria-label="الشريط الجانبي">
             {{--
                 mostdownload($id)/recentlyadd($id) (functions.php:679-704) —
                 real portlet wrapper and the real link shape:
@@ -165,35 +160,10 @@
                 fatwaMostRecentByCategory()) already selects general_question_id
                 — view-only fix, no query change.
             --}}
-            <div class="col-md-12 col-sm-12">
-                <div class="portlet box blue">
-                    <div class="portlet-title">
-                        <div class="caption"><i class="fa fa-download"></i>الأكثر تحميلا </div>
-                    </div>
-                    <div class="portlet-body ">
-                        <ul class="news">
-                            @foreach ($mostDownloaded as $item)
-                                <li><a href="/fatawa-all-{{ str_replace('|', '', (string) $item->general_question_id) }}.htm#{{ $item->id }}" class="add">{{ $item->question_text }}</a></li>
-                            @endforeach
-                        </ul>
-                    </div>
-                </div>
-            </div>
+            <x-content.sidebar-ranking title="الأكثر تحميلا" icon="fa-download" :items="$mostDownloaded" type="fatawa"
+                meta="downloads" />
 
-            <div class="col-md-12 col-sm-12">
-                <div class="portlet box blue">
-                    <div class="portlet-title">
-                        <div class="caption"><i class="fa fa-plus"></i>جديد المواد </div>
-                    </div>
-                    <div class="portlet-body ">
-                        <ul class="news">
-                            @foreach ($mostRecent as $item)
-                                <li><a href="/fatawa-all-{{ str_replace('|', '', (string) $item->general_question_id) }}.htm#{{ $item->id }}" class="add">{{ $item->question_text }}</a></li>
-                            @endforeach
-                        </ul>
-                    </div>
-                </div>
-            </div>
+            <x-content.sidebar-ranking title="جديد المواد" icon="fa-plus" :items="$mostRecent" type="fatawa" meta="recent" />
         </aside>
     </div>
 @endsection

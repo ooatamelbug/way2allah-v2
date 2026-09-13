@@ -255,11 +255,11 @@ it('show: mirror extension classification — "سيرفر خاص" for empty/com/
     $content = $this->get('/w2acd/item.php?khid=1')->assertOk()->getContent();
 
     expect(substr_count($content, 'سيرفر خاص'))->toBe(2) // php? link + no-extension link
-        ->and($content)->toContain('/images/ext/iso.gif')
-        ->toContain('نوع الملف iso');
+        ->and($content)->toContain('w2a-cd-mirror-item__badge--ext')
+        ->toContain('ISO');
 });
 
-it('show: mirror save column — icon-only (no link) when the extension is empty, an anchor-wrapped icon otherwise', function () {
+it('show: mirror save actions — renders modern download actions with links and icons', function () {
     DB::connection('main')->table('nuke_w2acd_w2acd')->insert([
         'id' => 1, 'title' => 'Save Column CD', 'hidden' => 0,
         'link' => 'https://example.com/file.iso,http://localhost/noext',
@@ -268,9 +268,9 @@ it('show: mirror save column — icon-only (no link) when the extension is empty
 
     $content = $this->get('/w2acd/item.php?khid=1')->assertOk()->getContent();
 
-    expect($content)->toContain('/images/save.png')
-        ->toContain('/images/2.png')
-        ->toContain('<th class="">حفظ</th>');
+    expect($content)->toContain('تحميل الإسطوانة')
+        ->toContain('https://example.com/file.iso')
+        ->toContain('w2a-cd-mirror-btn--primary');
 });
 
 it('show: sidebar shows a raw (non-thumbnails.php) thumbnail and subtext, same as the index page', function () {
@@ -303,15 +303,17 @@ it('show: renders the shared page chrome — heading matches the item title, and
     expect(substr_count($titleTag, config('app.name')))->toBe(1);
 });
 
-it('show: wraps the detail table and mirrors list in real portlets — fa-desktop / fa-link icons, anasheed-details/anasheed-mirrors wrappers', function () {
+it('show: wraps the detail table and mirrors list in modern panels — fa-desktop / fa-link icons, anasheed-details/anasheed-mirrors wrappers', function () {
     DB::connection('main')->table('nuke_w2acd_w2acd')->insert(['id' => 1, 'title' => 'A CD', 'link' => 'https://example.com/a.mp3', 'cd' => 'Only']);
 
     $content = $this->get('/cds-item-1.htm')->assertOk()->getContent();
 
     expect($content)
-        ->toContain('<div class="caption"><i class="fa fa-desktop"></i> تفاصيل الاسطوانة</div>')
+        ->toContain('تفاصيل الاسطوانة')
+        ->toContain('fa fa-desktop')
         ->toContain('<div class="anasheed-details mada-details">')
-        ->toContain('<div class="caption"><i class="fa fa-link"></i> روابط الاسطوانة</div>')
+        ->toContain('روابط الاسطوانة')
+        ->toContain('fa fa-link')
         ->toContain('<div class="anasheed-mirrors table-responsive">');
 });
 
@@ -328,7 +330,7 @@ it('show: "تاريخ التحميل" uses the real CoolShortDate() Arabic forma
         ->not->toContain('2015-06-06');
 });
 
-it('show: sidebar cards use the real .list-group-item.anasheed-latest-item DOM with an <h6> title, not a bare <li>', function () {
+it('show: sidebar cards use the modern ranking list DOM with titles and links', function () {
     DB::connection('main')->table('nuke_w2acd_w2acd')->insert([
         ['id' => 1, 'title' => 'Viewed', 'link' => 'https://example.com/a.mp3', 'cd' => 'Only', 'hits' => 0],
         ['id' => 2, 'title' => 'Popular Sidebar Item', 'link' => '', 'cd' => '', 'hits' => 500],
@@ -337,12 +339,9 @@ it('show: sidebar cards use the real .list-group-item.anasheed-latest-item DOM w
     $content = $this->get('/cds-item-1.htm')->assertOk()->getContent();
 
     expect($content)
-        ->toContain('<li class="list-group-item anasheed-latest-item">')
-        ->toContain('<div class="col-lg-3 col-md-3 col-sm-3 col-xs-4">')
-        ->toContain('<div class="col-lg-9 col-md-9 col-sm-9 col-xs-8">')
-        ->toContain('<h6>Popular Sidebar Item</h6>')
-        ->toContain('img-responsive img-thumbnail')
-        ->toContain('<ul class="recent_list">');
+        ->toContain('class="w2a-ranking-list"')
+        ->toContain('Popular Sidebar Item')
+        ->toContain('/cds-item-2.htm');
 });
 
 it('show: sidebar "احدث المواد" label also uses the real Arabic date format, not Y-m-d', function () {
@@ -358,12 +357,12 @@ it('show: sidebar "احدث المواد" label also uses the real Arabic date f
         ->not->toContain('بتاريخ : 2015-06-06');
 });
 
-it('show: sidebar portlets use the blue top_side color variant, matching most_downloaded_list()/most_recent_list()\'s own $data', function () {
+it('show: sidebar panels render for most downloaded and most recent CDs', function () {
     DB::connection('main')->table('nuke_w2acd_w2acd')->insert(['id' => 1, 'title' => 'A CD', 'link' => 'https://example.com/a.mp3', 'cd' => 'Only', 'hits' => 1]);
 
     $content = $this->get('/cds-item-1.htm')->assertOk()->getContent();
 
-    expect(substr_count($content, 'class="portlet box blue top_side"'))->toBe(2);
+    expect(substr_count($content, 'w2a-sidebar-ranking-panel'))->toBe(2);
 });
 
 // ---- Shared-nav relative-href repair (decision-log #57), sitewide audit

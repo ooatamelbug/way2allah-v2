@@ -35,7 +35,7 @@
     double-suffix — confirmed wrong against a fresh live fetch (single
     suffix). Removed; the layout's own append is the only one now.
 --}}
-@section('title', 'مجموعة '.$groupModel->title.' - '.$authorName)
+@section('title', 'مجموعة ' . $groupModel->title . ' - ' . $authorName)
 
 {{--
     `assets/global/scripts/datatable.js` investigated (Title/DataTables Gap
@@ -53,13 +53,10 @@
     zero functional or observable effect on this page — not added here.
 --}}
 @section('content')
-    <x-page-chrome
-        :heading="'مجموعة '.$groupModel->title.' - '.$authorName"
-        :breadcrumb="$breadcrumbTrail"
-    />
+    <x-page-chrome :heading="'مجموعة ' . $groupModel->title . ' - ' . $authorName" :breadcrumb="$breadcrumbTrail" />
 
     <div class="row service-box margin-bottom-40">
-        <div class="col-lg-9 col-md-8 col-sm-7 nopadding">
+        <div class="col-lg-9 col-md-8 col-sm-7 nopadding flex flex-column gap-5">
             {{--
                 ListSeries($ob,$hidden) — khotab/functions.php:409-508. Row
                 link is /khotab-series-{id}.htm (no category suffix, unlike
@@ -113,7 +110,7 @@
             @endif
         </div>
 
-        <div class="col-lg-3 col-md-4 col-sm-5 nopadding">
+        <div class="col-lg-3 col-md-4 col-sm-5 nopadding flex flex-column gap-5">
             {{--
                 group.php:84-95's "الملف الشخصي" box — get_author_img()
                 called directly, no author_image priority check (confirmed

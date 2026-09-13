@@ -70,13 +70,13 @@
     here instead of `$answer->num_view` — reproducing what legacy
     actually renders, not its raw column name.
 --}}
-@section('title', 'سؤال | '.$generalQuestionModel->question_text)
+@section('title', 'سؤال | ' . $generalQuestionModel->question_text)
 
 @push('styles')
     <link rel="stylesheet" href="/css/custom.css">
     <link href="https://fonts.googleapis.com/css?family=Cairo|Reem+Kufi" rel="stylesheet">
     <style>
-        .page-header-fixed .header{
+        .page-header-fixed .header {
             position: relative !important;
         }
     </style>
@@ -123,21 +123,23 @@
             --}}
             @foreach ($categoryChain as $category)
                 <li>
-                    <a href="{{ route('fatawa.topics.show', ['category' => $category->id, 'page' => 1]) }}">{{ $category->title }} </a>
+                    <a href="{{ route('fatawa.topics.show', ['category' => $category->id, 'page' => 1]) }}">{{ $category->title }}
+                    </a>
                     @if (!$loop->last)
                         <i class="fa fa-angle-right"></i>
                     @endif
                 </li>
             @endforeach
             @if ($topicModel)
-                <li> <i class="fa fa-angle-right"></i><a href="/fatawa-group-{{ $topicModel->id }}-{{ $categoryId }}.htm"> موضوع {{ $topicModel->topic_name }} </a></li>
+                <li> <i class="fa fa-angle-right"></i><a href="/fatawa-group-{{ $topicModel->id }}-{{ $categoryId }}.htm">
+                        موضوع {{ $topicModel->topic_name }} </a></li>
                 <li> <i class="fa fa-angle-right"></i><a href="/fatawa-all-{{ $generalQuestionModel->id }}.htm">{{ $generalQuestionModel->question_text }} </a></li>
             @endif
         </ul>
     </div>
 
     <div class="row service-box margin-bottom-40 w2a-media-layout">
-        <div class="col-lg-9 col-md-8 col-sm-7 nopadding">
+        <div class="col-lg-9 col-md-8 col-sm-7 nopadding flex flex-column gap-5">
             {{--
                 answer2.php:93's adminAnswerControls($q,$cat_id,$id) —
                 ADMIN_ONLY (links to legacy's own admin.php?op=..., which
@@ -159,62 +161,73 @@
                         </div>
                         <div class="portlet-body ">
                             <div class="anasheed-details mada-details">
-                                <table class="table table-striped">
-                                    <tbody>
-                                        <tr>
-                                            <th width="25%" class="w20" style="border-top:0;">السؤال </th>
-                                            <td style="border-top:0;">{{ $answer->question_text }}</td>
-                                        </tr>
-                                        @if (($answer->answer_text ?? '') !== '' && $answer->answer_text !== '.')
+                                <div class="w2a-table-responsive-wrapper">
+                                    <table class="table table-striped">
+                                        <tbody>
                                             <tr>
-                                                <th class="w20" style="border-top:0;">الجواب </th>
-                                                <td style="border-top:0;">
-                                                    <p class="answer-p" style="line-height: 2.2 !important;">{!! $answer->answer_text !!}</p>
+                                                <th width="25%" class="w20" style="border-top:0;">السؤال </th>
+                                                <td style="border-top:0;">{{ $answer->question_text }}</td>
+                                            </tr>
+                                            @if (($answer->answer_text ?? '') !== '' && $answer->answer_text !== '.')
+                                                <tr>
+                                                    <th class="w20" style="border-top:0;">الجواب </th>
+                                                    <td style="border-top:0;">
+                                                        <p class="answer-p" style="line-height: 2.2 !important;">
+                                                            {!! $answer->answer_text !!}</p>
+                                                    </td>
+                                                </tr>
+                                            @endif
+                                            <tr>
+                                                <th class="w20"> تاريخ إصدار الفتوي</th>
+                                                <td>{{ \App\Domain\Content\Support\ArabicDateConverter::convert($answer->date_of_fatwa ?? '') }}
                                                 </td>
                                             </tr>
-                                        @endif
-                                        <tr>
-                                            <th class="w20"> تاريخ إصدار الفتوي</th>
-                                            <td>{{ \App\Domain\Content\Support\ArabicDateConverter::convert($answer->date_of_fatwa ?? '') }}</td>
-                                        </tr>
-                                        <tr>
-                                            <th class="w20"> مكان إصدار الفتوي</th>
-                                            <td>
-                                                @if ($channels->get($answer->channel_id))
-                                                    <a href="/fatawa-channel-{{ $answer->channel_id }}.htm">{{ $channels->get($answer->channel_id)->title }}</a>
-                                                @else
-                                                    <a href="/fatawa-channel-0.htm"> بدون قناه </a>
-                                                @endif
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <th class="w20"> تاريخ الإضافة </th>
-                                            <td>{{ \App\Domain\Content\Support\ArabicDateConverter::convert($answer->db_insertion_date ?? '') }}</td>
-                                        </tr>
-                                        <tr>
-                                            <th class="w20">حجم المادة</th>
-                                            <td>{{ $answer->media_size }} ميجا بايت</td>
-                                        </tr>
-                                        {{-- general.num_view, not this row's own — see this file's top docblock. --}}
-                                        <tr>
-                                            <th class="w20">عدد الزيارات</th>
-                                            <td>{{ $generalQuestionModel->num_view }} زيارة</td>
-                                        </tr>
-                                        <tr>
-                                            <th class="w20">عدد مرات الحفظ</th>
-                                            <td id="num_download_{{ $loop->iteration }}">{{ $answer->num_download }} مرة</td>
-                                        </tr>
-                                        <input type="hidden" value="{{ $answer->num_download }}" id="num_download_hidden_{{ $loop->iteration }}">
-                                    </tbody>
-                                </table>
+                                            <tr>
+                                                <th class="w20"> مكان إصدار الفتوي</th>
+                                                <td>
+                                                    @if ($channels->get($answer->channel_id))
+                                                        <a href="/fatawa-channel-{{ $answer->channel_id }}.htm">{{ $channels->get($answer->channel_id)->title }}</a>
+                                                    @else
+                                                        <a href="/fatawa-channel-0.htm"> بدون قناه </a>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th class="w20"> تاريخ الإضافة </th>
+                                                <td>{{ \App\Domain\Content\Support\ArabicDateConverter::convert($answer->db_insertion_date ?? '') }}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th class="w20">حجم المادة</th>
+                                                <td>{{ $answer->media_size }} ميجا بايت</td>
+                                            </tr>
+                                            {{-- general.num_view, not this row's own — see this file's top docblock. --}}
+                                            <tr>
+                                                <th class="w20">عدد الزيارات</th>
+                                                <td>{{ $generalQuestionModel->num_view }} زيارة</td>
+                                            </tr>
+                                            <tr>
+                                                <th class="w20">عدد مرات الحفظ</th>
+                                                <td id="num_download_{{ $loop->iteration }}">{{ $answer->num_download }}
+                                                    مرة</td>
+                                            </tr>
+                                            <input type="hidden" value="{{ $answer->num_download }}"
+                                                id="num_download_hidden_{{ $loop->iteration }}">
+                                        </tbody>
+                                    </table>
+                                </div>
                                 <div class="w2a-fatwa-actions">
-                                    <button type="button" class="w2a-action-btn w2a-action-play" onclick="w2a_play({{ $answer->id }}, 'fatawa')">
+                                    <button type="button" class="w2a-action-btn w2a-action-play"
+                                        onclick="w2a_play({{ $answer->id }}, 'fatawa')">
                                         <i class="fa fa-play-circle" aria-hidden="true"></i> مشاهدة المادة
                                     </button>
-                                    <a href="/fatawa-download-{{ $answer->id }}.htm" target="_blank" rel="noopener" class="w2a-action-btn w2a-action-download">
+                                    <a href="/fatawa-download-{{ $answer->id }}.htm" target="_blank" rel="noopener"
+                                        class="w2a-action-btn w2a-action-download">
                                         <i class="fa fa-download" aria-hidden="true"></i> حفظ المادة
                                     </a>
-                                    <button type="button" data-toggle="modal" data-target="#sendFriendModal{{ $answer->id }}" class="w2a-action-btn w2a-action-share send-friend-btn">
+                                    <button type="button" data-toggle="modal"
+                                        data-target="#sendFriendModal{{ $answer->id }}"
+                                        class="w2a-action-btn w2a-action-share send-friend-btn">
                                         <i class="fa fa-paper-plane" aria-hidden="true"></i> أرسل لصديق
                                     </button>
                                 </div>
@@ -230,12 +243,15 @@
                     form POST) rather than the unreachable w2a_play.js's
                     sendemail() — see this file's top docblock.
                 --}}
-                <div class="modal fade" id="sendFriendModal{{ $answer->id }}" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="sendFriendModalLabel{{ $answer->id }}">
+                <div class="modal fade" id="sendFriendModal{{ $answer->id }}" tabindex="-1" role="dialog"
+                    aria-modal="true" aria-labelledby="sendFriendModalLabel{{ $answer->id }}">
                     <div class="modal-dialog" role="document">
                         <div class="modal-content">
                             <div class="modal-header">
-                                <button type="button" class="close" data-dismiss="modal" aria-label="إغلاق النافذة"> <span aria-hidden="true">&times;</span> </button>
-                                <h4 class="modal-title" id="sendFriendModalLabel{{ $answer->id }}">ارسال مادة : {{ $answer->question_text }}</h4>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="إغلاق النافذة"> <span
+                                        aria-hidden="true">&times;</span> </button>
+                                <h4 class="modal-title" id="sendFriendModalLabel{{ $answer->id }}">ارسال مادة :
+                                    {{ $answer->question_text }}</h4>
                             </div>
                             <form action="{{ route('fatawa.question.send-to-friend', $answer->id) }}" method="post">
                                 @csrf
@@ -245,19 +261,23 @@
                                     </div>
                                     <div class="form-group">
                                         <label for="your_name{{ $answer->id }}">اسمك </label>
-                                        <input type="text" name="your_name" id="your_name{{ $answer->id }}" class="form-control" placeholder="اسمك">
+                                        <input type="text" name="your_name" id="your_name{{ $answer->id }}"
+                                            class="form-control" placeholder="اسمك">
                                     </div>
                                     <div class="form-group">
                                         <label for="your_email{{ $answer->id }}">بريدك الالكتروني </label>
-                                        <input type="email" name="your_email" id="your_email{{ $answer->id }}" class="form-control" placeholder="بريدك الالكتروني">
+                                        <input type="email" name="your_email" id="your_email{{ $answer->id }}"
+                                            class="form-control" placeholder="بريدك الالكتروني">
                                     </div>
                                     <div class="form-group">
                                         <label for="friend_name{{ $answer->id }}">اسم صديقك </label>
-                                        <input type="text" name="friend_name" id="friend_name{{ $answer->id }}" class="form-control" placeholder="اسم صديقك">
+                                        <input type="text" name="friend_name" id="friend_name{{ $answer->id }}"
+                                            class="form-control" placeholder="اسم صديقك">
                                     </div>
                                     <div class="form-group">
                                         <label for="friend_email{{ $answer->id }}">بريد صديقك </label>
-                                        <input type="email" name="friend_email" id="friend_email{{ $answer->id }}" class="form-control" placeholder="بريد صديقك">
+                                        <input type="email" name="friend_email" id="friend_email{{ $answer->id }}"
+                                            class="form-control" placeholder="بريد صديقك">
                                     </div>
                                 </div>
                                 <div class="modal-footer">
@@ -301,34 +321,14 @@
         </div>
 
         @if ($categoryId)
-            <aside class="col-lg-3 col-md-4 col-sm-5 nopadding" aria-label="الشريط الجانبي">
+            <aside class="col-lg-3 col-md-4 col-sm-5 nopadding flex flex-column gap-5" aria-label="الشريط الجانبي">
                 <div class="col-md-12 col-sm-12">
-                    <div class="portlet box blue">
-                        <div class="portlet-title">
-                            <div class="caption"><i class="fa fa-download"></i>الأكثر تحميلا </div>
-                        </div>
-                        <div class="portlet-body ">
-                            <ul class="news">
-                                @foreach ($mostDownloaded as $item)
-                                    <li><a href="/fatawa-all-{{ str_replace('|', '', (string) $item->general_question_id) }}.htm#{{ $item->id }}" class="add">{{ $item->question_text }}</a></li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    </div>
+                    <x-content.sidebar-ranking title="الأكثر تحميلا" icon="fa-fire" :items="$mostDownloaded" type="fatawa"
+                        meta="downloads" />
                 </div>
                 <div class="col-md-12 col-sm-12">
-                    <div class="portlet box blue">
-                        <div class="portlet-title">
-                            <div class="caption"><i class="fa fa-plus"></i>جديد المواد </div>
-                        </div>
-                        <div class="portlet-body ">
-                            <ul class="news">
-                                @foreach ($mostRecent as $item)
-                                    <li><a href="/fatawa-all-{{ str_replace('|', '', (string) $item->general_question_id) }}.htm#{{ $item->id }}" class="add">{{ $item->question_text }}</a></li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    </div>
+                    <x-content.sidebar-ranking title="جديد المواد" icon="fa-clock-o" :items="$mostRecent" type="fatawa"
+                        meta="recent" />
                 </div>
             </aside>
         @endif

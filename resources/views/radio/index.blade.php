@@ -71,8 +71,7 @@
                             <i class="fa fa-podcast" aria-hidden="true"></i>
                             راديو الطريق إلى الله المباشر
                         </h2>
-                        <p style="font-size: 13px; opacity: 0.9; margin: 0;">استمع زائرنا الكريم بشكل متواصل لأحدث الدروس
-                            والمحاضرات الصوتية المضافة للموقع.</p>
+                        <p style="font-size: 13px; opacity: 0.9; margin: 0;">استمع زائرنا الكريم بشكل متواصل لأحدث الدروس والمحاضرات الصوتية المضافة للموقع.</p>
                     </div>
                 </div>
             </div>
@@ -171,29 +170,15 @@
             </div>
         </div>
 
-        <aside class="col-xs-12 col-sm-4 col-md-4 col-lg-4 nopadding">
+        <aside class="col-xs-12 col-sm-4 col-md-4 col-lg-4 nopadding flex flex-column gap-5">
             {{-- radio/index.php:133-141 — topitems('hits', "vedio=1", "time DESC", 10): mode='hits' displays a download count, NOT the date, despite ordering by time. Same media-list/portlet convention as khotab/day.blade.php's sidebar. --}}
-            <div class="col-md-12 col-sm-12">
-                <div class="portlet box blue">
-                    <div class="portlet-title">
-                        <div class="caption"><i class="fa fa-video-camera"></i> جديد المواد المرئية</div>
-                    </div>
-                    <div class="portlet-body">
-                        <x-content.top-items :items="$newestVideo" />
-                    </div>
-                </div>
-            </div>
+            <x-content.premium-panel title="جديد المواد المرئية" icon="fa-video-camera">
+                <x-content.top-items :items="$newestVideo" />
+            </x-content.premium-panel>
 
-            <div class="col-md-12 col-sm-12">
-                <div class="portlet box blue">
-                    <div class="portlet-title">
-                        <div class="caption"><i class="fa fa-headphones"></i> جديد المواد الصوتية</div>
-                    </div>
-                    <div class="portlet-body">
-                        <x-content.top-items :items="$newestAudio" />
-                    </div>
-                </div>
-            </div>
+            <x-content.premium-panel title="جديد المواد الصوتية" icon="fa-headphones">
+                <x-content.top-items :items="$newestAudio" />
+            </x-content.premium-panel>
         </aside>
     </div>
 @endsection

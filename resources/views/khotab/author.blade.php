@@ -1,27 +1,8 @@
 @extends('layouts.app')
 
-{{--
-    Visual parity audit (khotab-video-17.htm, 2026-08-18) Batch 1:
-    author.php:33's <title> is the SAME `$title` variable as the
-    `<h3 class="page-title">` text below (both come from `$header['title']`
-    and `title($title)` respectively) — confirmed live identical
-    ("مرئيات {author}" for op=video, not just the bare author name).
---}}
 @section('title', $pageTitle)
 
 @section('content')
-    {{--
-        Shared Page Chrome Parity Audit: was rendering the breadcrumb
-        BEFORE the heading — legacy (author.php:56-57) and fresh
-        production both confirm `title()` fires before `breadcrumb()`, so
-        the `<h3>` comes first in the real DOM. Switched to the shared
-        page-chrome component (fixes the order and guarantees the trailing
-        empty `<i class=""></i>` on the current item stays correct
-        sitewide) — breadcrumb content itself (author.php:53-57) is
-        unchanged from the prior batch's restoration: first two segments
-        both point at `/khotab-{op}.htm`, final segment uses `href=""`
-        (author.php:55 sets `'url'=>''` explicitly, not omitted).
-    --}}
     <x-page-chrome :heading="$pageTitle" :breadcrumb="[
         ['title' => $opTitle, 'url' => '/khotab-' . $op . '.htm'],
         ['title' => 'قائمة الدعاة', 'url' => '/khotab-' . $op . '.htm'],
@@ -29,186 +10,55 @@
     ]" />
 
     <div class="row service-box margin-bottom-40">
-        <div class="col-lg-9 col-md-8 col-sm-7 nopadding">
+        <div class="col-lg-9 col-md-8 col-sm-7 nopadding flex flex-column gap-5">
             @if ($op !== 'pdf')
-                {{--
-                    Visual parity audit (khotab-video-17.htm, 2026-08-18)
-                    Batch 2: ListGroup()'s exact row markup
-                    (khotab/functions.php:360-402) — count (`fa-play-circle-o`)
-                    always shown, channel badge (`fa-television`) conditional
-                    on `channel_id`. `count`/`channel`/`channel_id` were
-                    already selected by ContentListingService::groupsByAuthor()
-                    (confirmed by reading it — no controller/query change
-                    needed). Table id="tabelgrp" restored for markup parity
-                    only — the khotab_tables.js DataTables enhancement that
-                    targets it is a separate, deferred investigation, not
-                    added here.
-                --}}
-                <div class="col-md-12 col-sm-12">
-                    <div class="portlet box blue">
-                        <div class="portlet-title">
-                            <div class="caption"><i class="fa fa-folder" aria-hidden="true"></i> قائمة المجموعات</div>
-                        </div>
-                        <div class="portlet-body">
-                            <x-content.media-collection-grid :items="$groups" type="group" secondary="channel" />
-                        </div>
-                    </div>
-                </div>
+                <x-content.premium-panel title="قائمة المجموعات" icon="fa-folder">
+                    <x-content.media-collection-grid :items="$groups" type="group" secondary="channel" />
+                </x-content.premium-panel>
 
-                {{--
-                    Visual parity audit (khotab-video-17.htm, 2026-08-18)
-                    Batch 2: ListSeries()'s exact row markup
-                    (khotab/functions.php:452-495) — date (`fa-calendar`)
-                    and last-updated (`fa-refresh`) both always shown
-                    (`tinydate()` reproduced inline as `date('Y-m-d', ...)`
-                    — a one-line equivalent, not a broad helper port), then
-                    count/channel same as Groups.
-                --}}
-                <div class="col-md-12 col-sm-12">
-                    <div class="portlet box blue">
-                        <div class="portlet-title">
-                            <div class="caption"><i class="fa fa-list-ol" aria-hidden="true"></i> قائمة السلاسل</div>
-                        </div>
-                        <div class="portlet-body">
-                            <x-content.media-collection-grid :items="$series" secondary="channel" />
-                        </div>
-                    </div>
-                </div>
+                <x-content.premium-panel title="قائمة السلاسل" icon="fa-list-ol">
+                    <x-content.media-collection-grid :items="$series" secondary="channel" />
+                </x-content.premium-panel>
             @endif
 
-            {{--
-                Visual parity audit (khotab-video-17.htm, 2026-08-18)
-                Batch 2: ListKhotab()'s default-branch row markup
-                (khotab/functions.php:643-706 — the only mode reachable
-                from author.php, confirmed by re-reading the full
-                function). date/comments/views always shown (default mode
-                is neither 'day' nor 'fixed'/'new'); channel badge
-                conditional on channel_id; duration (`fa-clock-o`,
-                LegacyDurationFormatter — verified against 2 real items'
-                raw `adur` values, byte-identical to live legacy) only
-                when the *formatted* value isn't "00:00:00" — matching
-                ListKhotab()'s own check, which runs on `$item->adur`
-                AFTER it's already been reassigned to the formatted
-                string, not the raw millisecond value.
-                ContentListingService::khotabItemsDefault()'s own SELECT
-                list already matches this function's default branch
-                field-for-field — no controller/query change needed.
-            --}}
-            <div class="col-md-12 col-sm-12">
-                <div class="portlet box blue">
-                    <div class="portlet-title">
-                        <div class="caption"><i class="fa fa-child"></i> قائمة المواد</div>
-                    </div>
-                    <div class="portlet-body">
-                        <x-content.khotab-item-list :items="$items" :video="$op === 'video'" :pdf="$op === 'pdf'" />
-                    </div>
-                </div>
-            </div>
+            <x-content.premium-panel title="قائمة المواد" icon="fa-play-circle">
+                <x-content.khotab-item-list :items="$items" :video="$op === 'video'" :pdf="$op === 'pdf'" />
+            </x-content.premium-panel>
 
-            {{--
-                author.php:80-90's hand-rolled description block — no
-                w2a_open_div() here in legacy, so (unlike every other
-                portlet on this page) there is deliberately no
-                portlet-title/caption/icon header, just the bare
-                .portlet.box.blue > .portlet-body wrapper.
-            --}}
             @if (!empty($authorModel->description))
-                <div class="col-md-12 col-sm-12">
-                    <div class="portlet box blue">
-                        <div class="portlet-body">
-                            <section aria-label="نبذة عن الداعية">{{ $authorModel->description }}</section>
-                        </div>
-                    </div>
-                </div>
+                <x-content.premium-panel title="نبذة عن الداعية" icon="fa-user">
+                    <section aria-label="نبذة عن الداعية">{{ $authorModel->description }}</section>
+                </x-content.premium-panel>
             @endif
         </div>
 
-        <aside class="col-lg-3 col-md-4 col-sm-5 nopadding" aria-label="الشريط الجانبي">
-            <div class="col-md-12 col-sm-12">
-                <div class="portlet box blue">
-                    <div class="portlet-title">
-                        <div class="caption"><i class="fa fa-child"></i> الملف الشخصي</div>
-                    </div>
-                    <div class="portlet-body">
-                        <div class="profile-userpic">
-                            <img src="{{ $authorModel->displayImageUrl() }}" alt="">
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <aside class="col-lg-3 col-md-4 col-sm-5 nopadding flex flex-column gap-5" aria-label="الشريط الجانبي">
+            <section class="w2a-refresh-panel w2a-author-profile-card">
+                <img class="w2a-author-avatar" src="{{ $authorModel->displayImageUrl() }}" alt="{{ $authorModel->name }}">
+                <h3 class="w2a-author-name">{{ $authorModel->prename }} {{ $authorModel->name }}</h3>
+            </section>
 
-            {{--
-                Visual parity audit (khotab-video-17.htm, 2026-08-18)
-                Batch 1: the video/audio promotional banner
-                (author.php:110-138) — previously missing entirely.
-                Self-link to this exact page (khotab-{op}-{author}.htm),
-                confirmed live: width=192 height=71, portlet-body
-                class="text-center" (from $data['class']), images/video.gif
-                and images/audio.gif already exist on disk (served via the
-                existing public/images symlink — no new asset needed).
-                pdf op has no such banner in legacy (only video/audio
-                branches exist), reproduced as the same @if/@elseif shape.
-            --}}
             @if ($op === 'video')
-                <div class="col-md-12 col-sm-12">
-                    <div class="portlet box blue">
-                        <div class="portlet-title">
-                            <div class="caption"><i class="fa fa-child"></i> مرئيات الداعية</div>
-                        </div>
-                        <div class="portlet-body text-center">
-                            <a href="/khotab-video-{{ $authorModel->id }}.htm">
-                                <img border="0" src="/images/video.gif" width="192" height="71" alt="">
-                            </a>
-                        </div>
-                    </div>
-                </div>
+                <a href="/khotab-video-{{ $authorModel->id }}.htm" class="w2a-author-banner w2a-author-banner--video">
+                    <i class="fa fa-video-camera" aria-hidden="true"></i>
+                    <span>مرئيات الداعية</span>
+                </a>
             @elseif($op === 'audio')
-                <div class="col-md-12 col-sm-12">
-                    <div class="portlet box blue">
-                        <div class="portlet-title">
-                            <div class="caption"><i class="fa fa-child"></i> صوتيات الداعية</div>
-                        </div>
-                        <div class="portlet-body text-center">
-                            <a href="/khotab-audio-{{ $authorModel->id }}.htm">
-                                <img border="0" src="/images/audio.gif" width="192" height="71" alt="">
-                            </a>
-                        </div>
-                    </div>
-                </div>
+                <a href="/khotab-audio-{{ $authorModel->id }}.htm" class="w2a-author-banner w2a-author-banner--audio">
+                    <i class="fa fa-volume-up" aria-hidden="true"></i>
+                    <span>صوتيات الداعية</span>
+                </a>
             @endif
 
-            <div class="col-md-12 col-sm-12">
-                <div class="portlet box blue">
-                    <div class="portlet-title">
-                        <div class="caption"><i class="fa fa-child"></i> اخترنا لك هذه المادة</div>
-                    </div>
-                    <div class="portlet-body">
-                        <x-content.featured-items :items="$randomFeatured" />
-                    </div>
-                </div>
-            </div>
+            <x-content.premium-panel title="اخترنا لك هذه المادة" icon="fa-star">
+                <x-content.featured-items :items="$randomFeatured" />
+            </x-content.premium-panel>
 
-            <div class="col-md-12 col-sm-12">
-                <div class="portlet box blue">
-                    <div class="portlet-title">
-                        <div class="caption"><i class="fa fa-child"></i> الأكثر تحميلا</div>
-                    </div>
-                    <div class="portlet-body">
-                        <x-content.top-items :items="$mostDownloaded" />
-                    </div>
-                </div>
-            </div>
+            <x-content.sidebar-ranking title="الأكثر تحميلاً" icon="fa-fire" :items="$mostDownloaded" type="khotab"
+                meta="downloads" />
 
-            <div class="col-md-12 col-sm-12">
-                <div class="portlet box blue">
-                    <div class="portlet-title">
-                        <div class="caption"><i class="fa fa-child"></i> جديد المواد</div>
-                    </div>
-                    <div class="portlet-body">
-                        <x-content.top-items :items="$mostRecent" />
-                    </div>
-                </div>
-            </div>
+            <x-content.sidebar-ranking title="جديد المواد" icon="fa-history" :items="$mostRecent" type="khotab"
+                meta="recent" />
         </aside>
     </div>
 @endsection

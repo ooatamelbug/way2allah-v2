@@ -772,6 +772,7 @@ div.dataTables_length label{
 #sendFriendModal button{
 	font-family: 'GE SS','Tahoma' !important;
 }
+.modal-error,
 #commentsModal .modal-error,
 #sendFriendModal .modal-error{
 	display:none;

@@ -342,10 +342,8 @@
                         <button class="w2a_submit w2a-poll-submit-btn" type="submit">تصــويت</button>
                     </div>
                     <div class="w2a-poll-meta">
-                        <span><i class="fa fa-users" aria-hidden="true"></i> المشاركين :
-                            {{ $pollData['totalVotes'] }}</span>
-                        <span><i class="fa fa-comments" aria-hidden="true"></i> التعليقات:
-                            {{ $pollData['commentsDisplay'] }}</span>
+                        <span><i class="fa fa-users" aria-hidden="true"></i> عدد المشاركين : {{ $pollData['totalVotes'] }}</span>
+                        <span><i class="fa fa-comments" aria-hidden="true"></i> عدد التعليقات: {{ $pollData['commentsDisplay'] }}</span>
                     </div>
                 </form>
             @endif

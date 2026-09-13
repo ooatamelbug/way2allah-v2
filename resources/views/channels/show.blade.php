@@ -13,13 +13,15 @@
     on this view, not on the shared _listing partial or author.blade.php.
 --}}
 @push('styles')
-    <link href="/assets/global/plugins/datatables/datatables.min.css" rel="stylesheet" type="text/css"/>
-    <link href="/assets/global/plugins/datatables/plugins/bootstrap/datatables.bootstrap-rtl.css" rel="stylesheet" type="text/css"/>
+    <link href="/assets/global/plugins/datatables/datatables.min.css" rel="stylesheet" type="text/css" />
+    <link href="/assets/global/plugins/datatables/plugins/bootstrap/datatables.bootstrap-rtl.css" rel="stylesheet"
+        type="text/css" />
 @endpush
 
 @push('scripts')
     <script src="/assets/global/plugins/datatables/datatables.min.js" type="text/javascript"></script>
-    <script src="/assets/global/plugins/datatables/plugins/bootstrap/datatables.bootstrap.js" type="text/javascript"></script>
+    <script src="/assets/global/plugins/datatables/plugins/bootstrap/datatables.bootstrap.js" type="text/javascript">
+    </script>
     <script src="/scripts/khotab_tables.js" type="text/javascript"></script>
 @endpush
 
@@ -39,20 +41,17 @@
         no-author branch — `title('قناة ' . $Channel->title)` +
         `breadcrumb([{القنوات الفضائية, url}, {قناة .. , url=''}])`.
     --}}
-    <x-page-chrome
-        :heading="'قناة '.$channelModel->title"
-        :breadcrumb="[
-            ['title' => 'القنوات الفضائية', 'url' => '/channels.htm'],
-            ['title' => 'قناة '.$channelModel->title, 'url' => ''],
-        ]"
-    />
+    <x-page-chrome :heading="'قناة ' . $channelModel->title" :breadcrumb="[
+        ['title' => 'القنوات الفضائية', 'url' => '/channels.htm'],
+        ['title' => 'قناة ' . $channelModel->title, 'url' => ''],
+    ]" />
 
     <div class="row service-box margin-bottom-40">
-        <div class="col-lg-9 col-md-8 col-sm-7 nopadding">
+        <div class="col-lg-9 col-md-8 col-sm-7 nopadding flex flex-column gap-5">
             @include('channels._listing', ['showAuthorLinks' => true])
         </div>
 
-        <aside class="col-lg-3 col-md-4 col-sm-5 nopadding" aria-label="الشريط الجانبي">
+        <aside class="col-lg-3 col-md-4 col-sm-5 nopadding flex flex-column gap-5" aria-label="الشريط الجانبي">
             {{--
                 Final Sidebar Gap Closure (2026-08-22): channel.php:70-89's
                 "بيانات القناة" box — fa-child icon (w2a_open_div()'s own
@@ -72,7 +71,8 @@
                     </div>
                     <div class="portlet-body">
                         <div class="thumbnail">
-                            <img src="/images/channels/{{ $channelModel->id }}.png" alt="{{ $channelModel->title }}" style="width: 100%; height: 200px; display: block;">
+                            <img src="/images/channels/{{ $channelModel->id }}.png" alt="{{ $channelModel->title }}"
+                                style="width: 100%; height: 200px; display: block;">
                             <div class="caption">
                                 <h3>قناة {{ $channelModel->title }}</h3>
                                 <p>القمر الصناعي : النايل سات</p>

@@ -16,10 +16,20 @@
 
     <div class="w2a-media-items-grid">
         @forelse($items as $item)
-            @php($duration = \App\Domain\Content\Support\LegacyDurationFormatter::format((int) ($item->adur ?? 0)))
+            @php
+                $duration = \App\Domain\Content\Support\LegacyDurationFormatter::format((int) ($item->adur ?? 0));
+                $hasFrame = !empty($item->frame) && (int) $item->frame === 1;
+                if ($hasFrame) {
+                    $thumb = (is_object($item) && method_exists($item, 'frameThumbUrl'))
+                        ? $item->frameThumbUrl()
+                        : \App\Support\MediaUrl::asset(\App\Support\MediaPathResolver::path('anasheed/frame', (int) $item->id, 'jpg'));
+                } else {
+                    $thumb = '/assets/img/defult_shaik.png';
+                }
+            @endphp
             <a href="/var-item-{{ $item->id }}.htm" class="w2a-media-item-card" data-title="{{ $item->title }}">
                 <span class="w2a-media-thumb-wrap">
-                    <img src="{{ (int) $item->frame === 1 ? $item->frameThumbUrl() : '/assets/img/defult_shaik.png' }}"
+                    <img src="{{ $thumb }}"
                         class="w2a-media-thumb" alt="{{ $item->title }}" width="320" height="180" loading="lazy"
                         decoding="async">
                     <span class="w2a-media-play-overlay" aria-hidden="true"><span class="w2a-media-play-icon"><i
@@ -29,7 +39,7 @@
                     <span class="w2a-media-item-title">{{ $item->title }}</span>
                     <span class="w2a-media-item-meta">
                         <span class="w2a-media-item-hits"><i class="fa fa-eye" aria-hidden="true"></i>
-                            <span>{{ number_format((int) $item->hits) }} مشاهدة</span></span>
+                            <span>{{ number_format((int) ($item->hits ?? 0)) }} مشاهدة</span></span>
                         @if ($duration !== '00:00:00')
                             <span class="w2a-media-item-hits"><i class="fa fa-clock-o" aria-hidden="true"></i>
                                 <span>{{ $duration }}</span></span>

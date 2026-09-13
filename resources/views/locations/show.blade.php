@@ -37,8 +37,9 @@
                             <li>المحافظة: {{ $position->administrative_area_level_1 ?? '' }}</li>
                             <li>الدولة: {{ $position->country ?? '' }}</li>
                         @endif
-                        @if (! empty($locationModel->website))
-                            <li>الموقع الإلكتروني: <a href="{{ $locationModel->website }}" target="_blank" rel="noopener">{{ $locationModel->website }}</a></li>
+                        @if (!empty($locationModel->website))
+                            <li>الموقع الإلكتروني: <a href="{{ $locationModel->website }}" target="_blank"
+                                    rel="noopener">{{ $locationModel->website }}</a></li>
                         @endif
                     </ul>
                 </div>
@@ -47,7 +48,7 @@
     </div>
 
     <div class="row service-box margin-bottom-40">
-        <div class="col-lg-9 col-md-8 col-sm-7 nopadding">
+        <div class="col-lg-9 col-md-8 col-sm-7 nopadding flex flex-column gap-5">
             <h4>قائمة الدعاة</h4>
             <table class="table table-striped table-hover">
                 <thead>
@@ -61,7 +62,9 @@
                     @foreach ($authors as $index => $author)
                         <tr>
                             <td>{{ $index + 1 }}</td>
-                            <td><a href="/location-{{ $locationModel->id }}-author-{{ $author->id }}.htm">{{ trim($author->prename.' '.$author->name) }}</a></td>
+                            <td><a
+                                    href="/location-{{ $locationModel->id }}-author-{{ $author->id }}.htm">{{ trim($author->prename . ' ' . $author->name) }}</a>
+                            </td>
                             <td>{{ $author->count }}</td>
                         </tr>
                     @endforeach
