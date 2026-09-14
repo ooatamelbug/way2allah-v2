@@ -19,6 +19,7 @@
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>
+        <env name="APP_DEBUG" value="false"/>
         <!-- Testing-only encryption key (session/cookie signing during the
              test run) — not a database or third-party credential, and
              distinct per checkout if regenerated; safe to commit, same as

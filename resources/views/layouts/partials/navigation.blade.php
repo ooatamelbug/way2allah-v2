@@ -134,10 +134,7 @@
         query" instruction rather than legacy's own fallback of generating
         the cache from a live query.
 
-        Department dropdown intentionally simplified to just the default
-        "إختر" option — legacy's w2a_search_depts_arr() is a DB-backed
-        helper, out of scope here (no business logic / no DB queries in
-        this step).
+        Department choices share the search controller's supported options.
     --}}
     <li class="menu-search">
         <button type="button" class="w2a-search-trigger-btn" aria-label="البحث المتقدم" title="البحث المتقدم">
@@ -202,6 +199,9 @@
                                     :</label>
                                 <select class="form-control" id="w2a_kh_dept" name="kh_dept">
                                     <option value="0">إختر القسم</option>
+                                    @foreach (\App\Domain\Content\Support\SearchDepartments::OPTIONS as $value => $label)
+                                        <option value="{{ $value }}">{{ $label }}</option>
+                                    @endforeach
                                 </select>
                                 <span id="w2a_kh_dept_msg" class="way_msg"></span>
                             </div>

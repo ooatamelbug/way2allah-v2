@@ -1,0 +1,165 @@
+{
+  "archive": "way2allah-v2-ui-enhanced-v2-cpanel-mobile-2026-09-11.zip",
+  "scope": "All mobile QA session changes, plus the requested progress report; not a verified live deployment delta",
+  "session_start_commit": "e508f191026fe566d46585d0229edeb65434313d",
+  "target_commit": "f289820630ea83428b121510c4029e99f4379f96",
+  "extra_untracked_source": "docs/progress/11-09-2026.md",
+  "file_count": 25,
+  "bytes": 116375,
+  "sha256": "5f78ec72e71fcce1add9e7eb7883b30e1728b69f7c5e90aac0d0917e9f6e6983",
+  "extract_at": "/home/w2acp/",
+  "verified_integrity": true,
+  "verified_source_bytes": true,
+  "entries": [
+    {
+      "source": "app/Domain/Content/Http/Controllers/SearchController.php",
+      "destination": "laravel-app/app/Domain/Content/Http/Controllers/SearchController.php",
+      "bytes": 13356,
+      "sha256": "6ce204d01263ade124c7f00b88caa83e716515a7a04e2993dce68ca7e346eae6"
+    },
+    {
+      "source": "app/Domain/Content/Services/MediaPlayerService.php",
+      "destination": "laravel-app/app/Domain/Content/Services/MediaPlayerService.php",
+      "bytes": 12502,
+      "sha256": "91f57e616596f0fbb34678ed3035d49b5456549bb417ecc14dc04f8c6369e9dd"
+    },
+    {
+      "source": "app/Domain/Content/Support/SearchDepartments.php",
+      "destination": "laravel-app/app/Domain/Content/Support/SearchDepartments.php",
+      "bytes": 666,
+      "sha256": "0cf2a21f9f2585554e1371b31263aacd9abd429c236354e646db2b23d54bdefb"
+    },
+    {
+      "source": "docs/progress/11-09-2026.md",
+      "destination": "laravel-app/docs/progress/11-09-2026.md",
+      "bytes": 10620,
+      "sha256": "5845d5f71085ec6264252399d82c6db40b7b9dff5f7d4fb15a32436305801e0a"
+    },
+    {
+      "source": "docs/reviews/mobile-video-feedback-2026-09-10.md",
+      "destination": "laravel-app/docs/reviews/mobile-video-feedback-2026-09-10.md",
+      "bytes": 12092,
+      "sha256": "df325379bd374f1f7c409e2c37bcbf925573efea1467bceb64815f9b6cd4d66a"
+    },
+    {
+      "source": "public/assets/frontend/layout/css/premium-ui.css",
+      "destination": "newapp/assets/frontend/layout/css/premium-ui.css",
+      "bytes": 238383,
+      "sha256": "3304885e8ab90b1b44c62cbce4c6c663db04ad0e017fea28985e9dbf898e838e"
+    },
+    {
+      "source": "public/assets/frontend/layout/scripts/premium-ui.js",
+      "destination": "newapp/assets/frontend/layout/scripts/premium-ui.js",
+      "bytes": 30719,
+      "sha256": "30104dec6b03fca45df92f48bd01f571742188ddc76bb95529cc7ae289c6a0c5"
+    },
+    {
+      "source": "resources/views/anasheed/item.blade.php",
+      "destination": "laravel-app/resources/views/anasheed/item.blade.php",
+      "bytes": 12955,
+      "sha256": "e6404a11f314dd76f53b5925863f46b768ab37851e2993fed774a164082acc8a"
+    },
+    {
+      "source": "resources/views/chat-room/index.blade.php",
+      "destination": "laravel-app/resources/views/chat-room/index.blade.php",
+      "bytes": 7024,
+      "sha256": "89945bb0c97cc6a26ddc9b629e1f0a39d4ef50443fbc6c313e95b9be1ae5cdef"
+    },
+    {
+      "source": "resources/views/components/content/media-player-panel.blade.php",
+      "destination": "laravel-app/resources/views/components/content/media-player-panel.blade.php",
+      "bytes": 720,
+      "sha256": "2aea07a59e2217c1b50c78caad9a4e64cdf00ec71500a30d35210614aded881d"
+    },
+    {
+      "source": "resources/views/components/content/media-player-script.blade.php",
+      "destination": "laravel-app/resources/views/components/content/media-player-script.blade.php",
+      "bytes": 6868,
+      "sha256": "f680dc587e25f632fb36665d6082e74ead85d686c9dc877d41038bab61d69d4f"
+    },
+    {
+      "source": "resources/views/components/content/premium-pagination.blade.php",
+      "destination": "laravel-app/resources/views/components/content/premium-pagination.blade.php",
+      "bytes": 4553,
+      "sha256": "5f4fdcb3dc00d682a61d362611d55df881a95ec02a23a012cadf372d5fdfbadb"
+    },
+    {
+      "source": "resources/views/fatawa/question-all.blade.php",
+      "destination": "laravel-app/resources/views/fatawa/question-all.blade.php",
+      "bytes": 20520,
+      "sha256": "1390b29c3eb83644806a33a3479ed9ff5a5eca684a44119ebded8e35e721d5ae"
+    },
+    {
+      "source": "resources/views/khotab/item.blade.php",
+      "destination": "laravel-app/resources/views/khotab/item.blade.php",
+      "bytes": 25108,
+      "sha256": "3064ad17ca389b41808e7a4d1ed1b7288518e557e6d2434a1fda9accb86ba974"
+    },
+    {
+      "source": "resources/views/layouts/partials/navigation.blade.php",
+      "destination": "laravel-app/resources/views/layouts/partials/navigation.blade.php",
+      "bytes": 14507,
+      "sha256": "6c1e134f4db6bdaac8e8ea35dac253fab20636894597b71d8b118eb841dd4b90"
+    },
+    {
+      "source": "resources/views/pages/ramadan.blade.php",
+      "destination": "laravel-app/resources/views/pages/ramadan.blade.php",
+      "bytes": 4959,
+      "sha256": "b04651a8a00e00e0008c83084bc6a8993113b6eabbe086e2be234ccb5ca6209c"
+    },
+    {
+      "source": "resources/views/search/results.blade.php",
+      "destination": "laravel-app/resources/views/search/results.blade.php",
+      "bytes": 11138,
+      "sha256": "1fa2d426db976e3d1a721b8e18638d18949bf5bc807ab2e161c323b0bb87e278"
+    },
+    {
+      "source": "resources/views/telawah/item.blade.php",
+      "destination": "laravel-app/resources/views/telawah/item.blade.php",
+      "bytes": 2234,
+      "sha256": "8244c1d9a3c9df9ea9c9271fadfcb5757d9c245ab00cec6f1aa3661782cd7c75"
+    },
+    {
+      "source": "tests/Feature/Content/AnasheedItemControllerTest.php",
+      "destination": "laravel-app/tests/Feature/Content/AnasheedItemControllerTest.php",
+      "bytes": 19168,
+      "sha256": "bf1880a41e94073832df04fcded98f8886482d21d25022f6f661395b51d6b226"
+    },
+    {
+      "source": "tests/Feature/Content/FatwaQuestionControllerTest.php",
+      "destination": "laravel-app/tests/Feature/Content/FatwaQuestionControllerTest.php",
+      "bytes": 24230,
+      "sha256": "abd8b43e9bbae4a7127d05e1a2ffe90c1a91251f4b314331d48b75302574241f"
+    },
+    {
+      "source": "tests/Feature/Content/KhotabItemControllerTest.php",
+      "destination": "laravel-app/tests/Feature/Content/KhotabItemControllerTest.php",
+      "bytes": 47447,
+      "sha256": "fec63d447693423f7fd52d32e08a5a858d3ece56e8fd5bbc4f8223bca894abc9"
+    },
+    {
+      "source": "tests/Feature/Content/MediaPlayerControllerTest.php",
+      "destination": "laravel-app/tests/Feature/Content/MediaPlayerControllerTest.php",
+      "bytes": 15415,
+      "sha256": "29fd1c6683ce2ce7985d4ec7f09b5a4ebe6e8b997ecae6d9488cc487f283c0d7"
+    },
+    {
+      "source": "tests/Feature/Content/SearchControllerTest.php",
+      "destination": "laravel-app/tests/Feature/Content/SearchControllerTest.php",
+      "bytes": 23515,
+      "sha256": "d6c6dd800c6d4ddc5050db0d07ced557eca958cf491de565be592c1ae54a23d4"
+    },
+    {
+      "source": "tests/Feature/Content/SharedLayoutTest.php",
+      "destination": "laravel-app/tests/Feature/Content/SharedLayoutTest.php",
+      "bytes": 3491,
+      "sha256": "cd7329e40f5cf7b7b1ca8efb4cb325256afb026c2c68b65cfb2c17b566f8712b"
+    },
+    {
+      "source": "tests/Feature/Content/TelawahControllersTest.php",
+      "destination": "laravel-app/tests/Feature/Content/TelawahControllersTest.php",
+      "bytes": 8185,
+      "sha256": "dc8f1f5eabd7a4d85e9327ae2ba70c4830944e20db70b63f2bbd728d68d7b2e2"
+    }
+  ]
+}

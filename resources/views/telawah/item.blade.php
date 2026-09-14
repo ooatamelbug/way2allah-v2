@@ -3,7 +3,7 @@
 @section('title', $telawahItem->title)
 
 @section('content')
-    <div class="row service-box margin-bottom-40 sh-w2a-block">
+    <div class="row service-box margin-bottom-40 w2a-media-layout sh-w2a-block">
         <div class="col-xs-12 col-sm-12 col-md-9 telawah-item-content nopadding">
             <section class="portlet box blue" aria-label="تفاصيل المادة">
                 <div class="portlet-title">

@@ -10,8 +10,8 @@
          a sitewide <meta> tag is the standard Laravel convention for this,
          reused from here rather than duplicated per page. --}}
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title') - {{ config('app.name') }}</title>
     <meta name="description" content="@yield('meta_description', 'شبكة الطريق إلى الله: مكتبة إسلامية مرئية وصوتية شاملة.')">
+    <title>@yield('title') - {{ config('app.name') }}</title>
 
     {{--
         Business Demo wiring only — reproduces header.php's own stylesheet
@@ -54,6 +54,7 @@
     --}}
     @stack('styles')
     <link href="/assets/frontend/layout/css/premium-ui.css" rel="stylesheet" type="text/css">
+    <link href="/assets/frontend/layout/css/content-refresh.css" rel="stylesheet" type="text/css">
     @stack('page-styles')
 </head>
 <body class="corporate">

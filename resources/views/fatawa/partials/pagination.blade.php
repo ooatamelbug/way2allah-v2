@@ -39,7 +39,7 @@
             $start = $currentPage;
             $end = $start + 5;
         }
-        if ($num > 5 && ($num - $currentPage) < 5) {
+        if ($num > 5 && $num - $currentPage < 5) {
             $start = $num - 5;
             $end = $start + 5;
         }
@@ -53,31 +53,37 @@
         </p>
         <ul class="w2a-pagination__list">
             @if ($currentPage > 1)
-                <li><a href="{{ $pageUrl(1) }}" class="w2a-pagination__control" aria-label="الصفحة الأولى">الأولى</a></li>
+                <li><a href="{{ $pageUrl(1) }}" class="w2a-pagination__control" aria-label="الصفحة الأولى">الأولى</a>
+                </li>
                 <li>
-                    <a href="{{ $pageUrl($currentPage - 1) }}" class="w2a-pagination__control" rel="prev" aria-label="الصفحة السابقة">
-                        <i class="fa fa-angle-right" aria-hidden="true"></i><span>السابق</span>
+                    <a href="{{ $pageUrl($currentPage - 1) }}" class="w2a-pagination__control" rel="prev"
+                        aria-label="الصفحة السابقة">
+                        <i class="fa fa-angle-left" aria-hidden="true"></i><span>السابق</span>
                     </a>
                 </li>
             @endif
             @for ($i = $start; $i <= $end; $i++)
                 <li>
                     @if ($currentPage === $i)
-                        <span class="w2a-pagination__page is-current" aria-current="page"><span class="sr-only">الصفحة الحالية:</span>{{ $i }}</span>
+                        <span class="w2a-pagination__page is-current" aria-current="page"><span class="sr-only">الصفحة
+                                الحالية:</span>{{ $i }}</span>
                     @else
-                        <a href="{{ $pageUrl($i) }}" class="w2a-pagination__page" aria-label="الانتقال إلى الصفحة {{ $i }}">{{ $i }}</a>
+                        <a href="{{ $pageUrl($i) }}" class="w2a-pagination__page"
+                            aria-label="الانتقال إلى الصفحة {{ $i }}">{{ $i }}</a>
                     @endif
                 </li>
             @endfor
             @if ($count > $currentPage * $perpage)
                 <li>
-                    <a href="{{ $pageUrl($currentPage + 1) }}" class="w2a-pagination__control" rel="next" aria-label="الصفحة التالية">
-                        <span>التالي</span><i class="fa fa-angle-left" aria-hidden="true"></i>
+                    <a href="{{ $pageUrl($currentPage + 1) }}" class="w2a-pagination__control" rel="next"
+                        aria-label="الصفحة التالية">
+                        <span>التالي</span><i class="fa fa-angle-right" aria-hidden="true"></i>
                     </a>
                 </li>
             @endif
-            @if ($count > (2 * $perpage) && $currentPage < $num)
-                <li><a href="{{ $pageUrl($num) }}" class="w2a-pagination__control" aria-label="الصفحة الأخيرة">الأخيرة</a></li>
+            @if ($count > 2 * $perpage && $currentPage < $num)
+                <li><a href="{{ $pageUrl($num) }}" class="w2a-pagination__control"
+                        aria-label="الصفحة الأخيرة">الأخيرة</a></li>
             @endif
         </ul>
     </nav>

@@ -403,3 +403,31 @@ it('no-results: does NOT render an empty mawad/series section wrapper at all (le
     expect($content)->not->toContain('نتائج البحث - المواد')
         ->not->toContain('نتائج البحث - السلاسل');
 });
+
+it('keeps search filters when submitting pagination to the POST-only search route', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Scholar', 'prename' => 'Dr.']);
+    for ($id = 1; $id <= 21; $id++) {
+        $db->table('nuke_islamic_khotab')->insert([
+            'id' => $id, 'title' => 'Mobile search item '.$id, 'author' => 1,
+            'vedio' => 1, 'hidden' => 0, 'time' => 100, 'weight' => $id,
+        ]);
+    }
+
+    $html = $this->post('/search.htm', ['kh_title' => 'Mobile search', 'kh_dept' => 'video'])
+        ->assertOk()->getContent();
+    $document = new DOMDocument;
+    @$document->loadHTML('<?xml encoding="UTF-8">'.$html);
+    $xpath = new DOMXPath($document);
+    $next = $xpath->query('//nav[contains(@class,"w2a-pagination")]//button[@aria-label="الصفحة التالية"]')->item(0);
+    expect($next)->not->toBeNull();
+    $form = $xpath->query('ancestor::form', $next)->item(0);
+    expect(strtolower($form->getAttribute('method')))->toBe('post');
+    $fields = [];
+    foreach ($xpath->query('.//input', $form) as $input) {
+        $fields[$input->getAttribute('name')] = $input->getAttribute('value');
+    }
+    expect($fields['kh_title'])->toBe('Mobile search')->and($fields['kh_dept'])->toBe('video');
+    $this->post($next->getAttribute('formaction'), $fields)->assertOk()
+        ->assertSeeText('Mobile search item 1')->assertDontSeeText('Mobile search item 21');
+});

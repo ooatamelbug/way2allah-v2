@@ -336,10 +336,23 @@
       ".w2a-search-trigger-btn, .header .search-btn, li.menu-search > i",
     );
     var searchReturnFocus = null;
+    var searchBackground = [];
+    var searchBodyOverflow = "";
+    // A fixed dialog inside the scrolling, filtered header is clipped on phones.
+    if (searchBox) document.body.appendChild(searchBox);
 
     function openSearchModal() {
       if (!searchBox) return;
+      if (searchBox.classList.contains("w2a-modal-open")) return;
       searchReturnFocus = document.activeElement;
+      searchBodyOverflow = document.body.style.overflow;
+      searchBackground = Array.from(document.body.children)
+        .filter(function (element) { return element !== searchBox && !["SCRIPT", "STYLE", "LINK"].includes(element.tagName); })
+        .map(function (element) {
+          var entry = { element: element, inert: element.inert };
+          element.inert = true;
+          return entry;
+        });
       searchBox.classList.add("w2a-modal-open");
       searchBox.setAttribute("aria-hidden", "false");
       if (window.jQuery) {
@@ -347,12 +360,12 @@
         window.jQuery(".search-btn").addClass("show-search-icon");
       }
       document.body.style.overflow = "hidden";
-      var firstInput = searchBox.querySelector("#w2a_kh_title");
-      if (firstInput) {
-        setTimeout(function () {
-          firstInput.focus();
-        }, 100);
-      }
+      var focusTarget = searchBox.querySelector(window.innerWidth <= 767 ? ".w2a-search-close-btn" : "#w2a_kh_title");
+      window.setTimeout(function () {
+        if (focusTarget && searchBox.classList.contains("w2a-modal-open")) {
+          focusTarget.focus({ preventScroll: true });
+        }
+      }, 100);
     }
 
     function closeSearchModal() {
@@ -363,7 +376,9 @@
         window.jQuery(".search-box").stop(true, true).hide();
         window.jQuery(".search-btn").removeClass("show-search-icon");
       }
-      document.body.style.overflow = "";
+      document.body.style.overflow = searchBodyOverflow;
+      searchBackground.forEach(function (entry) { entry.element.inert = entry.inert; });
+      searchBackground = [];
       if (searchReturnFocus && typeof searchReturnFocus.focus === "function") {
         searchReturnFocus.focus();
       }
@@ -379,6 +394,14 @@
     });
 
     if (searchBox) {
+      searchBox.addEventListener("keydown", function (event) {
+        if (event.key !== "Tab") return;
+        var controls = Array.from(searchBox.querySelectorAll("button, input, select, a[href]"))
+          .filter(function (element) { return !element.disabled && element.getClientRects().length; });
+        var first = controls[0], last = controls[controls.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      });
       // Direct click handler inside searchBox (captures clicks directly, bypassing legacy e.stopPropagation traps)
       searchBox.addEventListener("click", function (e) {
         var closeBtn = e.target.closest(".w2a-search-close-btn");
@@ -772,5 +795,44 @@
         mobileToggler.setAttribute("aria-expanded", expanded ? "false" : "true");
       });
     }
+
+    // 15. Global Modal Error Reset Handler
+    // Ensures any .modal-error elements inside any Bootstrap modal are hidden by default on open
+    if (window.jQuery) {
+      window.jQuery(document).on("show.bs.modal", ".modal", function () {
+        window.jQuery(this).find(".modal-error").hide();
+      });
+    } else {
+      document.addEventListener("show.bs.modal", function (e) {
+        if (e.target && e.target.classList.contains("modal")) {
+          e.target.querySelectorAll(".modal-error").forEach(function (el) {
+            el.style.display = "none";
+          });
+        }
+      });
+    }
+
+    // 16. Sidebar ul.news Line Clamping Helper
+    // Wraps raw text nodes inside ul.news > li > a into .w2a-news-title so that
+    // multi-line text is clamped to 2 lines with ellipsis across all pages
+    var newsLinks = document.querySelectorAll("ul.news > li > a");
+    newsLinks.forEach(function (link) {
+      if (!link.querySelector(".w2a-news-title")) {
+        var textNodes = Array.prototype.filter.call(
+          link.childNodes,
+          function (node) {
+            return node.nodeType === Node.TEXT_NODE && node.nodeValue.trim().length > 0;
+          }
+        );
+        if (textNodes.length > 0) {
+          var span = document.createElement("span");
+          span.className = "w2a-news-title";
+          textNodes.forEach(function (tn) {
+            span.appendChild(tn);
+          });
+          link.appendChild(span);
+        }
+      }
+    });
   });
 })();

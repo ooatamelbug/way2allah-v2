@@ -78,29 +78,33 @@ it('/about renders the shared page chrome — exact document title, heading, and
         ->toContain('<li><a href="">من نحن</a><i class=""></i></li>');
 });
 
-it('/about wraps its content in the real portlet — fa-child icon, "من نحن" caption, portlet box blue', function () {
+it('/about wraps its content in the modern premium panel', function () {
     $content = $this->get('/about')->assertOk()->getContent();
 
     expect($content)
-        ->toContain('<div class="caption"><i class="fa fa-child"></i> من نحن</div>')
-        ->toContain('<div class="portlet box blue">')
-        ->toContain('<div class="portlet-body ">');
+        ->toContain('class="w2a-refresh-panel"')
+        ->toContain('<h2>من نحن</h2>')
+        ->toContain('class="w2a-about-container"');
 });
 
-it('/about content itself is unchanged — the MS-Word-pasted body still renders inside the new portlet wrapper', function () {
+it('/about renders modern structured sections for vision, mission, goals, and history', function () {
     $content = $this->get('/about')->assertOk()->getContent();
 
     expect($content)
-        ->toContain('<div dir="rtl">')
-        ->toContain('class="MsoNormal"')
-        ->toContain('رؤيتنا دلالة الخلق كل الخلق على الله');
+        ->toContain('dir="rtl"')
+        ->toContain('الرؤية')
+        ->toContain('رؤيتنا دلالة الخلق كل الخلق على الله')
+        ->toContain('المهمة')
+        ->toContain('الأهداف')
+        ->toContain('نبذة تاريخية عن الشبكة')
+        ->toContain('2005');
 });
 
-it('/landing_page.htm inherits the exact same chrome/portlet fix as /about — still byte-identical to it', function () {
+it('/landing_page.htm inherits the exact same view as /about — still byte-identical to it', function () {
     $landingPage = $this->get('/landing_page.htm')->getContent();
     $about = $this->get('/about')->getContent();
 
     expect($landingPage)->toBe($about)
         ->toContain('<h3 class="page-title">من نحن</h3>')
-        ->toContain('<div class="caption"><i class="fa fa-child"></i> من نحن</div>');
+        ->toContain('<h2>من نحن</h2>');
 });

@@ -360,20 +360,21 @@ ul.menu li {
 	margin-top:20px;
 }
 .profile-userpic{
-	height: 162px;
-	width: 162px;
-	margin: 0 auto;
-	border: 1px solid #0099CC;
-	position: relative;
-	border-radius: 50% !important;
+	height: auto;
+    width: 100%;
+    margin: 0 auto;
+    border: 1px solid #0099CC;
+    position: relative;
+    border-radius: 50% !important;
+    overflow: hidden;
+    margin-bottom: 10px;
 }
 .profile-userpic img {
-	float: none;
-	margin: auto;
-	position: absolute;
-	top: 0;
-	bottom: 0;
 	border-radius: 50% !important;
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    aspect-ratio: 1 / 1;
 }
 
 
@@ -486,11 +487,6 @@ div.dataTables_length label{
 	color: #900 !important;
 	vertical-align: middle;
 	font-size: inherit;
-}
-.series-overflow {
-	max-height: 400px;
-	overflow-y: auto;
-	overflow-x: hidden;
 }
 .series-overflow tbody {
 	background-color: #fff;
@@ -2207,6 +2203,11 @@ textarea:focus {
   padding: var(--w2a-space-4) !important;
 }
 
+.home.portlet.box > .portlet-title + .portlet-body {
+  min-height: 200px;
+  padding-top: 0 !important;
+}
+
 
 /* --------------------------------------------------------------------------
    SECTION 4.2 — VIDEO CATEGORIES TREE
@@ -2594,3 +2595,15 @@ textarea:focus {
 /* ==========================================================================
    END — UI ENHANCEMENT v1
    ========================================================================== */
+
+.modal-error,
+.modal .modal-error,
+.modal-dialog .modal-error,
+#commentsModal .modal-error,
+#sendFriendModal .modal-error,
+[id^="commentsModal"] .modal-error,
+[id^="sendFriendModal"] .modal-error {
+    display: none;
+    margin-top: 10px;
+}
+

@@ -21,9 +21,10 @@
     confirmed genuine double-suffix pattern already reproduced for
     var-item-{id}.htm (not a mistake to "fix" here either).
 --}}
-@section('title', 'قناة '.$title.' ('.($channelModel->satellite->title ?? '').') - الفتاوى المرئية - '.config('app.name'))
+@section('title', 'قناة ' . $title . ' (' . ($channelModel->satellite->title ?? '') . ') - الفتاوى المرئية - ' .
+    config('app.name'))
 
-{{--
+    {{--
     channel_fatawa.php:24-25 registers `fatawa/css/new-style.css` (a real
     file, confirmed on disk at legacy-project/fatawa/css/new-style.css)
     and the Cairo|Reem+Kufi Google Fonts link. The stylesheet is
@@ -35,9 +36,9 @@
     Not pushed here either, for the same reason; only the remote,
     always-reachable Google Fonts link is added.
 --}}
-@push('styles')
-    <link href="https://fonts.googleapis.com/css?family=Cairo|Reem+Kufi" rel="stylesheet">
-@endpush
+    @push('styles')
+        <link href="https://fonts.googleapis.com/css?family=Cairo|Reem+Kufi" rel="stylesheet">
+    @endpush
 
 @section('content')
     {{--
@@ -60,12 +61,15 @@
     <h1 style=""></h1>
     <div class="page-bar">
         <ul class="page-breadcrumb">
-            <li><i class="fa fa-home"></i><a href="/"> الرئيسية</a></li><li> <i class="fa fa-angle-right"></i><a href="/fatawa.htm">الفتاوى </a></li><li> <i class="fa fa-angle-right"></i><a href="/fatawa-channels.htm">قائمة القنوات الفضائية</a></li><li> <i class="fa fa-angle-right"></i><a href="/fatawa-channel-{{ $channelModel->id }}.htm">{{ $title }}</a></li>
+            <li><i class="fa fa-home"></i><a href="/"> الرئيسية</a></li>
+            <li> <i class="fa fa-angle-right"></i><a href="/fatawa.htm">الفتاوى </a></li>
+            <li> <i class="fa fa-angle-right"></i><a href="/fatawa-channels.htm">قائمة القنوات الفضائية</a></li>
+            <li> <i class="fa fa-angle-right"></i><a href="/fatawa-channel-{{ $channelModel->id }}.htm">{{ $title }}</a></li>
         </ul>
     </div>
 
     <div class="row service-box margin-bottom-40">
-        <div class="col-lg-9 col-md-8 col-sm-7 nopadding">
+        <div class="col-lg-9 col-md-8 col-sm-7 nopadding flex flex-column gap-5">
             {{--
                 channel_fatawa.php:39-104's "بيانات قناة" info portlet —
                 previously entirely missing (the prior view had only 2
@@ -97,7 +101,8 @@
                     <div class="portlet-body">
                         <div class="row">
                             <div class="col-lg-2 col-md-6 col-sm-6 text-sm-center">
-                                <a href="/fatawa-channels.htm"><img src="https://way2allah.com/images/admin/satellite-icon.png"></a>
+                                <a href="/fatawa-channels.htm"><img
+                                        src="https://way2allah.com/images/admin/satellite-icon.png"></a>
                             </div>
                             <div class="col-lg-3 col-md-6 col-sm-6 text-sm-center">
                                 <div class="ch-item">اسم القناة : {{ $title }} </div>
@@ -113,7 +118,8 @@
                                 <a href="/fatawa-channel-{{ $channelModel->id }}.htm"><img src="/images/channels/{{ $channelModel->id }}.png" style="max-width: 100%" alt="قناة إقرأ" title="قناة إقرأ"></a>
                             </div>
                             <div class="col-lg-4 col-md-12 col-sm-12 text-sm-center channel_fatawa_cont">
-                                <div class="ch-beam">مجال التغطية<br><img src="/images/beams/1.png" class="img-responsive center-block"></div>
+                                <div class="ch-beam">مجال التغطية<br><img src="/images/beams/1.png"
+                                        class="img-responsive center-block"></div>
                             </div>
                         </div>
                     </div>
@@ -180,7 +186,7 @@
             </div>
         </div>
 
-        <aside class="col-lg-3 col-md-4 col-sm-5 nopadding" aria-label="الشريط الجانبي">
+        <aside class="col-lg-3 col-md-4 col-sm-5 nopadding flex flex-column gap-5" aria-label="الشريط الجانبي">
             {{--
                 channel_fatawa.php:145-170's sidebar — real portlet wrapper
                 (previously a bare <h3>), and the real `mostdownload()`/

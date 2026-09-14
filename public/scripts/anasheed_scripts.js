@@ -1,6 +1,11 @@
 $(document).ready(function(){
+	$('#commentsModal, #sendFriendModal').on('show.bs.modal', function () {
+		$(this).find('.modal-error').hide();
+	});
+
 	$(".send-comment-btn").click(function (){
 		$("#comments_form").show();
+		$("#commentsModal .modal-error").hide();
 		$(".sending-result").remove();
 		$("#send_comment").show();
 		$("#send_comment").removeAttr("disabled");
@@ -55,6 +60,7 @@ $(document).ready(function(){
 	/*==================================*/
 	$(".send-friend-btn").click(function (){
 		$("#sendFriend_form").show();
+		$("#sendFriendModal .modal-error").hide();
 		$(".sending-result").remove();
 		$("#send_friend").show();
 		$("#send_friend").removeAttr("disabled");

@@ -60,7 +60,7 @@
     </div>
 
     <div class="row service-box margin-bottom-40">
-        <div class="col-lg-9 col-md-8 col-sm-7">
+        <div class="col-lg-8 col-md-8 col-sm-12">
             <div class="portlet blue-hoki box">
                 <div class="portlet-title">
                     <div class="caption">
@@ -68,16 +68,26 @@
                     </div>
                 </div>
                 <div class="portlet-body">
-                    <ul>
+                    <ul class="w2a-category-grid" role="list" style="list-style: none; padding: 0; margin: 0;">
                         @foreach ($categories as $category)
-                            <li><a href="/fatawa-topics-{{ $category->id }}-1.htm">{{ $category->title }}</a></li>
+                            <li style="list-style: none;">
+                                <a href="/fatawa-topics-{{ $category->id }}-1.htm" class="w2a-category-card-item">
+                                    <span class="w2a-category-card-item__content">
+                                        <span class="w2a-category-card-item__icon">
+                                            <i class="fa fa-folder-open-o" aria-hidden="true"></i>
+                                        </span>
+                                        <span class="w2a-category-card-item__title">{{ $category->title }}</span>
+                                    </span>
+                                    <i class="fa fa-angle-right w2a-category-card-item__arrow" aria-hidden="true"></i>
+                                </a>
+                            </li>
                         @endforeach
                     </ul>
                 </div>
             </div>
         </div>
 
-        <div class="col-lg-3 col-md-4 col-sm-5 nopadding">
+        <div class="col-lg-4 col-md-4 col-sm-12 nopadding flex flex-column gap-5">
             <div class="col-md-12 col-sm-12">
                 <div class="portlet box blue">
                     <div class="portlet-title">

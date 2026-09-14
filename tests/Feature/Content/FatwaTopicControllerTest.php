@@ -240,10 +240,12 @@ it('show: sidebar portlets use the real fatawa-all-{general_question_id}.htm#{id
 
     $content = $this->get('/fatawa-topics-1-1.htm')->assertOk()->getContent();
 
-    expect($content)->toContain('<i class="fa fa-download"></i>الأكثر تحميلا')
-        ->toContain('<i class="fa fa-plus"></i>جديد المواد')
-        ->toContain('<ul class="news">')
-        ->toContain('<a href="/fatawa-all-900.htm#500" class="add">Downloaded Q</a>')
+    expect($content)->toContain('الأكثر تحميلا')
+        ->toContain('fa-download')
+        ->toContain('جديد المواد')
+        ->toContain('fa-plus')
+        ->toContain('/fatawa-all-900.htm#500')
+        ->toContain('Downloaded Q')
         ->not->toContain('/fatawa-download-500.htm');
 });
 
@@ -438,9 +440,12 @@ it('questions: sidebars are category-scoped (mostdownload($cat_id)/recentlyadd($
 
     $content = $this->get('/fatawa-group-10-1.htm')->assertOk()->getContent();
 
-    expect($content)->toContain('<i class="fa fa-download"></i>الأكثر تحميلا')
-        ->toContain('<i class="fa fa-plus"></i>جديد المواد')
-        ->toContain('<a href="/fatawa-all-900.htm#500" class="add">Downloaded Q</a>')
+    expect($content)->toContain('الأكثر تحميلا')
+        ->toContain('fa-download')
+        ->toContain('جديد المواد')
+        ->toContain('fa-plus')
+        ->toContain('/fatawa-all-900.htm#500')
+        ->toContain('Downloaded Q')
         ->not->toContain('/fatawa-download-500.htm');
 });
 

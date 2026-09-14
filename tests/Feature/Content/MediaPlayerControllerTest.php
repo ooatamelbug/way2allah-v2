@@ -36,7 +36,7 @@ function expectModernVideoPlayer(string $content, string $source): void
 {
     expect($content)
         ->toStartWith('<div class="w2a-video-player-wrapper">')
-        ->toContain('<video controls autoplay>')
+        ->toContain('<video controls autoplay playsinline preload="metadata">')
         ->toContain('src="'.$source.'"');
 }
 
@@ -299,3 +299,34 @@ it('POST /media-player: fatawa type, an unresolvable id returns an empty 200 bod
     $response->assertOk();
     expect($response->getContent())->toBe('');
 });
+
+it('resolves modern YouTube URL variants to a clean video id', function (string $link) {
+    DB::connection('main')->table('nuke_anasheed_mirror')->insert([
+        'id' => 19024, 'khid' => 17346, 'title' => 'YouTube quality',
+        'vedio' => 1, 'hidden' => 0, 'link' => $link,
+    ]);
+
+    $this->post('/media-player', ['id' => 19024, 'type' => 'anasheed_mirror'])
+        ->assertOk()
+        ->assertSee('https://www.youtube.com/embed/q1-HyMYFoGQ?autoplay=1', false);
+})->with([
+    'shorts with sharing parameter' => 'https://youtube.com/shorts/q1-HyMYFoGQ?si=share',
+    'short URL with time parameter' => 'https://youtu.be/q1-HyMYFoGQ?t=12',
+    'http short URL' => 'http://youtu.be/q1-HyMYFoGQ',
+    'mobile watch URL' => 'https://m.youtube.com/watch?v=q1-HyMYFoGQ&feature=share',
+    'embed URL' => 'https://www.youtube.com/embed/q1-HyMYFoGQ',
+    'live URL' => 'https://www.youtube.com/live/q1-HyMYFoGQ',
+]);
+
+it('does not render an empty or malformed YouTube embed', function (string $link) {
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 1, 'title' => 'Item', 'vedio' => 1, 'hidden' => 0, 'link' => $link,
+    ]);
+
+    expect($this->post('/media-player', ['id' => 1, 'type' => 'khotab'])->assertOk()->getContent())->toBe('');
+})->with([
+    'missing id' => 'https://youtube.com/watch',
+    'invalid id' => 'https://youtube.com/shorts/not-valid',
+    'array query' => 'https://youtube.com/watch?v[]=q1-HyMYFoGQ',
+    'lookalike host' => 'https://youtube.example.com/watch?v=q1-HyMYFoGQ',
+]);

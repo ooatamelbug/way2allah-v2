@@ -17,14 +17,242 @@
     <link href="/assets/global/plugins/uniform/css/uniform.default.css" rel="stylesheet" type="text/css">
     <link href="/assets/global/plugins/bootstrap-switch/css/bootstrap-switch.min.css" rel="stylesheet"
         type="text/css" />
-    <link rel="stylesheet" type="text/css" href="/assets/global/plugins/select2/select2.css" />
+    <link rel="stylesheet" type="text/css" href="/assets/global/plugins/select2/css/select2.min.css" />
     <link href="/assets/global/css/components-rounded-rtl.css" id="style_components" rel="stylesheet" type="text/css" />
     <link href="/assets/global/css/plugins-rtl.css" rel="stylesheet" type="text/css" />
     <link href="/assets/admin/layout4/css/layout-rtl.css" rel="stylesheet" type="text/css" />
     <link id="style_color" href="/assets/admin/layout4/css/themes/light-rtl.css" rel="stylesheet" type="text/css" />
     <link href="/assets/admin/layout4/css/custom-rtl.css" rel="stylesheet" type="text/css" />
     <link rel="shortcut icon" href="/favicon.ico" />
+
+    <style>
+        body {
+            background-color: #f8fafc !important;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+        }
+        .page-content {
+            overflow-x: hidden !important;
+            background: transparent !important;
+        }
+        .logo {
+            padding: 24px 0 16px !important;
+        }
+        .logo img {
+            max-height: 80px;
+            filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.06));
+        }
+        #form_wizard_1 {
+            max-width: 920px;
+            margin: 0 auto 40px !important;
+            background: #ffffff !important;
+            border-radius: 18px !important;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08) !important;
+            border: 1px solid #e2e8f0 !important;
+            overflow: hidden !important;
+        }
+        #form_wizard_1 .portlet-title {
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+            padding: 18px 28px !important;
+            border-bottom: none !important;
+            margin-bottom: 0 !important;
+        }
+        #form_wizard_1 .portlet-title .caption {
+            color: #ffffff !important;
+            font-size: 18px !important;
+            font-weight: 700 !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+        }
+        #form_wizard_1 .portlet-title .step-title {
+            color: #e0f2fe !important;
+            font-weight: 500 !important;
+            font-size: 15px !important;
+        }
+        .form-wizard .steps {
+            background: #f8fafc !important;
+            padding: 16px 20px !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+            margin-bottom: 0 !important;
+        }
+        .form-wizard .steps > li > a.step {
+            border-radius: 12px !important;
+            padding: 10px 14px !important;
+            background: transparent !important;
+            transition: all 0.2s ease !important;
+        }
+        .form-wizard .steps > li > a.step .number {
+            background: #e2e8f0 !important;
+            color: #475569 !important;
+            font-weight: 700 !important;
+            border-radius: 50% !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        .form-wizard .steps > li.active > a.step {
+            background: #e0f2fe !important;
+        }
+        .form-wizard .steps > li.active > a.step .number {
+            background: #0284c7 !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.2) !important;
+        }
+        .form-wizard .steps > li.done > a.step .number {
+            background: #059669 !important;
+            color: #ffffff !important;
+        }
+        .form-wizard .steps > li > a.step .desc {
+            color: #334155 !important;
+            font-weight: 600 !important;
+        }
+        #bar {
+            height: 5px !important;
+            margin: 0 !important;
+            background: #f1f5f9 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+        }
+        #bar .progress-bar-success {
+            background: linear-gradient(90deg, #0284c7, #059669) !important;
+        }
+        .portlet-body.form .form-body {
+            padding: 32px 28px !important;
+        }
+        .form-title {
+            font-size: 18px !important;
+            font-weight: 700 !important;
+            color: #0f172a !important;
+            margin-bottom: 24px !important;
+            padding-bottom: 12px !important;
+            border-bottom: 2px solid #f1f5f9 !important;
+        }
+        .form-horizontal .control-label {
+            font-size: 14px !important;
+            font-weight: 700 !important;
+            color: #1e293b !important;
+            padding-top: 10px !important;
+            text-align: right !important;
+        }
+        .form-horizontal .control-label .required {
+            color: #ef4444 !important;
+            margin-left: 4px;
+        }
+        .form-control {
+            border: 1.5px solid #cbd5e1 !important;
+            border-radius: 10px !important;
+            padding: 10px 14px !important;
+            font-size: 14px !important;
+            min-height: 44px !important;
+            box-shadow: none !important;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+        }
+        .form-control:focus {
+            border-color: #0284c7 !important;
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15) !important;
+        }
+        .help-block {
+            font-size: 12.5px !important;
+            color: #64748b !important;
+            margin-top: 6px !important;
+        }
+        .form-actions {
+            background: #f8fafc !important;
+            border-top: 1px solid #e2e8f0 !important;
+            padding: 20px 28px !important;
+            margin: 0 !important;
+        }
+        .form-actions .btn {
+            border-radius: 10px !important;
+            padding: 10px 24px !important;
+            font-size: 14px !important;
+            font-weight: 700 !important;
+            transition: all 0.2s ease !important;
+        }
+        .form-actions .btn.button-previous {
+            background: #ffffff !important;
+            border: 1.5px solid #cbd5e1 !important;
+            color: #334155 !important;
+        }
+        .form-actions .btn.button-previous:hover {
+            background: #f1f5f9 !important;
+        }
+        .form-actions .btn.button-next {
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+            color: #ffffff !important;
+            border: none !important;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25) !important;
+        }
+        .form-actions .btn.button-next:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(2, 132, 199, 0.35) !important;
+        }
+        .form-actions .btn.button-submit {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+            color: #ffffff !important;
+            border: none !important;
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25) !important;
+        }
+        .form-actions .btn.button-submit:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(5, 150, 105, 0.35) !important;
+        }
+        .page-footer {
+            background: transparent !important;
+            text-align: center !important;
+            padding: 20px 0 30px !important;
+            color: #64748b !important;
+            font-size: 13px !important;
+        }
+
+        @media (max-width: 767px) {
+            .page-container {
+                padding: 0 16px !important;
+            }
+            #form_wizard_1 {
+                margin: 10px auto 30px !important;
+                border-radius: 14px !important;
+            }
+            .form-wizard .steps > li {
+                width: 50% !important;
+                float: right !important;
+                margin-bottom: 8px !important;
+            }
+            .form-wizard .steps > li > a.step {
+                padding: 8px !important;
+                font-size: 12px !important;
+            }
+            .form-wizard .steps > li > a.step .number {
+                width: 28px !important;
+                height: 28px !important;
+                line-height: 26px !important;
+                font-size: 13px !important;
+            }
+            .form-wizard .steps > li > a.step .desc {
+                font-size: 11px !important;
+            }
+            .form-horizontal .control-label {
+                text-align: right !important;
+                margin-bottom: 6px !important;
+            }
+            .portlet-body.form .form-body {
+                padding: 20px 14px !important;
+            }
+            .form-actions {
+                padding: 16px 14px !important;
+                text-align: center !important;
+            }
+            .form-actions .col-md-offset-3 {
+                margin: 0 !important;
+            }
+            .form-actions .btn {
+                margin: 4px !important;
+                display: inline-block !important;
+            }
+        }
+    </style>
 </head>
+
 
 <body class="page-full-width page-header-fixed page-sidebar-closed-hide-logo ">
     <div class="logo" style="margin:0px !important;">
@@ -384,17 +612,21 @@
     <script type="text/javascript" src="/assets/global/plugins/jquery-validation/js/jquery.validate.min.js"></script>
     <script type="text/javascript" src="/assets/global/plugins/jquery-validation/js/additional-methods.min.js"></script>
     <script type="text/javascript" src="/assets/global/plugins/bootstrap-wizard/jquery.bootstrap.wizard.min.js"></script>
-    <script type="text/javascript" src="/assets/global/plugins/select2/select2.min.js"></script>
-    <script src="/assets/global/scripts/metronic.js" type="text/javascript"></script>
+    <script type="text/javascript" src="/assets/global/plugins/select2/js/select2.min.js"></script>
+    <script src="/assets/global/scripts/app.js" type="text/javascript"></script>
+    <script>
+        window.Way2allah = typeof App !== "undefined" ? App : {};
+        window.WayToAllah = window.Way2allah;
+    </script>
     <script src="/assets/admin/layout4/scripts/layout.js" type="text/javascript"></script>
     <script src="/assets/admin/layout4/scripts/demo.js" type="text/javascript"></script>
     <script src="/assets/admin/pages/scripts/form-wizard.js"></script>
     <script>
         jQuery(document).ready(function() {
-            WayToAllah.init();
-            Layout.init();
-            Demo.init();
-            FormWizard.init();
+            if (typeof App !== "undefined") { App.init(); }
+            if (typeof Layout !== "undefined") { Layout.init(); }
+            if (typeof Demo !== "undefined") { Demo.init(); }
+            if (typeof FormWizard !== "undefined") { FormWizard.init(); }
         });
     </script>
 </body>

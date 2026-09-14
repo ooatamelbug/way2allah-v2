@@ -19,18 +19,27 @@
 
 @section('title', 'البحث المتقدم')
 
-@php use App\Domain\Content\Support\LegacySearchRendering; @endphp
+@php
+    use App\Domain\Content\Support\LegacySearchRendering;
+    $paginationFields = [
+        'kh_title' => $title, 'kh_dept' => $department,
+        'kh_author_name' => $authorId ?: '', 'kh_channel' => $channelId ?: '',
+        'kh_from' => $from, 'kh_to' => $to,
+    ];
+@endphp
 
 @section('content')
-    <form method="post" action="/search.htm">
+<div class="w2a-search-results">
+    <h1>البحث المتقدم</h1>
+    <form class="w2a-results-search-form" method="post" action="/search.htm">
         @csrf
         <div class="form-group">
             <label for="kh_title">اسم السلسلة أو المادة</label>
-            <input type="text" name="kh_title" id="kh_title" value="{{ $title }}">
+            <input class="form-control" type="text" name="kh_title" id="kh_title" value="{{ $title }}">
         </div>
         <div class="form-group">
             <label for="kh_dept">القسم</label>
-            <select name="kh_dept" id="kh_dept">
+            <select class="form-control" name="kh_dept" id="kh_dept">
                 <option value="">إختر</option>
                 @foreach ($departments as $value => $label)
                     <option value="{{ $value }}" @selected($department === $value)>{{ $label }}</option>
@@ -39,19 +48,19 @@
         </div>
         <div class="form-group">
             <label for="kh_author_name">الشيخ</label>
-            <input type="text" name="kh_author_name" id="kh_author_name" value="{{ $authorId ?: '' }}">
+            <input class="form-control" type="text" name="kh_author_name" id="kh_author_name" value="{{ $authorId ?: '' }}">
         </div>
         <div class="form-group">
             <label for="kh_channel">القناة</label>
-            <input type="text" name="kh_channel" id="kh_channel" value="{{ $channelId ?: '' }}">
+            <input class="form-control" type="text" name="kh_channel" id="kh_channel" value="{{ $channelId ?: '' }}">
         </div>
         <div class="form-group">
             <label for="kh_from">من</label>
-            <input type="text" name="kh_from" id="kh_from" value="{{ $from }}">
+            <input class="form-control" type="text" name="kh_from" id="kh_from" value="{{ $from }}">
             <label for="kh_to">إلى</label>
-            <input type="text" name="kh_to" id="kh_to" value="{{ $to }}">
+            <input class="form-control" type="text" name="kh_to" id="kh_to" value="{{ $to }}">
         </div>
-        <button type="submit" name="kh_search">بحث</button>
+        <button class="w2a-search-submit-btn" type="submit" name="kh_search">بحث</button>
     </form>
 
     @if (! $valid)
@@ -63,7 +72,7 @@
 
         <section aria-label="نتائج البحث">
             {{-- `Listmawad()` only ever calls `Listmawad_view()` when it has real results — no section renders at all otherwise (see SearchController's own docblock on why the old per-section "no items" messages aren't reproduced). --}}
-            @if ($mawad !== null && ! $mawadEmpty)
+            @if ($mawad !== null && $mawad->count() > 0)
                 <section aria-label="نتائج البحث - المواد">
                     <h2>قائمة المواد</h2>
                     <ul>
@@ -104,11 +113,11 @@
                             @endforeach
                         @endif
                     </ul>
-                    {{ $mawad->onEachSide(1)->links('components.content.premium-pagination') }}
+                    {{ $mawad->onEachSide(1)->links('components.content.premium-pagination', ['postFields' => $paginationFields]) }}
                 </section>
             @endif
 
-            @if ($series !== null && ! $seriesEmpty)
+            @if ($series !== null && $series->count() > 0)
                 <section aria-label="نتائج البحث - السلاسل">
                     <h2>قائمة السلاسل</h2>
                     <ul>
@@ -152,11 +161,11 @@
                             @endforeach
                         @endif
                     </ul>
-                    {{ $series->onEachSide(1)->links('components.content.premium-pagination') }}
+                    {{ $series->onEachSide(1)->links('components.content.premium-pagination', ['postFields' => $paginationFields]) }}
                 </section>
             @endif
 
-            @if ($topics !== null && ! $topicsEmpty)
+            @if ($topics !== null && $topics->count() > 0)
                 <section aria-label="نتائج البحث - الموضوعات">
                     <h2>قائمة الموضوعات</h2>
                     <ul>
@@ -168,9 +177,10 @@
                             </li>
                         @endforeach
                     </ul>
-                    {{ $topics->onEachSide(1)->links('components.content.premium-pagination') }}
+                    {{ $topics->onEachSide(1)->links('components.content.premium-pagination', ['postFields' => $paginationFields]) }}
                 </section>
             @endif
         </section>
     @endif
+</div>
 @endsection

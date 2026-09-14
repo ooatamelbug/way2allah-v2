@@ -3,6 +3,7 @@
 namespace App\Domain\Content\Http\Controllers;
 
 use App\Domain\Content\Services\ContentListingService;
+use App\Domain\Content\Support\SearchDepartments;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 
@@ -105,19 +106,6 @@ use Illuminate\Http\Request;
  */
 class SearchController
 {
-    /** `functions.php:1187-1198`'s `w2a_search_depts_arr()`, minus `gallery`/`cds` (confirmed dead, not offered). */
-    private const DEPARTMENTS = [
-        'video' => 'المرئيات',
-        'audio' => 'الصوتيات',
-        'dumped_files' => 'المواد المفرغة',
-        'anasheed' => 'الأناشيد',
-        'sections' => 'المقاطع المؤثرة',
-        'cartoon' => 'الكارتون',
-        'documentary' => 'الوثائقيات',
-        'video_sections' => 'مقاطع المرئية',
-        'fatawa' => 'الفتاوى المرئية',
-    ];
-
     /** `index.php:884-915`/`:1353-1384`'s confirmed `parent_id` discriminator for the 5 shared-config "varieties" departments. */
     private const VARIETIES_PARENT_IDS = [
         'anasheed' => 98,
@@ -143,7 +131,7 @@ class SearchController
         // distinct, sequentially-checked error messages, same precedence.
         $titleEmpty = $title === '';
         $titleTooShort = ! $titleEmpty && mb_strlen($title) < 4;
-        $departmentInvalid = $department === '' || ! array_key_exists($department, self::DEPARTMENTS);
+        $departmentInvalid = $department === '' || ! array_key_exists($department, SearchDepartments::OPTIONS);
 
         $errorMessage = match (true) {
             $titleEmpty => 'يجب عليك ادخال عنوان المادة',
@@ -176,7 +164,7 @@ class SearchController
         $topicsEmpty = $topics === null || $topics->total() === 0;
 
         return view('search.results', [
-            'departments' => self::DEPARTMENTS,
+            'departments' => SearchDepartments::OPTIONS,
             'title' => $title,
             'department' => $department,
             'resultKind' => $this->resultKind($department),

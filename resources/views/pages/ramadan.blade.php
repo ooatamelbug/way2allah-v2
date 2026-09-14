@@ -17,7 +17,7 @@
 @section('content')
     @foreach ($seriesByYear as $year => $series)
         @if ($series->isNotEmpty())
-            <div class="row service-box margin-bottom-40 sh-w2a-block">
+            <div class="row service-box margin-bottom-40 sh-w2a-block w2a-ramadan-schedule">
                 <div class="col-xs-12 col-sm-12 col-md-12 telawah-item-content nopadding">
                     <div class="portlet-body series-overflow series-overflow-auto">
                         <h4>

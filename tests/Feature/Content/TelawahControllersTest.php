@@ -138,7 +138,7 @@ it('item show: renders the premium details, player, and metadata sidebars', func
         ->toContain('id="the_main_player"')
         ->toContain('class="w2a-chat-sidebar-list"')
         ->toContain('12 مرة')
-        ->toContain('function w2a_play(id, type)');
+        ->toContain('window.w2a_play = function (id, type)');
 });
 
 // ---- Shared Page Chrome Parity Audit: recite.htm's heading vs document <title> are genuinely different strings ----

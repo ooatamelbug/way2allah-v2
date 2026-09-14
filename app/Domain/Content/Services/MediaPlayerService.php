@@ -248,6 +248,10 @@ class MediaPlayerService
         if ($video && str_contains($link, 'youtu')) {
             $youtubeId = $this->youtubeId($link);
 
+            if ($youtubeId === null) {
+                return null;
+            }
+
             return '<div class="w2a-video-player-wrapper"><div class="embed-responsive embed-responsive-16by9"><iframe src="https://www.youtube.com/embed/'.e($youtubeId).'?autoplay=1" title="'.e($title).'" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div></div>';
         }
 
@@ -264,7 +268,7 @@ class MediaPlayerService
         }
 
         if ($video && $extension === 'mp4') {
-            return '<div class="w2a-video-player-wrapper"><video controls autoplay><source src="'.e($link).'" type="video/mp4"></video></div>';
+            return '<div class="w2a-video-player-wrapper"><video controls autoplay playsinline preload="metadata"><source src="'.e($link).'" type="video/mp4"></video></div>';
         }
 
         return null;
@@ -277,19 +281,24 @@ class MediaPlayerService
         return '<div class="w2a-audio-player-wrapper"><div class="w2a-audio-anim-bars" aria-hidden="true">'.$bars.'</div><h4>'.e($title).'</h4>'.$player.'</div>';
     }
 
-    /**
-     * `w2a_mada_play()`'s own youtube-id extraction (`functions.php:826-832`):
-     * `?v=` query param for a `youtube.com` link, or the path segment for a
-     * `youtu.be` short-link.
-     */
-    private function youtubeId(string $link): string
+    /** Resolve watch, Shorts, embed, live, and short URLs without query fragments. */
+    private function youtubeId(string $link): ?string
     {
-        if (str_contains($link, 'youtube')) {
-            parse_str((string) parse_url($link, PHP_URL_QUERY), $vars);
+        $host = strtolower((string) parse_url($link, PHP_URL_HOST));
+        $path = trim((string) parse_url($link, PHP_URL_PATH), '/');
+        $id = null;
 
-            return (string) ($vars['v'] ?? '');
+        if (in_array($host, ['youtu.be', 'www.youtu.be'], true)) {
+            $id = explode('/', $path)[0];
+        } elseif (in_array($host, ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtube-nocookie.com', 'www.youtube-nocookie.com'], true)) {
+            parse_str((string) parse_url($link, PHP_URL_QUERY), $query);
+            if ($path === 'watch') {
+                $id = $query['v'] ?? null;
+            } elseif (preg_match('~^(?:shorts|embed|live)/([^/]+)$~', $path, $matches)) {
+                $id = $matches[1];
+            }
         }
 
-        return str_replace('https://youtu.be/', '', $link);
+        return is_string($id) && preg_match('/^[A-Za-z0-9_-]{11}$/', $id) ? $id : null;
     }
 }

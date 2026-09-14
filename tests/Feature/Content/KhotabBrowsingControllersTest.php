@@ -561,7 +561,7 @@ it('author show: renders author.php:53-57\'s breadcrumb — first two segments b
         ->and($content)->toContain('<li><a href="">Sheikh Author</a><i class=""></i></li>');
 });
 
-it('author show: every section remains wrapped in a portlet while collection headings use their new icons', function () {
+it('author show: every section remains wrapped in a modern panel while collection headings use their new icons', function () {
     DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Author']);
     DB::connection('main')->table('nuke_islamic_groups')->insert(['id' => 1, 'author_id' => 1, 'title' => 'A Group', 'vedio' => 1, 'hidden' => 0, 'count' => 1]);
     DB::connection('main')->table('nuke_islamic_series')->insert(['id' => 1, 'author_id' => 1, 'group_id' => 0, 'title' => 'A Series', 'vedio' => 1, 'hidden' => 0, 'count' => 1]);
@@ -569,32 +569,33 @@ it('author show: every section remains wrapped in a portlet while collection hea
 
     $content = $this->get('/khotab-video-1.htm')->assertOk()->getContent();
 
-    expect($content)->toContain('<div class="caption"><i class="fa fa-folder" aria-hidden="true"></i> قائمة المجموعات</div>')
-        ->and($content)->toContain('<div class="caption"><i class="fa fa-list-ol" aria-hidden="true"></i> قائمة السلاسل</div>')
-        ->and($content)->toContain('<div class="caption"><i class="fa fa-child"></i> قائمة المواد</div>')
-        ->and($content)->toContain('<div class="caption"><i class="fa fa-child"></i> الملف الشخصي</div>')
-        ->and($content)->toContain('<div class="caption"><i class="fa fa-child"></i> اخترنا لك هذه المادة</div>')
-        ->and($content)->toContain('<div class="caption"><i class="fa fa-child"></i> الأكثر تحميلا</div>')
-        ->and($content)->toContain('<div class="caption"><i class="fa fa-child"></i> جديد المواد</div>')
-        // 7 always-present portlets for a video/audio op with no description (the promo banner is the 8th, checked separately below).
-        ->and(substr_count($content, 'class="portlet box blue"'))->toBe(8);
+    expect($content)->toContain('قائمة المجموعات')
+        ->and($content)->toContain('fa-folder')
+        ->and($content)->toContain('قائمة السلاسل')
+        ->and($content)->toContain('fa-list-ol')
+        ->and($content)->toContain('قائمة المواد')
+        ->and($content)->toContain('w2a-author-profile-card')
+        ->and($content)->toContain('اخترنا لك هذه المادة')
+        ->and($content)->toContain('الأكثر تحميلاً')
+        ->and($content)->toContain('جديد المواد')
+        // 7 modern refresh panels for a video/audio op with no description (plus the promo banner link)
+        ->and(substr_count($content, '<section class="w2a-refresh-panel'))->toBe(7);
 });
 
-it('author show: the pdf op has no promo-banner widget (legacy author.php:110-138 only has video/audio branches) — 7 portlets, not 8', function () {
+it('author show: the pdf op has no promo-banner widget (legacy author.php:110-138 only has video/audio branches)', function () {
     DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Author']);
     DB::connection('main')->table('nuke_islamic_khotab')->insert(['id' => 1, 'author' => 1, 'title' => 'PDF Item', 'pdf' => 1, 'pdf_time' => 100, 'hidden' => 0]);
 
     $content = $this->get('/khotab-pdf-1.htm')->assertOk()->getContent();
 
-    expect($content)->not->toContain('images/video.gif')
-        ->and($content)->not->toContain('images/audio.gif')
-        // pdf op: no groups/series portlets (op !== 'pdf' gate) and no
+    expect($content)->not->toContain('w2a-author-banner')
+        // pdf op: no groups/series panels (op !== 'pdf' gate) and no
         // promo banner — just "قائمة المواد" + the 4 always-present
-        // sidebar widgets (profile/"اخترنا لك"/"الأكثر تحميلا"/"جديد المواد").
-        ->and(substr_count($content, 'class="portlet box blue"'))->toBe(5);
+        // sidebar widgets (profile/"اخترنا لك"/"الأكثر تحميلاً"/"جديد المواد").
+        ->and(substr_count($content, '<section class="w2a-refresh-panel'))->toBe(5);
 });
 
-it('author show: renders the video/audio promotional banner (author.php:110-138) with the correct image/dimensions/self-link, previously missing entirely', function () {
+it('author show: renders the video/audio promotional banner with the modern badge and self-link', function () {
     DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 42, 'name' => 'Author']);
     DB::connection('main')->table('nuke_islamic_khotab')->insert([
         ['id' => 1, 'author' => 42, 'title' => 'Video Item', 'vedio' => 1, 'hidden' => 0],
@@ -602,29 +603,26 @@ it('author show: renders the video/audio promotional banner (author.php:110-138)
     ]);
 
     $video = $this->get('/khotab-video-42.htm')->assertOk()->getContent();
-    expect($video)->toContain('<div class="caption"><i class="fa fa-child"></i> مرئيات الداعية</div>')
-        ->and($video)->toContain('<div class="portlet-body text-center">')
-        ->and($video)->toContain('<a href="/khotab-video-42.htm">')
-        ->and($video)->toContain('<img border="0" src="/images/video.gif" width="192" height="71" alt="">');
+    expect($video)->toContain('w2a-author-banner--video')
+        ->and($video)->toContain('مرئيات الداعية')
+        ->and($video)->toContain('/khotab-video-42.htm');
 
     $audio = $this->get('/khotab-audio-42.htm')->assertOk()->getContent();
-    expect($audio)->toContain('<div class="caption"><i class="fa fa-child"></i> صوتيات الداعية</div>')
-        ->and($audio)->toContain('<a href="/khotab-audio-42.htm">')
-        ->and($audio)->toContain('<img border="0" src="/images/audio.gif" width="192" height="71" alt="">');
+    expect($audio)->toContain('w2a-author-banner--audio')
+        ->and($audio)->toContain('صوتيات الداعية')
+        ->and($audio)->toContain('/khotab-audio-42.htm');
 });
 
-it('author show: the description block (when present) is wrapped in .portlet.box.blue with NO caption/icon header, matching author.php:80-90\'s own hand-rolled markup (unlike every other portlet on this page)', function () {
+it('author show: the description block (when present) is rendered in a modern panel with biography content', function () {
     DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Author', 'description' => 'A biography.']);
     DB::connection('main')->table('nuke_islamic_khotab')->insert(['id' => 1, 'author' => 1, 'title' => 'Item', 'vedio' => 1, 'hidden' => 0]);
 
     $content = $this->get('/khotab-video-1.htm')->assertOk()->getContent();
 
     expect($content)->toContain('A biography.')
-        // 8 base (video op, no group/series/item channel data needed here) + 1 description portlet.
-        ->and(substr_count($content, 'class="portlet box blue"'))->toBe(9)
-        // The description portlet has no portlet-title/caption at all — one
-        // fewer portlet-title than total portlets (9 portlets, 8 titles).
-        ->and(substr_count($content, 'class="portlet-title"'))->toBe(8);
+        ->and($content)->toContain('نبذة عن الداعية')
+        // 7 base panels (video op) + 1 description panel = 8 panels
+        ->and(substr_count($content, '<section class="w2a-refresh-panel'))->toBe(8);
 });
 
 it('author show: no duplicate element ids on the page', function () {

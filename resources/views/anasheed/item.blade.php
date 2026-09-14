@@ -13,30 +13,15 @@
     append becomes the second occurrence once $pageTitle already carries
     the first.
 --}}
-@section('title', $pageTitle.' - '.config('app.name'))
+@section('title', $pageTitle . ' - ' . config('app.name'))
 
-{{--
-    var-item-{id}.htm parity: item.php:5 register_css('css/custom.css')
-    (unconditional, same mechanism as var-group-{id}.htm, resolves to
-    https://way2allah.com/css/custom.css). item.php:63-64 register_js(
-    'scripts/w2a_play.js',2)/register_js('scripts/anasheed_scripts.js',2)
-    — $plugin=2 means new_functions.php's register_js() pushes the path
-    RAW, unprefixed by $siteurl (same un-prefixed-but-root-page-relative
-    shape already established for register_script() elsewhere in this
-    project). Both scripts confirmed genuinely LOADED and ACTUALLY_EFFECTIVE
-    (not dead): w2a_play.js makes a real AJAX POST to get-mada-player.htm
-    (Laravel: /media-player) and injects the response into #w2a_main_player;
-    anasheed_scripts.js wires the real comment/send-friend modal forms to
-    their own real backend endpoints (already implemented — storeComment()/
-    sendToFriend() below — this batch only restores the front-end markup/
-    wiring those endpoints were always missing).
---}}
+{{-- Retain the page's legacy styles and engagement forms. Playback uses the
+     shared media-player component below, without the competing legacy script. --}}
 @push('styles')
-    <link href="/css/custom.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/custom.css" rel="stylesheet" type="text/css" />
 @endpush
 
 @push('scripts')
-    <script src="/scripts/w2a_play.js" type="text/javascript"></script>
     <script src="/scripts/anasheed_scripts.js" type="text/javascript"></script>
 @endpush
 
@@ -64,26 +49,26 @@
         <ul class="page-breadcrumb">
             <li><i class="fa fa-home"></i><a href="/">الرئيسية</a><i class="fa fa-angle-right"></i></li>
             @foreach ($breadcrumbTrail as $ancestor)
-                <li><a href="/var-group-{{ $ancestor->id }}.htm">{{ $ancestor->title }}</a><i class="fa fa-angle-right"></i></li>
+                <li><a href="/var-group-{{ $ancestor->id }}.htm">{{ $ancestor->title }}</a><i class="fa fa-angle-right"></i>
+                </li>
             @endforeach
             <li>{{ $anasheedItem->title }}</li>
         </ul>
     </div>
 
-    <div class="row service-box margin-bottom-40 sh-w2a-block">
-        <div class="col-lg-9 col-md-8 col-sm-7 nopadding">
+    <div class="row service-box margin-bottom-40 w2a-media-layout sh-w2a-block">
+        <div class="col-lg-9 col-md-8 col-sm-7 nopadding flex flex-column gap-5">
             <div class="portlet box blue">
                 <div class="portlet-title">
                     <div class="caption"><i class="fa fa-video-camera"></i> تفاصيل المادة</div>
                 </div>
                 <div class="portlet-body">
-                    <x-content.media-details-card
-                        :item="$anasheedItem"
-                        module="anasheed"
-                        :date="$anasheedItem->mytime ? \App\Domain\Content\Support\LegacyShortDateFormatter::format((int) $anasheedItem->mytime) : ''"
-                        :size="\App\Domain\Content\Support\LegacyFileSizeFormatter::format((int) ($anasheedItem->linksize ?? 0))"
-                        :download-url="'/var-download-'.$anasheedItem->id.'.htm'"
-                    />
+                    <x-content.media-details-card :item="$anasheedItem" module="anasheed" :date="$anasheedItem->mytime
+                        ? \App\Domain\Content\Support\LegacyShortDateFormatter::format((int) $anasheedItem->mytime)
+                        : ''" :size="\App\Domain\Content\Support\LegacyFileSizeFormatter::format(
+                        (int) ($anasheedItem->linksize ?? 0),
+                    )"
+                        :download-url="'/var-download-' . $anasheedItem->id . '.htm'" />
                 </div>
             </div>
 
@@ -92,30 +77,38 @@
             <x-content.media-player-script />
 
             {{-- item.php:86 post_comment_modal() (functions.php:504-536) — the modal itself, previously entirely absent. --}}
-            <div class="modal fade" id="commentsModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="commentsModalLabel">
+            <div class="modal fade" id="commentsModal" tabindex="-1" role="dialog" aria-modal="true"
+                aria-labelledby="commentsModalLabel">
                 <div class="modal-dialog" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <button type="button" class="close" data-dismiss="modal" aria-label="إغلاق النافذة"><span aria-hidden="true">&times;</span></button>
-                            <h4 class="modal-title" id="commentsModalLabel">اضافة تعليق على : {{ $anasheedItem->title }}</h4>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="إغلاق النافذة"><span
+                                    aria-hidden="true">&times;</span></button>
+                            <h4 class="modal-title" id="commentsModalLabel">اضافة تعليق على : {{ $anasheedItem->title }}
+                            </h4>
                         </div>
                         <div class="modal-body" id="modal-comment-body">
                             <form name="comments_form" id="comments_form" action="" method="post">
                                 <input type="hidden" name="anasheed_id" id="anasheed_id" value="{{ $anasheedItem->id }}">
                                 <div class="form-group">
                                     <label for="user_nickname">اسمك المستعار</label>
-                                    <input name="user_nickname" id="user_nickname" class="form-control" placeholder="اسمك المستعار">
-                                    <div class="modal-error alert alert-danger" id="user_nickname_error">يجب عليك ادخال اسمك المستعار</div>
+                                    <input name="user_nickname" id="user_nickname" class="form-control"
+                                        placeholder="اسمك المستعار">
+                                    <div class="modal-error alert alert-danger" id="user_nickname_error" style="display: none;">يجب عليك ادخال اسمك
+                                        المستعار</div>
                                 </div>
                                 <div class="form-group">
                                     <label for="user_comment">نص التعليق</label>
-                                    <textarea name="user_comment" id="user_comment" cols="30" rows="10" class="form-control" placeholder="نص التعليق"></textarea>
-                                    <div class="modal-error alert alert-danger" id="user_comment_error">يجب عليك ادخال تعليقك</div>
+                                    <textarea name="user_comment" id="user_comment" cols="30" rows="10" class="form-control"
+                                        placeholder="نص التعليق"></textarea>
+                                    <div class="modal-error alert alert-danger" id="user_comment_error" style="display: none;">يجب عليك ادخال
+                                        تعليقك</div>
                                 </div>
                             </form>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" id="send_comment" data-loading-text="جارى الارسال ......" class="btn btn-primary">ارسل التعليق</button>
+                            <button type="button" id="send_comment" data-loading-text="جارى الارسال ......"
+                                class="btn btn-primary">ارسل التعليق</button>
                             <button type="button" class="btn btn-default" data-dismiss="modal">اغلاق</button>
                         </div>
                     </div>
@@ -123,11 +116,13 @@
             </div>
 
             {{-- item.php:87 send_friend_modal() (functions.php:599-646) — the modal itself, previously entirely absent. --}}
-            <div class="modal fade" id="sendFriendModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="sendFriendModalLabel">
+            <div class="modal fade" id="sendFriendModal" tabindex="-1" role="dialog" aria-modal="true"
+                aria-labelledby="sendFriendModalLabel">
                 <div class="modal-dialog" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <button type="button" class="close" data-dismiss="modal" aria-label="إغلاق النافذة"><span aria-hidden="true">&times;</span></button>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="إغلاق النافذة"><span
+                                    aria-hidden="true">&times;</span></button>
                             <h4 class="modal-title" id="sendFriendModalLabel">ارسل مادة : {{ $anasheedItem->title }}</h4>
                         </div>
                         <div class="modal-body" id="modal-sendFriend-body">
@@ -141,28 +136,37 @@
                                 <input type="hidden" name="anasheed_id" id="anasheed_id" value="{{ $anasheedItem->id }}">
                                 <div class="form-group">
                                     <label for="your_name">اسمك </label>
-                                    <input type="text" name="your_name" id="your_name" class="form-control" placeholder="اسمك">
-                                    <div class="modal-error alert alert-danger" id="your_name_error">يجب عليك ادخال اسمك</div>
+                                    <input type="text" name="your_name" id="your_name" class="form-control"
+                                        placeholder="اسمك">
+                                    <div class="modal-error alert alert-danger" id="your_name_error" style="display: none;">يجب عليك ادخال اسمك
+                                    </div>
                                 </div>
                                 <div class="form-group">
                                     <label for="your_email">بريدك الالكتروني </label>
-                                    <input type="email" name="your_email" id="your_email" class="form-control" placeholder="بريدك الالكتروني">
-                                    <div class="modal-error alert alert-danger" id="your_email_error">يجب عليك ادخال بريدك االكتروني بصيغة صحيحة</div>
+                                    <input type="email" name="your_email" id="your_email" class="form-control"
+                                        placeholder="بريدك الالكتروني">
+                                    <div class="modal-error alert alert-danger" id="your_email_error" style="display: none;">يجب عليك ادخال بريدك
+                                        االكتروني بصيغة صحيحة</div>
                                 </div>
                                 <div class="form-group">
                                     <label for="friend_name">اسم صديقك </label>
-                                    <input type="text" name="friend_name" id="friend_name" class="form-control" placeholder="اسم صديقك">
-                                    <div class="modal-error alert alert-danger" id="friend_name_error">يجب عليك ادخال اسم صديقك</div>
+                                    <input type="text" name="friend_name" id="friend_name" class="form-control"
+                                        placeholder="اسم صديقك">
+                                    <div class="modal-error alert alert-danger" id="friend_name_error" style="display: none;">يجب عليك ادخال اسم
+                                        صديقك</div>
                                 </div>
                                 <div class="form-group">
                                     <label for="friend_email">بريد صديقك </label>
-                                    <input type="email" name="friend_email" id="friend_email" class="form-control" placeholder="بريد صديقك">
-                                    <div class="modal-error alert alert-danger" id="friend_email_error"> يجب عليك ادخال بريد صديقك بصيغة صحيحة </div>
+                                    <input type="email" name="friend_email" id="friend_email" class="form-control"
+                                        placeholder="بريد صديقك">
+                                    <div class="modal-error alert alert-danger" id="friend_email_error" style="display: none;"> يجب عليك ادخال
+                                        بريد صديقك بصيغة صحيحة </div>
                                 </div>
                             </form>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" id="send_friend" data-loading-text="جارى الارسال ......" class="btn btn-primary">ارسل لصديقك</button>
+                            <button type="button" id="send_friend" data-loading-text="جارى الارسال ......"
+                                class="btn btn-primary">ارسل لصديقك</button>
                             <button type="button" class="btn btn-default" data-dismiss="modal">اغلاق</button>
                         </div>
                     </div>
@@ -170,7 +174,7 @@
             </div>
 
             {{-- Mirror routes and the distinct anasheed_mirror player type are preserved by the shared quality component. --}}
-            @if($anasheedItem->mirror && $anasheedItem->mirrors->isNotEmpty())
+            @if ($anasheedItem->mirror && $anasheedItem->mirrors->isNotEmpty())
                 <div class="portlet box blue">
                     <div class="portlet-title">
                         <div class="caption"><i class="fa fa-clone"></i> قائمة الجودات المختلفة للمادة</div>
@@ -181,7 +185,7 @@
                 </div>
             @endif
 
-            @if($comments !== null && $comments->isNotEmpty())
+            @if ($comments !== null && $comments->isNotEmpty())
                 <div class="portlet box blue">
                     <div class="portlet-title">
                         <div class="caption"><i class="fa fa-comments"></i> تعليقات الزوار على المادة</div>
@@ -193,7 +197,7 @@
             @endif
         </div>
 
-        <aside class="col-lg-3 col-md-4 col-sm-5 nopadding" aria-label="الشريط الجانبي">
+        <aside class="col-lg-3 col-md-4 col-sm-5 nopadding flex flex-column gap-5" aria-label="الشريط الجانبي">
             {{-- Compact sidebar cards retain the source distinction between download-count and date metadata. --}}
             <div class="col-md-12 col-sm-12">
                 <div class="portlet box blue">
