@@ -47,6 +47,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $updatetime
  * @property int|null $docx
  * @property int|null $stats
+ *
+ * Not a column. Attached by `KhotabAuthorController::fatwaIndex()` from
+ * `ContentListingService::fatwaDistinctQuestionCountsByAuthor()` — the count
+ * of distinct fatwa general questions this author actually has, which
+ * `/fatawa-authors.htm` displays instead of the stale `$fatwa` column
+ * (Fatwa Authors Batch 1). Present only on models loaded by that action.
+ * @property int $fatwa_displayable_count
  */
 class Author extends Model
 {

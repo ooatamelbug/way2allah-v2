@@ -153,3 +153,132 @@ it('khotab-fatwa-{author}.htm redirects even for a nonexistent author id — the
 
     $this->get('/auther-questions-999999.htm')->assertNotFound();
 });
+
+/**
+ * Fatwa Authors Batch 1 — the zero-result short-circuit.
+ *
+ * These pin BEHAVIOUR PARITY for an author with no mappings: same 200, same
+ * empty presentation, same valid URL — plus the one intended difference,
+ * which is a lower query count.
+ *
+ * NOT a fix for the observed /auther-questions-242.htm latency: production
+ * measured that author's first-stage query at 0.0025s and its zero-result
+ * path at fewer queries than a non-empty author's. That issue is still OPEN.
+ */
+it('show: an author with zero mappings renders 200 with the empty page, and the URL stays valid (no 404, no redirect)', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_islamic_authors')->insert(['id' => 242, 'name' => 'Zero Mappings', 'prename' => 'Sh.', 'fatwa' => 289]);
+
+    $response = $this->get('/auther-questions-242.htm');
+
+    $response->assertOk();
+    $response->assertHeaderMissing('Location');
+
+    $content = $response->getContent();
+
+    // Same chrome as a non-empty page; simply no question rows.
+    expect($content)
+        ->toContain('الأسئلة التى أفتى بها الشيخ')
+        ->toContain('Zero Mappings')
+        ->not->toContain('w2a-fatwa-question-card');
+});
+
+it('show: the zero-result path issues NO paginator COUNT query (the 0 = 1 round trip is gone)', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_islamic_authors')->insert(['id' => 242, 'name' => 'Zero Mappings', 'prename' => 'Sh.']);
+
+    $queries = [];
+    DB::listen(function ($query) use (&$queries) {
+        $queries[] = $query->sql;
+    });
+
+    $this->get('/auther-questions-242.htm')->assertOk();
+
+    $againstGeneralQuestions = array_values(array_filter(
+        $queries,
+        fn (string $sql) => str_contains($sql, 'nuke_fatwa_general_questions')
+    ));
+
+    expect($againstGeneralQuestions)->toBe([]);
+});
+
+it('show: a non-empty author still queries nuke_fatwa_general_questions (the short-circuit is scoped to the empty case)', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_islamic_authors')->insert(['id' => 5, 'name' => 'Has Questions', 'prename' => 'Sh.']);
+    $db->table('nuke_fatwa_general_questions')->insert(['id' => 100, 'question_text' => 'Q100', 'topic_id' => '0']);
+    $db->table('nuke_fatwa_questions')->insert([
+        'id' => 1, 'auther_id' => 5, 'general_question_id' => '|100|', 'question_text' => 'A',
+    ]);
+
+    $queries = [];
+    DB::listen(function ($query) use (&$queries) {
+        $queries[] = $query->sql;
+    });
+
+    $this->get('/auther-questions-5.htm')->assertOk();
+
+    expect(array_filter($queries, fn (string $sql) => str_contains($sql, 'nuke_fatwa_general_questions')))
+        ->not->toBe([]);
+});
+
+it('show: pagination/count consistency — 30 distinct questions paginate at 25 with a total of 30 on both pages', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_islamic_authors')->insert(['id' => 5, 'name' => 'Paged', 'prename' => 'Sh.']);
+
+    for ($i = 1; $i <= 30; $i++) {
+        $db->table('nuke_fatwa_general_questions')->insert([
+            'id' => 200 + $i, 'question_text' => sprintf('Question %02d', $i), 'topic_id' => '0',
+        ]);
+        $db->table('nuke_fatwa_questions')->insert([
+            'id' => $i, 'auther_id' => 5, 'general_question_id' => '|' . (200 + $i) . '|', 'question_text' => 'A' . $i,
+        ]);
+    }
+
+    $listing = app(App\Domain\Content\Services\ContentListingService::class);
+
+    expect($listing->fatwaGeneralQuestionsByAuthor(5, 1)->total())->toBe(30)
+        ->and($listing->fatwaGeneralQuestionsByAuthor(5, 1)->count())->toBe(25)
+        ->and($listing->fatwaGeneralQuestionsByAuthor(5, 2)->total())->toBe(30)
+        ->and($listing->fatwaGeneralQuestionsByAuthor(5, 2)->count())->toBe(5);
+
+    // 30 > 25, so the pagination nav renders (its own `$count > $perpage` gate).
+    expect($this->get('/auther-questions-5.htm')->assertOk()->getContent())
+        ->toContain('w2a-pagination');
+});
+
+it('show: an author with exactly 25 questions renders no pagination nav, and one with zero renders none either', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_islamic_authors')->insert([
+        ['id' => 5, 'name' => 'Exactly25', 'prename' => 'Sh.'],
+        ['id' => 6, 'name' => 'Empty', 'prename' => 'Sh.'],
+    ]);
+
+    for ($i = 1; $i <= 25; $i++) {
+        $db->table('nuke_fatwa_general_questions')->insert([
+            'id' => 300 + $i, 'question_text' => sprintf('Q %02d', $i), 'topic_id' => '0',
+        ]);
+        $db->table('nuke_fatwa_questions')->insert([
+            'id' => $i, 'auther_id' => 5, 'general_question_id' => '|' . (300 + $i) . '|', 'question_text' => 'A' . $i,
+        ]);
+    }
+
+    expect($this->get('/auther-questions-5.htm')->assertOk()->getContent())->not->toContain('w2a-pagination');
+    expect($this->get('/auther-questions-6.htm')->assertOk()->getContent())->not->toContain('w2a-pagination');
+});
+
+it('show: duplicate mappings are deduplicated in the listing total (132-rows/126-questions semantics)', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_islamic_authors')->insert(['id' => 5, 'name' => 'Dups', 'prename' => 'Sh.']);
+    $db->table('nuke_fatwa_general_questions')->insert([
+        ['id' => 100, 'question_text' => 'Q100', 'topic_id' => '0'],
+        ['id' => 101, 'question_text' => 'Q101', 'topic_id' => '0'],
+    ]);
+    $db->table('nuke_fatwa_questions')->insert([
+        ['id' => 1, 'auther_id' => 5, 'general_question_id' => '|100|', 'question_text' => 'A'],
+        ['id' => 2, 'auther_id' => 5, 'general_question_id' => '|100|', 'question_text' => 'B'],
+        ['id' => 3, 'auther_id' => 5, 'general_question_id' => '|101|', 'question_text' => 'C'],
+    ]);
+
+    expect(app(App\Domain\Content\Services\ContentListingService::class)
+        ->fatwaGeneralQuestionsByAuthor(5, 1)->total())->toBe(2);
+});

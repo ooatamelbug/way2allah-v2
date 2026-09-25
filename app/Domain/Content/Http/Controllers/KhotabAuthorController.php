@@ -52,19 +52,54 @@ class KhotabAuthorController
      *
      * Visual parity audit (khotab-video.htm, 2026-08-18): reproduces
      * authors.php's alphabetical grouping, quick navigation, and
-     * per-author video/audio/pdf/fatwa count (`$Author->count`, the raw
-     * `vedio`/`audio`/`pdf`/`fatwa` column already loaded on each Author
+     * per-author video/audio/pdf count (`$Author->count`, the raw
+     * `vedio`/`audio`/`pdf` column already loaded on each Author
      * model — not a separate aggregate query, matching authors.php's own
      * aliased-column SELECT). The view receives one grouped collection so
      * it can render semantic sections without server-generated HTML.
      * `ORDER BY BINARY name ASC` (authors.php:8)
      * reproduced via the same MySQL/SQLite driver-aware raw clause already
      * established by `LiveStreamController::titleOrderClause()`.
+     *
+     * **Fatwa Authors Batch 1 — the `fatwa` op no longer uses the stored
+     * `nuke_islamic_authors.fatwa` column**, for either the displayed number
+     * or directory membership. Production proved that column is not the
+     * count of anything this site can display: author 17 stored `12` against
+     * 126 real distinct questions, author 242 stored `289` against **zero**
+     * mapping rows — so `/fatawa-authors.htm` advertised 289 fatwas for an
+     * author whose page can only ever be empty. Nothing writes that column
+     * anywhere (0 writes in either legacy admin module, `admincp/` or
+     * `crons/`), so it cannot self-correct.
+     *
+     * Both the number and membership now come from
+     * `ContentListingService::fatwaDistinctQuestionCountsByAuthor()` — the
+     * SQL mirror of the author page's own id-parsing rule, so the directory
+     * and the page it links to cannot disagree. Membership is
+     * `hidden = 0 AND count > 0`.
+     *
+     * **`hidden = 0` is preserved unchanged** (`authors.php:24`); production
+     * R-1c confirmed 0 authors with `hidden <> 0` have any fatwas, so no
+     * previously-hidden author becomes visible. Measured production effect:
+     * **51 -> 44 authors** (35 stale entries removed, 28 authors with real
+     * content made discoverable), author 17's number **12 -> 126**.
+     *
+     * `/auther-questions-{id}.htm` remains a valid URL for every author,
+     * including those removed from this directory — no redirect, no 404.
+     *
+     * The `video`/`audio`/`pdf` branches are **deliberately untouched**:
+     * their `vedio`/`audio` counters *are* incrementally maintained by the
+     * legacy khotab admin (`vedio=vedio+1`, `audio=audio-1`), so they are
+     * not the same class of stale data and are out of this batch's scope.
      */
-    public function index(string $op): View
+    public function index(string $op, ContentListingService $listing): View
     {
         $op = in_array($op, ['video', 'audio', 'pdf'], true) ? $op : 'fatwa';
-        $countColumn = self::COUNT_COLUMNS[$op] ?? 'fatwa';
+
+        if ($op === 'fatwa') {
+            return $this->fatwaIndex($listing);
+        }
+
+        $countColumn = self::COUNT_COLUMNS[$op];
 
         $authors = Author::where('hidden', 0)
             ->where($countColumn, '>', 0)
@@ -84,6 +119,52 @@ class KhotabAuthorController
             'countLabel' => self::COUNT_LABELS[$op],
             'sectionTitle' => self::SECTION_TITLES[$op],
             'breadcrumbLabel' => self::BREADCRUMB_LABELS[$op],
+        ]);
+    }
+
+    /**
+     * The `fatwa` op's own author source — see `index()`'s docblock for why
+     * it cannot use the stored column.
+     *
+     * The derived count is attached to each model as
+     * `fatwa_displayable_count` and handed to the view through the existing
+     * `$countColumn` indirection (`:count="$author->{$countColumn}"`), so
+     * **the Blade template is unchanged** — same card component, same
+     * grouping, same `BINARY name` ordering, same `khotab-fatwa-{id}.htm`
+     * link shape.
+     *
+     * Two queries, both cheap: the aggregate (~10ms on production, measured
+     * 2026-09-24) and one keyed author fetch. Ordering and grouping are
+     * applied after the join in PHP for the same reason
+     * `fatwaDistinctQuestionCountsByAuthor()` avoids `SELECT ...*` with
+     * `GROUP BY` — MariaDB rejects that shape under `ONLY_FULL_GROUP_BY`
+     * (error 1055).
+     */
+    private function fatwaIndex(ContentListingService $listing): View
+    {
+        $counts = $listing->fatwaDistinctQuestionCountsByAuthor();
+
+        $authors = Author::where('hidden', 0)
+            ->whereIn('id', $counts->keys()->all())
+            ->orderByRaw($this->nameOrderClause())
+            ->get()
+            ->each(function (Author $author) use ($counts): void {
+                $author->fatwa_displayable_count = (int) $counts->get($author->id, 0);
+            });
+
+        $groupedAuthors = $authors->groupBy(function (Author $author): string {
+            $letter = mb_substr((string) $author->name, 0, 1, 'UTF-8');
+
+            return $letter === 'ه' ? 'هـ' : $letter;
+        });
+
+        return view('khotab.authors', [
+            'groupedAuthors' => $groupedAuthors,
+            'op' => 'fatwa',
+            'countColumn' => 'fatwa_displayable_count',
+            'countLabel' => self::COUNT_LABELS['fatwa'],
+            'sectionTitle' => self::SECTION_TITLES['fatwa'],
+            'breadcrumbLabel' => self::BREADCRUMB_LABELS['fatwa'],
         ]);
     }
 

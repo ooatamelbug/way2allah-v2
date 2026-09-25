@@ -14,6 +14,12 @@ function useInMemoryMainConnectionForKhotabBrowsing(): void
         'nuke_islamic_groups' => MainSchema::nukeIslamicGroups(),
         'nuke_islamic_advanced' => MainSchema::nukeIslamicAdvanced(),
         'nuke_sat_channels' => MainSchema::nukeSatChannels(),
+        // Fatwa Authors Batch 1: /fatawa-authors.htm (op=fatwa) now derives
+        // its count and membership from the fatwa mapping tables instead of
+        // the stale nuke_islamic_authors.fatwa column, so this fixture needs
+        // them present. The khotab video/audio/pdf ops are unaffected.
+        'nuke_fatwa_questions' => MainSchema::nukeFatwaQuestions(),
+        'nuke_fatwa_general_questions' => MainSchema::nukeFatwaGeneralQuestions(),
     ]);
 }
 
@@ -96,17 +102,36 @@ it('series show: audio op uses الصوتيات/khotab-audio.htm throughout, and
 // See KhotabDeadRoutesTest.php for why the resulting `khotab-fatwa-*`
 // link is real-but-terminal (SOURCE_UNRECOVERABLE), not a migration bug. ----
 
+/**
+ * Link shape unchanged by Fatwa Authors Batch 1 — but the COUNT'S SOURCE is.
+ *
+ * The displayed number now comes from `nuke_fatwa_questions` (distinct
+ * general questions), not from `nuke_islamic_authors.fatwa`. So this fixture
+ * seeds 12 real distinct mappings to keep asserting "12 فتوى" — the same
+ * number this test always expected, now for the right reason. The stale
+ * column is deliberately set to a conflicting value to prove it is ignored.
+ */
 it('fatawa-authors.htm (op=fatwa) generates real khotab-fatwa-{id}.htm links, byte-faithful to authors.php:80 — not a migration typo/bug', function () {
     DB::connection('main')->table('nuke_islamic_authors')->insert([
-        'id' => 17, 'name' => 'الحويني', 'prename' => 'الشيخ', 'fatwa' => 12, 'hidden' => 0,
+        'id' => 17, 'name' => 'الحويني', 'prename' => 'الشيخ', 'fatwa' => 999, 'hidden' => 0,
     ]);
+
+    for ($i = 1; $i <= 12; $i++) {
+        DB::connection('main')->table('nuke_fatwa_general_questions')->insert([
+            'id' => 500 + $i, 'question_text' => 'Q' . $i, 'topic_id' => '0',
+        ]);
+        DB::connection('main')->table('nuke_fatwa_questions')->insert([
+            'id' => $i, 'auther_id' => 17, 'general_question_id' => '|' . (500 + $i) . '|', 'question_text' => 'A' . $i,
+        ]);
+    }
 
     $content = $this->get('/fatawa-authors.htm')->assertOk()->getContent();
 
     expect($content)
         ->toContain('href="/khotab-fatwa-17.htm"')
         ->toContain('الحويني')
-        ->toContain('12 فتوى');
+        ->toContain('12 فتوى')
+        ->not->toContain('999 فتوى');
 });
 
 it('author directory: renders searchable alphabetical card groups without inline jQuery navigation', function () {
@@ -125,15 +150,41 @@ it('author directory: renders searchable alphabetical card groups without inline
         ->not->toContain("$('.abc').html");
 });
 
-it('fatawa-authors.htm only lists authors with fatwa > 0, matching authors.php:24\'s real WHERE clause', function () {
+/**
+ * EXPECTATION INVERTED — Fatwa Authors Batch 1.
+ *
+ * This test previously asserted that `fatawa-authors.htm` lists an author
+ * purely because `nuke_islamic_authors.fatwa > 0`, reproducing
+ * `authors.php:24`'s literal WHERE clause. Production evidence retired that
+ * rule: the stored column is not the count of anything displayable (author
+ * 17 stored 12 against 126 real distinct questions; author 242 stored 289
+ * against ZERO mapping rows), and nothing anywhere writes it, so it cannot
+ * self-correct. The directory advertised 35 authors whose pages can only
+ * ever be empty, while hiding 28 authors who do have fatwas.
+ *
+ * Membership and the displayed number are now both derived from
+ * `nuke_fatwa_questions` (`hidden = 0 AND distinct-question count > 0`).
+ * So an author with `fatwa = 5` and no mapping rows must now be ABSENT —
+ * the inverse of what this test used to assert. The `hidden = 0` half of
+ * the rule is unchanged.
+ *
+ * Full coverage of the new semantics lives in FatwaAuthorsDirectoryTest.
+ */
+it('fatawa-authors.htm ignores the stale fatwa column: an author with fatwa > 0 but no real mappings is now ABSENT', function () {
     DB::connection('main')->table('nuke_islamic_authors')->insert([
-        ['id' => 1, 'name' => 'Has Fatwa', 'fatwa' => 5, 'hidden' => 0],
-        ['id' => 2, 'name' => 'No Fatwa', 'fatwa' => 0, 'hidden' => 0],
+        ['id' => 1, 'name' => 'Stale Counter Only', 'fatwa' => 5, 'hidden' => 0],
+        ['id' => 2, 'name' => 'Real Mappings', 'fatwa' => 0, 'hidden' => 0],
+    ]);
+    DB::connection('main')->table('nuke_fatwa_general_questions')->insert([
+        ['id' => 500, 'question_text' => 'A real general question'],
+    ]);
+    DB::connection('main')->table('nuke_fatwa_questions')->insert([
+        ['id' => 1, 'auther_id' => 2, 'general_question_id' => '|500|', 'question_text' => 'q'],
     ]);
 
     $content = $this->get('/fatawa-authors.htm')->assertOk()->getContent();
 
-    expect($content)->toContain('Has Fatwa')->not->toContain('No Fatwa');
+    expect($content)->toContain('Real Mappings')->not->toContain('Stale Counter Only');
 });
 
 // ---- group.php (no bug — sanity check it still renders) ----

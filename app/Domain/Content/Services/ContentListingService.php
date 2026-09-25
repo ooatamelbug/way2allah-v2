@@ -5,6 +5,8 @@ namespace App\Domain\Content\Services;
 use App\Domain\Admin\Models\SiteOption;
 use App\Domain\Content\Models\AnasheedItem;
 use App\Domain\Content\Models\Author;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -157,7 +159,13 @@ class ContentListingService
             ->where('grp.author_id', $authorId)
             ->where('grp.vedio', (int) $video)
             ->where('grp.count', '>', 0)
-            ->groupBy('grp.id')
+            // MariaDB (production) does not implement MySQL 5.7.5+'s
+            // functional-dependency detection for ONLY_FULL_GROUP_BY, so the
+            // legacy `GROUP BY grp.id` is rejected with error 1055 even though
+            // grp.id is the primary key. Every column added here is functionally
+            // dependent on that unique id, so grouping cannot split rows -
+            // cardinality, COUNT(kh.id) and ordering are unchanged.
+            ->groupBy('grp.id', 'grp.channel_id', 'grp.title', 'ch.title', 'grp.count')
             ->orderByDesc('grp.title')
             ->select([
                 'grp.id',
@@ -1313,13 +1321,30 @@ class ContentListingService
      */
     public function fatwaGeneralQuestionsByAuthor(int $autherId, int $page = 1): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
-        $generalQuestionIds = DB::connection('main')->table('nuke_fatwa_questions')
-            ->where('auther_id', $autherId)
-            ->pluck('general_question_id')
-            ->map(fn($id) => (int) str_replace('|', '', (string) $id))
-            ->filter(fn($id) => $id > 0)
-            ->unique()
-            ->values();
+        $generalQuestionIds = $this->fatwaGeneralQuestionIdsForAuthor($autherId);
+
+        // Fatwa Authors Batch 1 — deterministic zero-result short-circuit.
+        // Without it, `paginate()` still issues its `COUNT(*)` with
+        // `whereIn('id', [])` compiled to `0 = 1` — a real round trip
+        // (`Impossible WHERE`) whose answer is already known here. The
+        // framework alone skips only the *page* query when the total is 0
+        // (`Query\Builder::paginate()`: `$total ? ... : new Collection`),
+        // so this removes exactly one query and changes nothing else: the
+        // same paginator class with the same totals, so the view, the
+        // `fatawa.partials.pagination` include (gated on `$count > $perpage`,
+        // false either way) and the rendered HTML stay byte-identical.
+        //
+        // **This is a cleanup, NOT a fix for the observed
+        // /auther-questions-242.htm latency.** Production measured that
+        // author's first-stage query at 0.0025s, and its zero-result path
+        // already ran fewer queries than a non-empty author's. That latency
+        // remains OPEN and will be production-tested after this batch.
+        if ($generalQuestionIds->isEmpty()) {
+            return new LengthAwarePaginator([], 0, 25, $page, [
+                'path' => Paginator::resolveCurrentPath(),
+                'pageName' => 'page',
+            ]);
+        }
 
         return DB::connection('main')->table('nuke_fatwa_general_questions')
             ->whereIn('id', $generalQuestionIds)
@@ -1333,6 +1358,86 @@ class ContentListingService
 
                 return $question;
             });
+    }
+
+    /**
+     * The one place `nuke_fatwa_questions.general_question_id` is parsed.
+     *
+     * That column is a `varchar(255)` holding a pipe-wrapped id (`|9490|`)
+     * — legacy's own storage shape. The rule reproduced here is
+     * `fatawa/functions.php:631`'s exactly: `str_replace('|','')`, cast to
+     * int, keep only `> 0`, dedupe.
+     *
+     * Extracted in Fatwa Authors Batch 1 so the author page's listing and
+     * the directory's displayed count derive from one stated rule rather
+     * than two independent ones — see
+     * `fatwaDistinctQuestionCountsByAuthor()` for its SQL counterpart and
+     * for the one documented difference between them.
+     *
+     * @return Collection<int, positive-int>
+     */
+    private function fatwaGeneralQuestionIdsForAuthor(int $autherId): Collection
+    {
+        return DB::connection('main')->table('nuke_fatwa_questions')
+            ->where('auther_id', $autherId)
+            ->pluck('general_question_id')
+            ->map(fn ($id) => (int) str_replace('|', '', (string) $id))
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values();
+    }
+
+    /**
+     * Per-author count of DISTINCT parsed `general_question_id` values —
+     * the number `/fatawa-authors.htm` displays, and the gate deciding
+     * which authors appear there at all (Fatwa Authors Batch 1).
+     *
+     * Replaces the stale `nuke_islamic_authors.fatwa` column, which
+     * production proved is not the count of anything currently displayable:
+     * author 17 stored `12` against 126 real distinct questions, author 242
+     * stored `289` against **zero** mapping rows. Nothing in the legacy
+     * codebase or in Laravel ever writes that column (grepped: 0 writes in
+     * both admin modules, `admincp/`, `crons/`), so it is a frozen
+     * historical artifact. It is neither read nor written here.
+     *
+     * **SQL mirror of `fatwaGeneralQuestionIdsForAuthor()`, deliberately
+     * expression-for-expression:** `REPLACE(...)` is that method's
+     * `str_replace`, `+ 0` its `(int)` cast (so distinctness is numeric, not
+     * string — `'0100'` and `'100'` count once, exactly as `(int)` +
+     * `unique()` would), and `WHERE ... + 0 > 0` its `filter(> 0)`. Verified
+     * to return results identical to the plain string form on real data,
+     * where all 13,364 rows are clean (0 empty, 0 zero, 0 leading-zero, 0
+     * non-numeric).
+     *
+     * **The one documented difference from the listing:** the listing
+     * additionally drops ids with no matching `nuke_fatwa_general_questions`
+     * row (its `whereIn` simply doesn't match them); this count does not.
+     * Production R-1d (2026-09-24) measured **10,491 distinct parsed ids and
+     * 0 orphans**, so the two agree exactly on the current dataset — but
+     * that is a property of the *data*, **not a guarantee of this query**,
+     * and it is deliberately not encoded as one. Expressing the resolution
+     * check in SQL was measured at 32-53s on MariaDB 10.11 (the optimizer
+     * refuses an index for a join on an expression, in every formulation
+     * tried), against ~10ms for this aggregate on production — so it is
+     * excluded from the directory path by design. `FatwaAuthorsDirectoryTest`
+     * pins both the agreement and the divergence so neither can change
+     * silently.
+     *
+     * Not `ONLY_FULL_GROUP_BY`-sensitive: only the grouped column and an
+     * aggregate are selected. (The sibling `fatwaAuthorsWithQuestions()`
+     * selects `nuke_islamic_authors.*` with `GROUP BY id`, which MariaDB
+     * rejects with error 1055 — untouched here, but worth its own check.)
+     *
+     * @return Collection<int, int> keyed by `auther_id`
+     */
+    public function fatwaDistinctQuestionCountsByAuthor(): Collection
+    {
+        return DB::connection('main')->table('nuke_fatwa_questions')
+            ->selectRaw("auther_id, COUNT(DISTINCT REPLACE(general_question_id, '|', '') + 0) as fatwa_displayable_count")
+            ->whereRaw("REPLACE(general_question_id, '|', '') + 0 > 0")
+            ->groupBy('auther_id')
+            ->pluck('fatwa_displayable_count', 'auther_id')
+            ->map(fn ($count) => (int) $count);
     }
 
     // ---- Cross-department advanced search (Roadmap task 6.2) ----------

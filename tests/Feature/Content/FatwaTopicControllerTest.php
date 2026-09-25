@@ -481,14 +481,30 @@ it('category: no page-suffixed alias is registered for this URL family', functio
     $this->get('/fatawa-category-1-2.htm')->assertNotFound();
 });
 
+/**
+ * FIXTURE UPDATED — Fatwa Authors Batch 1.
+ *
+ * Still asserts what it always did (this route reaches the fatwa branch of
+ * KhotabAuthorController::index()), but membership is no longer decided by
+ * `nuke_islamic_authors.fatwa`: it now comes from real `nuke_fatwa_questions`
+ * mappings (`hidden = 0 AND distinct-question count > 0`). The stale column
+ * values here are deliberately inverted against the mappings to prove they
+ * are ignored — "Has Mappings" has `fatwa = 0`, "Stale Only" has `fatwa = 3`.
+ */
 it('fatawa-authors.htm reuses KhotabAuthorController::index() with the fatwa branch', function () {
     $db = DB::connection('main');
     $db->table('nuke_islamic_authors')->insert([
-        ['id' => 1, 'name' => 'Has Fatwa', 'prename' => 'Dr.', 'fatwa' => 3, 'hidden' => 0],
-        ['id' => 2, 'name' => 'No Fatwa', 'prename' => 'Dr.', 'fatwa' => 0, 'hidden' => 0],
+        ['id' => 1, 'name' => 'Has Mappings', 'prename' => 'Dr.', 'fatwa' => 0, 'hidden' => 0],
+        ['id' => 2, 'name' => 'Stale Only', 'prename' => 'Dr.', 'fatwa' => 3, 'hidden' => 0],
+    ]);
+    $db->table('nuke_fatwa_general_questions')->insert([
+        ['id' => 900, 'question_text' => 'G900', 'topic_id' => '0'],
+    ]);
+    $db->table('nuke_fatwa_questions')->insert([
+        ['id' => 1, 'auther_id' => 1, 'general_question_id' => '|900|', 'question_text' => 'A'],
     ]);
 
     $response = $this->get('/fatawa-authors.htm');
 
-    $response->assertOk()->assertSee('Has Fatwa')->assertDontSee('No Fatwa');
+    $response->assertOk()->assertSee('Has Mappings')->assertDontSee('Stale Only');
 });
