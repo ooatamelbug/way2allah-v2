@@ -98,6 +98,13 @@ class MainSchema
             // docblock), just not previously needed by any fixture-
             // consuming test until author.php's description-block portlet.
             $table->text('description')->nullable();
+            // ONLY_FULL_GROUP_BY fix (2026-09-25) — `des` is a real column
+            // (`text`, confirmed against the schema dump) that legacy's
+            // `fatawa-by-authers.php:24` selects, so
+            // `ContentListingService::fatwaAuthorsWithQuestions()` selects and
+            // groups by it to preserve the legacy query contract. Added here
+            // because no fixture-consuming test had needed it until now.
+            $table->text('des')->nullable();
             $table->unsignedInteger('audio')->default(0);
             $table->unsignedInteger('vedio')->default(0);
             $table->unsignedInteger('fatwa')->default(0);

@@ -1148,13 +1148,59 @@ class ContentListingService
         // Author::fallbackImageUrl() on real model instances
         // (get_author_img()'s own reproduction) — same join/group/order
         // shape either way.
+        //
+        // **ONLY_FULL_GROUP_BY fix — production error 1055.** This method
+        // previously selected `nuke_islamic_authors.*` while grouping by
+        // `nuke_islamic_authors.id` alone. MariaDB — unlike MySQL 5.7.5+ —
+        // does not implement functional-dependency detection, so it rejects
+        // every other selected column
+        // (`'…nuke_islamic_authors.name' isn't in GROUP BY`), taking
+        // `/fatawa-by-authers.htm` down entirely.
+        //
+        // That `*` was this port's own widening. Legacy selected a narrow,
+        // explicit list (`fatawa/fatawa-by-authers.php:24`):
+        //
+        //     SELECT nuke_islamic_authors.id, name, prename,
+        //            COUNT(nuke_fatwa_questions.id) as count, des
+        //     FROM nuke_islamic_authors
+        //     INNER JOIN nuke_fatwa_questions
+        //             ON nuke_fatwa_questions.auther_id = nuke_islamic_authors.id
+        //     GROUP BY nuke_islamic_authors.id
+        //     ORDER BY name ASC
+        //
+        // So the fix restores legacy's four non-aggregated columns and names
+        // each one in GROUP BY. The grouping cannot change as a result: `id`
+        // is the primary key, so `name`/`prename`/`des` are functionally
+        // dependent on it and cannot split a group — identical rows,
+        // identical counts, identical order. This moves the query *closer*
+        // to legacy, not further from it.
+        //
+        // The view itself needs only `id`, `name`, `prename` and `count`
+        // (`resources/views/fatawa/by-authors.blade.php`);
+        // `fallbackImageUrl()` is a pure filesystem check on `id` and reads
+        // no `author_image` column. `des` is nevertheless selected because
+        // **legacy selected it** — this migration preserves the legacy query
+        // contract where doing so is safe and inexpensive, rather than
+        // trimming to only what today's view happens to render.
+        //
+        // Everything legacy omitted stays omitted: still **no `hidden = 0`
+        // filter**, and still plain `name ASC` rather than `BINARY name ASC`
+        // — this branch's own confirmed, narrower rules.
         return Author::query()
             ->join('nuke_fatwa_questions', 'nuke_fatwa_questions.auther_id', '=', 'nuke_islamic_authors.id')
-            ->groupBy('nuke_islamic_authors.id')
+            ->groupBy(
+                'nuke_islamic_authors.id',
+                'nuke_islamic_authors.name',
+                'nuke_islamic_authors.prename',
+                'nuke_islamic_authors.des',
+            )
             ->orderBy('nuke_islamic_authors.name')
             ->select([
-                'nuke_islamic_authors.*',
+                'nuke_islamic_authors.id',
+                'nuke_islamic_authors.name',
+                'nuke_islamic_authors.prename',
                 DB::raw('COUNT(nuke_fatwa_questions.id) as count'),
+                'nuke_islamic_authors.des',
             ])
             ->get();
     }
