@@ -17,6 +17,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -173,7 +174,10 @@ class KhotabItemController
 
         $khotabItem->incrementDownloadCount();
 
-        return $this->streamFile($khotabItem->link);
+        // Plain locals only from here on — see streamFile()'s docblock. The
+        // connection name is read off the model rather than hardcoded, so it
+        // stays correct if the model's connection ever changes.
+        return $this->streamFile($khotabItem->link, $khotabItem->getConnectionName());
     }
 
     /** `khotab/functions.php:957-991`'s `download_khotab()`, mirror branch — increments the mirror's own `hits`, not the item's `downcount`. */
@@ -183,7 +187,7 @@ class KhotabItemController
 
         $mirrorModel->incrementDownloadCount();
 
-        return $this->streamFile($mirrorModel->link);
+        return $this->streamFile($mirrorModel->link, $mirrorModel->getConnectionName());
     }
 
     /**
@@ -308,8 +312,53 @@ class KhotabItemController
      * link (local paths, garbled/placeholder strings) — that class of
      * link already 404s today via `is_file()` returning false, and this
      * fix does not change that outcome; only the http(s) case changes.
+     *
+     * ------------------------------------------------------------------
+     * MariaDB connection-exhaustion fix (production incident, 2026-09-27)
+     * ------------------------------------------------------------------
+     * This method proxies the whole remote file through PHP, 8 KiB at a
+     * time, and the loop advances **at the client's download speed**. A real
+     * production example — `/khotab-mirror-117269-178962.htm`, a 1.26 GiB
+     * archive.org file — is ~165,700 iterations and measured 20-60+ minutes
+     * per request.
+     *
+     * The damage was not the streaming itself but what it *held* while it
+     * streamed: Laravel keeps the request's PDO handle open for the whole
+     * request, so every in-flight download pinned one MariaDB connection,
+     * idle, in `Sleep`. With 287 concurrent downloads that is 287
+     * connections against `max_connections = 300` — observed
+     * `Threads_connected ~293`, `Max_used_connections 301` — which starved
+     * every other application on the same server, vBulletin included.
+     *
+     * So the connection is released **before** the loop starts: the record
+     * is already loaded, the counter already incremented, and `$link` is a
+     * plain string captured by the closure. Nothing inside the callback
+     * touches the database, so nothing reconnects (Laravel would silently
+     * reconnect on the next query — the tests assert none happens).
+     *
+     * Why inside the callback rather than in the controller: a
+     * `StreamedResponse` runs its callback during `send()`, not while the
+     * controller builds the response (`Application::handleRequest()`:
+     * `$kernel->handle($request)->send()` and only then `terminate()`).
+     * Disconnecting here is therefore provably the last moment before
+     * `fopen()`, and is immune to anything the middleware pipeline does
+     * between the controller returning and the response being sent.
+     *
+     * `$connectionToRelease` is read from the model
+     * (`Model::getConnectionName()`), never hardcoded, so it follows the
+     * model if its connection changes. Session and cache are both `file`
+     * drivers here, so no other connection participates in this request.
+     *
+     * **This does NOT fix the Apache worker exhaustion.** PHP still proxies
+     * the complete file, so one worker remains occupied for the whole
+     * transfer and `MaxRequestWorkers` can still be reached. That is a
+     * separate architectural problem (offload/redirect/`X-Sendfile`),
+     * deliberately out of scope here — this change addresses the database
+     * half only, and the download behaviour is unchanged on purpose
+     * (Behaviour First: the browser must keep downloading through
+     * way2allah.com without archive.org appearing in the address bar).
      */
-    private function streamFile(?string $link): StreamedResponse
+    private function streamFile(?string $link, ?string $connectionToRelease = null): StreamedResponse
     {
         abort_if($link === null || $link === '', 404, 'File not found');
 
@@ -317,7 +366,13 @@ class KhotabItemController
 
         abort_if(! $isRemote && ! is_file($link), 404, 'File not found');
 
-        return response()->streamDownload(function () use ($link) {
+        return response()->streamDownload(function () use ($link, $connectionToRelease) {
+            // Release the database BEFORE the long transfer. Everything
+            // needed below is already a plain local.
+            if ($connectionToRelease !== null) {
+                DB::disconnect($connectionToRelease);
+            }
+
             $handle = fopen($link, 'rb');
             abort_if($handle === false, 500, 'Error reading file');
 

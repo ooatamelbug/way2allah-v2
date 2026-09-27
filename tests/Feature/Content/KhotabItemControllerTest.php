@@ -920,3 +920,204 @@ it('storeComment: returns "3" when the comment body is missing', function () {
     $this->post('/khotab-item-1/comments', ['user_nickname' => 'Test User'])
         ->assertSeeText('3');
 });
+
+/**
+ * ====================================================================
+ * MariaDB connection-exhaustion fix (production incident, 2026-09-27)
+ * ====================================================================
+ * `streamFile()` now calls `DB::disconnect(<the model's own connection>)` as
+ * the first statement inside the `streamDownload` callback — i.e. after the
+ * record is loaded, after the counter is incremented, and immediately before
+ * `fopen()`.
+ *
+ * Why it matters: Laravel holds the request's PDO handle for the whole
+ * request, so each in-flight download pinned one MariaDB connection, idle in
+ * `Sleep`, for the entire transfer (a real example measured 20-60+ min for a
+ * 1.26 GiB file). 287 concurrent downloads against `max_connections = 300`
+ * exhausted the server for every application on it, vBulletin included.
+ *
+ * NOTE for these tests: the test connection is SQLite `:memory:`, so
+ * disconnecting genuinely destroys the database. That is why assertions about
+ * counters run BEFORE the stream is triggered — and it also makes the
+ * "nothing queries after disconnect" property easy to state honestly.
+ *
+ * This does NOT address Apache worker exhaustion; PHP still proxies the whole
+ * file, so the worker stays occupied. Tracked separately.
+ */
+
+/** Replaces the built-in http:// wrapper so we can observe state at fopen/read time. */
+class DownloadDisconnectProbeWrapper
+{
+    public static string $body = '';
+
+    /** @var array<string, bool|null> */
+    public static array $observed = [];
+
+    /** @var resource|null */
+    public $context;
+
+    private int $position = 0;
+
+    public function stream_open(string $path, string $mode, int $options, ?string &$openedPath): bool
+    {
+        // fopen() time — the disconnect must already have happened.
+        self::$observed['pdo_null_at_open'] = DB::connection('main')->getRawPdo() === null;
+        $this->position = 0;
+
+        return true;
+    }
+
+    public function stream_read(int $count): string
+    {
+        if (! isset(self::$observed['pdo_null_at_first_read'])) {
+            self::$observed['pdo_null_at_first_read'] = DB::connection('main')->getRawPdo() === null;
+        }
+
+        $chunk = substr(self::$body, $this->position, $count);
+        $this->position += strlen($chunk);
+
+        return $chunk;
+    }
+
+    public function stream_eof(): bool
+    {
+        return $this->position >= strlen(self::$body);
+    }
+
+    public function stream_stat(): array
+    {
+        return [];
+    }
+
+    public function stream_close(): void {}
+}
+
+function withHttpWrapperProbe(string $body, callable $callback): void
+{
+    DownloadDisconnectProbeWrapper::$body = $body;
+    DownloadDisconnectProbeWrapper::$observed = [];
+
+    stream_wrapper_unregister('http');
+    stream_wrapper_register('http', DownloadDisconnectProbeWrapper::class);
+
+    try {
+        $callback();
+    } finally {
+        stream_wrapper_restore('http');
+    }
+}
+
+it('download: the DB connection is already released when fopen() runs and when the first chunk is read', function () {
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'title' => 'Item', 'link' => 'http://media.example.com/a.mp4', 'linksize' => 9, 'downcount' => 0,
+    ]);
+
+    // The insert above established the connection.
+    expect(DB::connection('main')->getRawPdo())->not->toBeNull();
+
+    withHttpWrapperProbe('some-bytes', function () {
+        $response = $this->get('/khotab-download-1.htm');
+        $response->assertOk();
+
+        expect($response->streamedContent())->toBe('some-bytes');
+    });
+
+    expect(DownloadDisconnectProbeWrapper::$observed['pdo_null_at_open'])->toBeTrue()
+        ->and(DownloadDisconnectProbeWrapper::$observed['pdo_null_at_first_read'])->toBeTrue();
+});
+
+it('downloadMirror: the DB connection is already released when fopen() runs', function () {
+    DB::connection('main')->table('nuke_islamic_khotab')->insert(['id' => 1, 'title' => 'Item']);
+    DB::connection('main')->table('nuke_islamic_mirror')->insert([
+        'id' => 1, 'khid' => 1, 'link' => 'http://media.example.com/m.mp4', 'hits' => 0,
+    ]);
+
+    withHttpWrapperProbe('mirror-bytes', function () {
+        $response = $this->get('/khotab-mirror-1-1.htm');
+        $response->assertOk();
+
+        expect($response->streamedContent())->toBe('mirror-bytes');
+    });
+
+    expect(DownloadDisconnectProbeWrapper::$observed['pdo_null_at_open'])->toBeTrue();
+});
+
+it('download: no database query is issued during the streaming callback', function () {
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'title' => 'Item', 'link' => 'http://media.example.com/a.mp4', 'linksize' => 9, 'downcount' => 0,
+    ]);
+
+    withHttpWrapperProbe('payload', function () {
+        $response = $this->get('/khotab-download-1.htm');
+        $response->assertOk();
+
+        // Start listening only once the response is built, so anything the
+        // streaming callback triggers would be recorded.
+        $queriesDuringStream = [];
+        DB::listen(function ($query) use (&$queriesDuringStream) {
+            $queriesDuringStream[] = $query->sql;
+        });
+
+        expect($response->streamedContent())->toBe('payload');
+        expect($queriesDuringStream)->toBe([]);
+    });
+});
+
+it('download: still increments downcount before the stream is sent (counter semantics unchanged)', function () {
+    $file = tempnam(sys_get_temp_dir(), 'w2a');
+    file_put_contents($file, 'local-bytes');
+
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'title' => 'Item', 'link' => $file, 'linksize' => 11, 'downcount' => 4,
+    ]);
+
+    $this->get('/khotab-download-1.htm')->assertOk();
+
+    // Read the counter BEFORE triggering the stream (see the note above).
+    expect(DB::connection('main')->table('nuke_islamic_khotab')->find(1)->downcount)->toBe(5);
+
+    @unlink($file);
+});
+
+it('downloadMirror: still increments the mirror hits and not the item downcount', function () {
+    $file = tempnam(sys_get_temp_dir(), 'w2a');
+    file_put_contents($file, 'local-bytes');
+
+    DB::connection('main')->table('nuke_islamic_khotab')->insert(['id' => 1, 'title' => 'Item', 'downcount' => 0]);
+    DB::connection('main')->table('nuke_islamic_mirror')->insert(['id' => 1, 'khid' => 1, 'link' => $file, 'hits' => 7]);
+
+    $this->get('/khotab-mirror-1-1.htm')->assertOk();
+
+    expect(DB::connection('main')->table('nuke_islamic_mirror')->find(1)->hits)->toBe(8)
+        ->and(DB::connection('main')->table('nuke_islamic_khotab')->find(1)->downcount)->toBe(0);
+
+    @unlink($file);
+});
+
+it('download: a local file still streams its real bytes with the attachment filename preserved', function () {
+    $file = tempnam(sys_get_temp_dir(), 'w2a');
+    file_put_contents($file, 'local-file-body');
+
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'title' => 'Item', 'link' => $file, 'linksize' => 15,
+    ]);
+
+    $response = $this->get('/khotab-download-1.htm');
+
+    $response->assertOk();
+    expect($response->headers->get('content-disposition'))->toContain(basename($file));
+    expect($response->streamedContent())->toBe('local-file-body');
+
+    @unlink($file);
+});
+
+it('download/mirror: the public routes and 404 behaviour are unchanged by the disconnect', function () {
+    DB::connection('main')->table('nuke_islamic_khotab')->insert(['id' => 1, 'title' => 'Item', 'link' => '']);
+
+    // Empty link still 404s, and the route names still resolve.
+    $this->get('/khotab-download-1.htm')->assertNotFound();
+    $this->get('/khotab-mirror-1-999.htm')->assertNotFound();
+
+    expect(route('khotab.item.download', ['khotab' => 1]))->toEndWith('/khotab-download-1.htm')
+        ->and(route('khotab.item.download-mirror', ['khotab' => 1, 'mirror' => 2]))->toEndWith('/khotab-mirror-1-2.htm');
+});
