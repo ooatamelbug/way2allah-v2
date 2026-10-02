@@ -68,13 +68,20 @@ class CategorySeriesController
         // own `cat` column (distinct from $categoryModel, the single
         // category this specific URL was reached through), only rendered
         // when the main listing has rows (series.php:55's own condition).
+        //
+        // The explode/filter semantics above the resolver are unchanged; only
+        // the database resolution moved. It used to be `Category::find()` per
+        // id followed by `breadcrumbTrail()` per category — `N + ΣDᵢ` queries,
+        // measured at 201 in a single production request. The batched resolver
+        // returns the identical collection (same order, same multiplicity for
+        // repeated ids, same silent drop of missing ids) in one query per tree
+        // level, so the cost no longer grows with the number of ids.
         $seriesCategoryTrails = collect();
         if ($items->isNotEmpty() && ! empty($seriesModel->cat)) {
-            $seriesCategoryTrails = collect(explode('|', $seriesModel->cat))
-                ->filter(fn ($id) => $id !== '')
-                ->map(fn ($id) => Category::find((int) $id))
-                ->filter()
-                ->map(fn (Category $seriesCategory) => $seriesCategory->breadcrumbTrail());
+            $seriesCategoryTrails = Category::breadcrumbTrailsForIds(
+                collect(explode('|', $seriesModel->cat))
+                    ->filter(fn ($id) => $id !== '')
+            );
         }
 
         return view('categories.series', compact(

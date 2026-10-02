@@ -146,3 +146,123 @@ it('renders the redesigned series downloads and discovery cards with useful meta
         ->toContain('fa-clock-o')
         ->not->toContain('<ul class="news">');
 });
+
+// ---- O-3: breadcrumb-trail resolution batched (see
+// CategoryBreadcrumbTrailsForIdsTest for the resolver's own parity suite) ----
+
+/** Shared fixture: root(1) <- mid(2) <- leafA(11), leafB(12); plus root(9). */
+function seedSeriesTrailTree(string $cat): void
+{
+    DB::connection('main')->table('nuke_w2a_cat')->insert([
+        ['id' => 1, 'title' => 'Root', 'main_cat' => 0],
+        ['id' => 2, 'title' => 'Mid', 'main_cat' => 1],
+        ['id' => 11, 'title' => 'Fiqh', 'main_cat' => 2],
+        ['id' => 12, 'title' => 'Tafsir', 'main_cat' => 2],
+        ['id' => 9, 'title' => 'Standalone', 'main_cat' => 0],
+    ]);
+    DB::connection('main')->table('nuke_islamic_series')->insert(['id' => 9, 'title' => 'My Series', 'cat' => $cat]);
+    DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Author']);
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 1, 'title' => 'Lesson', 'ser_id' => 9, 'vedio' => 1, 'hidden' => 0,
+    ]);
+    DB::connection('main')->table('khotab_category_index')->insert(['khotab_id' => 1, 'category_id' => 11]);
+}
+
+it('O-3: renders one trail per pipe id, ancestors-first, leaf linked', function () {
+    seedSeriesTrailTree('|11|12|9|');
+
+    $content = $this->get('/category-series-9-11.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('<a href="/category-11.htm">Fiqh</a>')
+        ->toContain('<a href="/category-12.htm">Tafsir</a>')
+        ->toContain('<a href="/category-9.htm">Standalone</a>')
+        ->toContain('<li>Root<i class="fa fa-angle-right"></i></li>')
+        ->toContain('<li>Mid<i class="fa fa-angle-right"></i></li>');
+});
+
+/**
+ * The per-series-category trails live in `#cats-breadtcrumb`, closed before
+ * the `<aside>` sidebar. Slicing to that block matters: the MAIN breadcrumb
+ * above it renders the URL category's own link, so a whole-page assertion
+ * would count that occurrence too.
+ */
+function seriesTrailsBlock(string $content): string
+{
+    $start = strpos($content, 'id="cats-breadtcrumb"');
+    expect($start)->not->toBeFalse();
+
+    $end = strpos($content, '<aside', $start);
+
+    return substr($content, $start, $end === false ? null : $end - $start);
+}
+
+it('O-3: a repeated pipe id renders a repeated trail', function () {
+    seedSeriesTrailTree('|11|11|');
+
+    $block = seriesTrailsBlock($this->get('/category-series-9-11.htm')->assertOk()->getContent());
+
+    // Two occurrences in, two rendered leaf links out, inside the trails block.
+    expect(substr_count($block, '<a href="/category-11.htm">Fiqh</a>'))->toBe(2);
+});
+
+it('O-3: pipe order drives render order, not database order', function () {
+    seedSeriesTrailTree('|12|11|');
+
+    $block = seriesTrailsBlock($this->get('/category-series-9-11.htm')->assertOk()->getContent());
+
+    // 12 is inserted after 11, so database order would render Fiqh first.
+    expect(strpos($block, '/category-12.htm'))
+        ->toBeLessThan(strpos($block, '/category-11.htm'));
+});
+
+it('O-3: a pipe id with no category row is silently dropped', function () {
+    seedSeriesTrailTree('|11|77777|9|');
+
+    $content = $this->get('/category-series-9-11.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('<a href="/category-11.htm">Fiqh</a>')
+        ->toContain('<a href="/category-9.htm">Standalone</a>')
+        ->not->toContain('/category-77777.htm');
+});
+
+it('O-3: request query count does not grow with the number of pipe ids', function () {
+    DB::connection('main')->table('nuke_w2a_cat')->insert([
+        ['id' => 1000, 'title' => 'Root', 'main_cat' => 0],
+        ['id' => 1001, 'title' => 'Mid', 'main_cat' => 1000],
+    ]);
+    $leaves = [];
+    for ($id = 1; $id <= 40; $id++) {
+        $leaves[] = ['id' => $id, 'title' => 'Leaf '.$id, 'main_cat' => 1001];
+    }
+    DB::connection('main')->table('nuke_w2a_cat')->insert($leaves);
+    DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Author']);
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 1, 'author' => 1, 'title' => 'Lesson', 'ser_id' => 9, 'vedio' => 1, 'hidden' => 0,
+    ]);
+    DB::connection('main')->table('khotab_category_index')->insert(['khotab_id' => 1, 'category_id' => 1]);
+
+    $countFor = function (string $cat): int {
+        DB::connection('main')->table('nuke_islamic_series')->updateOrInsert(
+            ['id' => 9], ['title' => 'My Series', 'cat' => $cat]
+        );
+
+        $n = 0;
+        DB::connection('main')->listen(function () use (&$n) {
+            $n++;
+        });
+
+        $this->get('/category-series-9-1.htm')->assertOk();
+
+        return $n;
+    };
+
+    $narrow = $countFor(implode('|', range(1, 4)));
+    $wide = $countFor(implode('|', range(1, 40)));
+
+    // 10x the ids, same depth: the whole-request count must not grow with N.
+    // Asserted as a relationship, not a fixed number, so unrelated framework
+    // queries cannot make this brittle.
+    expect($wide)->toBe($narrow);
+});

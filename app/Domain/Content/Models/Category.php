@@ -110,4 +110,127 @@ class Category extends Model
 
         return collect(array_reverse($trail));
     }
+
+    /**
+     * Batched equivalent of calling `find($id)` then `breadcrumbTrail()` once
+     * per id in an ordered list — same output, but the query count scales with
+     * the tree's DEPTH rather than with the number of ids.
+     *
+     * Why this exists: `CategorySeriesController` resolves one trail per
+     * pipe-delimited id on `nuke_islamic_series.cat`. Done one id at a time
+     * that is `N + ΣDᵢ` queries (production logs showed 201 in a single
+     * request, since Eloquent has no identity map and re-fetches every shared
+     * ancestor once per sibling). Here each tree LEVEL is one `whereIn`, so a
+     * list of 5 ids and a list of 50 ids at the same depth cost the same.
+     *
+     * `breadcrumbTrail()` above is deliberately left untouched, so its other
+     * callers keep their exact current behaviour.
+     *
+     * Output is occurrence-for-occurrence identical to the per-id version:
+     *  - ids are returned in the order given, never database order;
+     *  - a repeated id yields a repeated trail (multiplicity is preserved —
+     *    ids are deduplicated only for fetching, never in the output);
+     *  - an id with no row is silently dropped, as `find()` + `filter()` did;
+     *  - each trail contains the leaf itself and runs ancestors-first;
+     *  - a trail whose parent row is missing simply ends there.
+     *
+     * No lazy loading happens during assembly: every model needed is already
+     * in `$loaded` before a single trail is built.
+     *
+     * Cycle protection is defensive only. `breadcrumbTrail()`'s `while` loop
+     * would spin forever on a `main_cat` cycle; this resolver cannot, because
+     * a level only ever requests ids it has not already loaded, so the
+     * frontier empties, and the per-trail walk also stops on a repeated id.
+     * Real data is a tree and reaches neither guard.
+     *
+     * @param  iterable<array-key, int|string>  $ids  ordered, may contain duplicates
+     * @return \Illuminate\Support\Collection<int, \Illuminate\Support\Collection<int, self>>
+     */
+    public static function breadcrumbTrailsForIds(iterable $ids): \Illuminate\Support\Collection
+    {
+        /** @var list<int> $ordered */
+        $ordered = [];
+
+        foreach ($ids as $id) {
+            $ordered[] = (int) $id;
+        }
+
+        if ($ordered === []) {
+            return collect();
+        }
+
+        /** @var array<int, self> $loaded */
+        $loaded = [];
+
+        // One query per tree level. `$pending` only ever holds ids not already
+        // loaded, which is what makes a cycle terminate: a row cannot be
+        // requested twice, so the frontier empties.
+        $pending = array_values(array_unique($ordered));
+
+        while ($pending !== []) {
+            /** @var \Illuminate\Support\Collection<int, self> $level */
+            $level = static::query()->whereIn('id', $pending)->get();
+
+            if ($level->isEmpty()) {
+                break;
+            }
+
+            /** @var array<int, int> $next */
+            $next = [];
+
+            foreach ($level as $category) {
+                $loaded[(int) $category->id] = $category;
+
+                $parentId = (int) $category->main_cat;
+
+                if ($parentId > 0 && ! array_key_exists($parentId, $loaded)) {
+                    $next[$parentId] = $parentId;
+                }
+            }
+
+            $pending = array_values($next);
+        }
+
+        /** @var list<\Illuminate\Support\Collection<int, self>> $trails */
+        $trails = [];
+
+        foreach ($ordered as $id) {
+            if (! array_key_exists($id, $loaded)) {
+                // Matches the dropped-null behaviour of find() + filter().
+                continue;
+            }
+
+            /** @var list<self> $trail */
+            $trail = [];
+            /** @var array<int, bool> $seen */
+            $seen = [];
+            $current = $loaded[$id];
+
+            while (true) {
+                $currentId = (int) $current->id;
+
+                if (array_key_exists($currentId, $seen)) {
+                    // Defensive: a cycle in `main_cat`. Stop rather than spin.
+                    break;
+                }
+
+                $seen[$currentId] = true;
+                $trail[] = $current;
+
+                $parentId = (int) $current->main_cat;
+
+                if ($parentId <= 0 || ! array_key_exists($parentId, $loaded)) {
+                    // Root reached, or the parent row does not exist — the same
+                    // point at which breadcrumbTrail() breaks.
+                    break;
+                }
+
+                $current = $loaded[$parentId];
+            }
+
+            $trails[] = collect(array_reverse($trail));
+        }
+
+        return collect($trails);
+    }
 }
