@@ -613,12 +613,38 @@ class ContentSidebarWidget
      * 3-table JOIN, an OR'd LIKE across two columns) — not forced through
      * the shared `query()`/`topitems()` helpers below.
      *
-     * `ORDER BY khid DESC, linksize ASC` (not `RAND()`) — the legacy
-     * comment at this call site notes `RAND()` was intentionally left
-     * un-rewritten elsewhere in an earlier performance pass because the
-     * `.mp3`-filtered candidate set can't be narrowed by an id-range
-     * trick; reproduced here exactly as currently deployed, not as
-     * originally written.
+     * `ORDER BY kh.id DESC` (not `RAND()`) — the legacy comment at this
+     * call site notes `RAND()` was intentionally left un-rewritten
+     * elsewhere in an earlier performance pass because the `.mp3`-filtered
+     * candidate set can't be narrowed by an id-range trick.
+     *
+     * **Do not restore `kh.linksize ASC` as a secondary sort key.** Legacy
+     * (`radio/index.php:49`) ordered by `khid DESC, kh.linksize ASC`, and
+     * that second key was reproduced here verbatim — but it is incapable of
+     * ordering anything: the join is `kh.id = mir.khid` on `kh`'s PRIMARY
+     * KEY, so `kh.linksize` is functionally dependent on `khid` and holds
+     * one single value across every mirror row sharing a `khid`. It
+     * therefore never discriminated between rows, while costing the whole
+     * query its plan: no index spans `(kh.id DESC, kh.linksize ASC)`, which
+     * forced a filesort, and a filesort must see every qualifying row before
+     * emitting the first — so `LIMIT 40` could not prune anything.
+     *
+     * Measured on production with plain `EXPLAIN` (2026-10-07):
+     *   before — `kh  ALL    key=NULL     rows=284655  Using where; Using filesort`
+     *   after  — `kh  index  key=PRIMARY  rows=40      Using where`
+     * The `mir` (`ref`/`idx_khid`) and `auth` (`eq_ref`/`PRIMARY`) rows were
+     * unchanged. Equivalence was verified against the restored production
+     * data before the change: identical row count, identical
+     * `(khid, mirror_id)` set, identical sequence and identical values in
+     * all nine selected columns, over both the real `LIMIT 40` window and a
+     * widened 3,000-row window containing real tied-`khid` groups.
+     *
+     * The `kh` join is written as an explicit INNER JOIN because
+     * `kh.broken = 0`/`kh.hidden = 0` are null-rejecting, so MariaDB already
+     * converted it (it drives from `kh` in the plan above); stating it keeps
+     * the shipped SQL identical to the shape that EXPLAIN verified. The
+     * `auth` join stays LEFT — authors can be absent and the view renders
+     * the NULLs.
      *
      * Data only, no presentation: which link (`main_link` vs
      * `mirror_link`) is actually playable, and the resulting `pl_section`
@@ -630,7 +656,7 @@ class ContentSidebarWidget
     public function radioPlaylist(int $limit = 40): Collection
     {
         return DB::connection('main')->table('nuke_islamic_mirror as mir')
-            ->leftJoin('nuke_islamic_khotab as kh', 'kh.id', '=', 'mir.khid')
+            ->join('nuke_islamic_khotab as kh', 'kh.id', '=', 'mir.khid')
             ->leftJoin('nuke_islamic_authors as auth', 'auth.id', '=', 'kh.author')
             ->where(function ($query) {
                 $query->where('kh.link', 'like', '%.mp3%')->orWhere('mir.link', 'like', '%.mp3%');
@@ -642,8 +668,7 @@ class ContentSidebarWidget
                 'mir.time', 'mir.id as mirror_id', 'mir.link as mirror_link',
                 'auth.prename', 'auth.name as author_name',
             ])
-            ->orderByDesc('khid')
-            ->orderBy('kh.linksize')
+            ->orderByDesc('kh.id')
             ->limit($limit)
             ->get();
     }
