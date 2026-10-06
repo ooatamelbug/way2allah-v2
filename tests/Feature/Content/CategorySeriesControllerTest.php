@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\Fixtures\MainSchema;
 use Tests\Support\InMemoryConnection;
@@ -248,6 +249,13 @@ it('O-3: request query count does not grow with the number of pipe ids', functio
             ['id' => 9], ['title' => 'My Series', 'cat' => $cat]
         );
 
+        // Both measurements must start cold. C-1 caches the two category-scoped
+        // sidebar queries for 300s, so without this the second request would be
+        // 2 queries cheaper for a reason that has nothing to do with N — the
+        // property under test here is only that the count is independent of the
+        // number of pipe ids.
+        Cache::flush();
+
         $n = 0;
         DB::connection('main')->listen(function () use (&$n) {
             $n++;
@@ -265,4 +273,45 @@ it('O-3: request query count does not grow with the number of pipe ids', functio
     // Asserted as a relationship, not a fixed number, so unrelated framework
     // queries cannot make this brittle.
     expect($wide)->toBe($narrow);
+});
+
+// ---- C-1: the sidebar pair is category-scoped, so series pages under one
+// category share the cached entries (ContentSidebarWidgetCacheTest covers the
+// widget itself; this proves the sharing end-to-end through the route). ----
+
+it('C-1: two different series under the same category share the cached sidebar queries', function () {
+    Cache::flush();
+
+    DB::connection('main')->table('nuke_w2a_cat')->insert(['id' => 11, 'title' => 'Fiqh', 'main_cat' => 0]);
+    DB::connection('main')->table('nuke_islamic_series')->insert([
+        ['id' => 9, 'title' => 'Series Nine', 'vedio' => 1, 'hidden' => 0],
+        ['id' => 10, 'title' => 'Series Ten', 'vedio' => 1, 'hidden' => 0],
+    ]);
+    DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Author']);
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        ['id' => 1, 'author' => 1, 'title' => 'Lesson Nine', 'ser_id' => 9, 'vedio' => 1, 'hidden' => 0, 'hits' => 50, 'time' => 100],
+        ['id' => 2, 'author' => 1, 'title' => 'Lesson Ten', 'ser_id' => 10, 'vedio' => 1, 'hidden' => 0, 'hits' => 90, 'time' => 200],
+    ]);
+    DB::connection('main')->table('khotab_category_index')->insert([
+        ['khotab_id' => 1, 'category_id' => 11],
+        ['khotab_id' => 2, 'category_id' => 11],
+    ]);
+
+    $count = function (string $url): int {
+        $n = 0;
+        DB::connection('main')->listen(function () use (&$n) {
+            $n++;
+        });
+        $this->get($url)->assertOk();
+
+        return $n;
+    };
+
+    $first = $count('/category-series-9-11.htm');    // cold: fills both entries
+    $second = $count('/category-series-10-11.htm');  // different series, same category
+
+    // The second page issues strictly fewer queries: the two category-scoped
+    // sidebar queries are served from the entries the first page filled.
+    expect($second)->toBeLessThan($first)
+        ->and($first - $second)->toBe(2);
 });

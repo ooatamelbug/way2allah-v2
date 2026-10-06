@@ -514,39 +514,57 @@ class ContentSidebarWidget
      */
     public function khotabMostDownloadedByCategoryForSeries(int $categoryId): Collection
     {
-        return DB::connection('main')->table('nuke_islamic_khotab as kh')
-            ->join('khotab_category_index as kci', function ($join) use ($categoryId) {
-                $join->on('kci.khotab_id', '=', 'kh.id')->where('kci.category_id', $categoryId);
-            })
-            ->where('kh.vedio', 1)
-            ->select(['kh.id', 'kh.title', 'kh.author', 'kh.frame', 'kh.hits', 'kh.downcount', 'kh.time'])
-            ->orderByDesc('kh.hits')
-            ->limit(5)
-            ->get()
-            ->map(function ($item) {
-                $item->thumb = $this->topitemsThumb((int) $item->frame, (int) $item->id);
+        // C-1 (parity restoration): cached. Legacy reached this through its
+        // own `topitems()`, which caches the raw rows for 300s
+        // (`functions.php:1029-1033`, `SimpleCache::set($cacheKey, $items, 300)`)
+        // keyed on the full SQL including this `category_id`. The port of this
+        // one widget pair lost that only because the shared cached
+        // `topitems()` helper below cannot express the `khotab_category_index`
+        // join these two need — not because freshness was required here. The
+        // SQL itself is unchanged.
+        //
+        // Keyed on `category` alone, deliberately: neither query filters by
+        // series, so every series page under one category shares one entry.
+        return $this->rememberRows(
+            $this->cacheKey('category-series-khotab', ['category' => $categoryId, 'order' => 'hits', 'limit' => 5]),
+            fn () => DB::connection('main')->table('nuke_islamic_khotab as kh')
+                ->join('khotab_category_index as kci', function ($join) use ($categoryId) {
+                    $join->on('kci.khotab_id', '=', 'kh.id')->where('kci.category_id', $categoryId);
+                })
+                ->where('kh.vedio', 1)
+                ->select(['kh.id', 'kh.title', 'kh.author', 'kh.frame', 'kh.hits', 'kh.downcount', 'kh.time'])
+                ->orderByDesc('kh.hits')
+                ->limit(5)
+                ->get()
+        )->map(function ($item) {
+            $item->thumb = $this->topitemsThumb((int) $item->frame, (int) $item->id);
 
-                return $item;
-            });
+            return $item;
+        });
     }
 
     /** "Newest" counterpart to `khotabMostDownloadedByCategoryForSeries()` above — same no-`hidden`-filter difference, `categories/series.php:130`. */
     public function khotabMostRecentByCategoryForSeries(int $categoryId): Collection
     {
-        return DB::connection('main')->table('nuke_islamic_khotab as kh')
-            ->join('khotab_category_index as kci', function ($join) use ($categoryId) {
-                $join->on('kci.khotab_id', '=', 'kh.id')->where('kci.category_id', $categoryId);
-            })
-            ->where('kh.vedio', 1)
-            ->select(['kh.id', 'kh.title', 'kh.author', 'kh.frame', 'kh.hits', 'kh.downcount', 'kh.time'])
-            ->orderByDesc('kh.time')
-            ->limit(5)
-            ->get()
-            ->map(function ($item) {
-                $item->thumb = $this->topitemsThumb((int) $item->frame, (int) $item->id);
+        // C-1 (parity restoration): cached — see the "most downloaded"
+        // counterpart above. Separate `order` part in the key so the two
+        // orderings cannot share an entry.
+        return $this->rememberRows(
+            $this->cacheKey('category-series-khotab', ['category' => $categoryId, 'order' => 'time', 'limit' => 5]),
+            fn () => DB::connection('main')->table('nuke_islamic_khotab as kh')
+                ->join('khotab_category_index as kci', function ($join) use ($categoryId) {
+                    $join->on('kci.khotab_id', '=', 'kh.id')->where('kci.category_id', $categoryId);
+                })
+                ->where('kh.vedio', 1)
+                ->select(['kh.id', 'kh.title', 'kh.author', 'kh.frame', 'kh.hits', 'kh.downcount', 'kh.time'])
+                ->orderByDesc('kh.time')
+                ->limit(5)
+                ->get()
+        )->map(function ($item) {
+            $item->thumb = $this->topitemsThumb((int) $item->frame, (int) $item->id);
 
-                return $item;
-            });
+            return $item;
+        });
     }
 
     // ---- Wave 4 (post-Wave-4 addition): radio/index.php ----
