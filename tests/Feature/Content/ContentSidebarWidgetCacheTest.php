@@ -269,8 +269,9 @@ it('C-1: does not collide with the categories.show pair, which keeps its own hid
     seedCategorySeriesMappings();
     $widget = app(ContentSidebarWidget::class);
 
-    // khotabMostDownloadedByCategory() (categories.show, :456) is a different
-    // method with `hidden = 0` and is NOT part of C-1 — it must still query.
+    // khotabMostDownloadedByCategory() (categories.show) is a different method
+    // with `hidden = 0`. It is cached too (C-2) but under its own namespace, so
+    // each one misses independently rather than one serving the other.
     $series = countMainQueries(fn () => $widget->khotabMostDownloadedByCategoryForSeries(11));
     $show = countMainQueries(fn () => $widget->khotabMostDownloadedByCategory(11));
 
@@ -347,4 +348,197 @@ it('C-1: caches an empty result set without re-querying', function () {
     expect($cold)->toBe(1)
         ->and($warm)->toBe(0)
         ->and($widget->khotabMostRecentByCategoryForSeries(999))->toBeEmpty();
+});
+
+// ---- C-2: categories.show sidebar pair (khotabMostDownloaded/
+// MostRecentByCategory). Same parity restoration as C-1 — legacy's
+// `category.php:119,129` call the same cached topitems() — but this pair
+// keeps its `hidden = 0` filter, so it is a separate cache namespace. ----
+
+/**
+ * Adds a HIDDEN video row mapped into category 11. It is the discriminator
+ * for the whole C-2 suite: the categories.show pair must exclude it, the
+ * categories.series pair must include it, so one cannot serve the other.
+ */
+function seedHiddenCategoryRow(): void
+{
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        'id' => 4, 'author' => 7, 'title' => 'Hidden Video D', 'vedio' => 1, 'hidden' => 1,
+        'hits' => 99999, 'time' => 99999, 'frame' => 0, 'pdf' => 0, 'channel_id' => 3,
+    ]);
+    DB::connection('main')->table('khotab_category_index')->insert([
+        ['khotab_id' => 4, 'category_id' => 11],
+    ]);
+}
+
+it('C-2: executes the categories.show "most downloaded" query cold and serves the second call from cache', function () {
+    seedCategorySeriesMappings();
+    $widget = app(ContentSidebarWidget::class);
+
+    $cold = countMainQueries(fn () => $widget->khotabMostDownloadedByCategory(11));
+    $warm = countMainQueries(fn () => $widget->khotabMostDownloadedByCategory(11));
+
+    expect($cold)->toBe(1)
+        ->and($warm)->toBe(0);
+});
+
+it('C-2: executes the categories.show "newest" query cold and serves the second call from cache', function () {
+    seedCategorySeriesMappings();
+    $widget = app(ContentSidebarWidget::class);
+
+    $cold = countMainQueries(fn () => $widget->khotabMostRecentByCategory(11));
+    $warm = countMainQueries(fn () => $widget->khotabMostRecentByCategory(11));
+
+    expect($cold)->toBe(1)
+        ->and($warm)->toBe(0);
+});
+
+it('C-2: returns identical rows and order cold and warm', function () {
+    seedCategorySeriesMappings();
+    $widget = app(ContentSidebarWidget::class);
+
+    $coldHits = $widget->khotabMostDownloadedByCategory(11);
+    $warmHits = $widget->khotabMostDownloadedByCategory(11);
+    $coldTime = $widget->khotabMostRecentByCategory(11);
+    $warmTime = $widget->khotabMostRecentByCategory(11);
+
+    // hits DESC: id 2 (900) then id 1 (500). id 3 excluded (vedio=0).
+    expect($coldHits->pluck('id')->all())->toBe([2, 1])
+        ->and($warmHits->pluck('id')->all())->toBe($coldHits->pluck('id')->all())
+        ->and($warmHits->pluck('title')->all())->toBe($coldHits->pluck('title')->all())
+        ->and($warmHits->pluck('hits')->all())->toBe($coldHits->pluck('hits')->all())
+        // time DESC: id 2 (200) then id 1 (100).
+        ->and($coldTime->pluck('id')->all())->toBe([2, 1])
+        ->and($warmTime->pluck('id')->all())->toBe($coldTime->pluck('id')->all());
+});
+
+it('C-2: keeps hidden = 0 intact, cold and warm', function () {
+    seedCategorySeriesMappings();
+    seedHiddenCategoryRow();
+    $widget = app(ContentSidebarWidget::class);
+
+    // id 4 has the highest hits and time of any row, so it would lead both
+    // lists if the filter were lost.
+    $cold = $widget->khotabMostDownloadedByCategory(11);
+    $warm = $widget->khotabMostDownloadedByCategory(11);
+
+    expect($cold->pluck('id')->all())->toBe([2, 1])
+        ->and($warm->pluck('id')->all())->toBe([2, 1])
+        ->and($widget->khotabMostRecentByCategory(11)->pluck('id')->all())->toBe([2, 1]);
+});
+
+it('C-2: keeps vedio = 1 intact, cold and warm', function () {
+    seedCategorySeriesMappings();
+    $widget = app(ContentSidebarWidget::class);
+
+    // id 3 is vedio=0 with hits 700 — between ids 1 and 2 — so losing the
+    // filter would place it second in the hits list.
+    expect($widget->khotabMostDownloadedByCategory(11)->pluck('id')->all())->toBe([2, 1])
+        ->and($widget->khotabMostDownloadedByCategory(11)->pluck('id')->all())->toBe([2, 1]);
+});
+
+it('C-2: does not collide between the hits and time orderings for the same category', function () {
+    seedCategorySeriesMappings();
+    $widget = app(ContentSidebarWidget::class);
+
+    DB::connection('main')->table('nuke_islamic_khotab')->where('id', 1)->update(['hits' => 9999]);
+
+    expect($widget->khotabMostDownloadedByCategory(11)->pluck('id')->all())->toBe([1, 2])
+        ->and($widget->khotabMostRecentByCategory(11)->pluck('id')->all())->toBe([2, 1]);
+});
+
+it('C-2: does not collide between different categories', function () {
+    seedCategorySeriesMappings();
+    $widget = app(ContentSidebarWidget::class);
+
+    expect($widget->khotabMostDownloadedByCategory(11)->pluck('id')->all())->toBe([2, 1])
+        ->and($widget->khotabMostDownloadedByCategory(12)->pluck('id')->all())->toBe([1])
+        ->and($widget->khotabMostDownloadedByCategory(999)->pluck('id')->all())->toBe([]);
+});
+
+it('C-2: does not collide with the C-1 categories.series cache, which includes hidden rows', function () {
+    seedCategorySeriesMappings();
+    seedHiddenCategoryRow();
+    $widget = app(ContentSidebarWidget::class);
+
+    // Fill the categories.show entry first; if the namespaces collided, the
+    // series call below would be served this hidden-excluded result.
+    $show = $widget->khotabMostDownloadedByCategory(11);
+    $series = $widget->khotabMostDownloadedByCategoryForSeries(11);
+
+    expect($show->pluck('id')->all())->toBe([2, 1])          // hidden id 4 excluded
+        ->and($series->pluck('id')->all())->toBe([4, 2, 1])  // hidden id 4 INCLUDED, hits 99999
+        // and in the other direction too
+        ->and($widget->khotabMostRecentByCategory(11)->pluck('id')->all())->toBe([2, 1])
+        ->and($widget->khotabMostRecentByCategoryForSeries(11)->pluck('id')->all())->toBe([4, 2, 1]);
+});
+
+it('C-2: stores raw rows only — the thumb decoration is never persisted', function () {
+    seedCategorySeriesMappings();
+    $widget = app(ContentSidebarWidget::class);
+
+    $rows = $widget->khotabMostDownloadedByCategory(11);
+    expect($rows->first())->toHaveProperty('thumb');
+
+    // cacheKey() ksorts its parts: category, limit, order.
+    $cached = Cache::get('sidebar:category-khotab:category=11:limit=5:order=hits');
+
+    expect($cached)->toBeArray()
+        ->and($cached)->not->toBeEmpty()
+        ->and($cached[0])->toBeArray()
+        ->and($cached[0])->toHaveKey('title')
+        ->and($cached[0])->not->toHaveKey('thumb');
+});
+
+it('C-2: recomputes the thumbnail after a cache hit', function () {
+    seedCategorySeriesMappings();
+    $widget = app(ContentSidebarWidget::class);
+
+    $first = $widget->khotabMostRecentByCategory(11);
+    $warm = $widget->khotabMostRecentByCategory(11);
+
+    expect($warm->first())->toHaveProperty('thumb')
+        ->and($warm->first()->thumb)->toBe($first->first()->thumb);
+});
+
+it('C-2: rehydrates cached rows as stdClass on the serializing file store', function () {
+    seedCategorySeriesMappings();
+    config(['cache.default' => 'file']);
+    Cache::store('file')->flush();
+    $widget = app(ContentSidebarWidget::class);
+
+    $widget->khotabMostDownloadedByCategory(11);
+    $warm = $widget->khotabMostDownloadedByCategory(11);
+
+    expect($warm->first())->toBeInstanceOf(stdClass::class)
+        ->and($warm->first()->title)->toBe('Video B')
+        ->and($warm->first())->not->toBeInstanceOf(__PHP_Incomplete_Class::class);
+
+    Cache::store('file')->flush();
+});
+
+it('C-2: honours the existing 300 second TTL', function () {
+    seedCategorySeriesMappings();
+    $widget = app(ContentSidebarWidget::class);
+    $widget->khotabMostDownloadedByCategory(11);
+
+    $this->travel(299)->seconds();
+    expect(countMainQueries(fn () => $widget->khotabMostDownloadedByCategory(11)))->toBe(0);
+
+    $this->travel(2)->seconds();
+    expect(countMainQueries(fn () => $widget->khotabMostDownloadedByCategory(11)))->toBe(1);
+
+    $this->travelBack();
+});
+
+it('C-2: caches an empty result set without re-querying', function () {
+    seedCategorySeriesMappings();
+    $widget = app(ContentSidebarWidget::class);
+
+    $cold = countMainQueries(fn () => $widget->khotabMostRecentByCategory(999));
+    $warm = countMainQueries(fn () => $widget->khotabMostRecentByCategory(999));
+
+    expect($cold)->toBe(1)
+        ->and($warm)->toBe(0)
+        ->and($widget->khotabMostRecentByCategory(999))->toBeEmpty();
 });

@@ -384,3 +384,44 @@ it('IF-036: showAnasheed() shows a KHOTAB sidebar (random featured/most download
 it('showAnasheed: 404s for a nonexistent category', function () {
     $this->get('/var-category-999.htm')->assertNotFound();
 });
+
+// ---- C-2: the two sidebar widgets are cached for 300s (parity with
+// legacy category.php:119,129's topitems()). Widget-level coverage lives in
+// ContentSidebarWidgetCacheTest; this proves the saving through the route and
+// that the rendered page is unchanged. ----
+
+it('C-2: a repeated categories.show request drops exactly the two sidebar queries and renders identically', function () {
+    Cache::flush();
+
+    DB::connection('main')->table('nuke_w2a_cat')->insert(['id' => 5, 'title' => 'Fiqh', 'main_cat' => 0]);
+    DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Author']);
+    DB::connection('main')->table('nuke_islamic_khotab')->insert([
+        ['id' => 1, 'author' => 1, 'title' => 'Fiqh Lesson', 'vedio' => 1, 'hidden' => 0, 'hits' => 50, 'time' => 100],
+        ['id' => 2, 'author' => 1, 'title' => 'Fiqh Lesson Two', 'vedio' => 1, 'hidden' => 0, 'hits' => 90, 'time' => 200],
+    ]);
+    DB::connection('main')->table('khotab_category_index')->insert([
+        ['khotab_id' => 1, 'category_id' => 5],
+        ['khotab_id' => 2, 'category_id' => 5],
+    ]);
+
+    $run = function (string $url): array {
+        $n = 0;
+        DB::connection('main')->listen(function () use (&$n) {
+            $n++;
+        });
+        $html = $this->get($url)->assertOk()->getContent();
+
+        return [$n, $html];
+    };
+
+    [$coldCount, $coldHtml] = $run('/category-5.htm');
+    [$warmCount, $warmHtml] = $run('/category-5.htm');
+
+    // Exactly the two sidebar queries are saved. The core listing
+    // (ContentListingService::khotabItemsByCategory) is deliberately NOT
+    // cached, so it still runs on the warm request.
+    expect($coldCount - $warmCount)->toBe(2)
+        ->and($warmCount)->toBeLessThan($coldCount)
+        // and the page is byte-identical, so the saving is invisible to users
+        ->and($warmHtml)->toBe($coldHtml);
+});

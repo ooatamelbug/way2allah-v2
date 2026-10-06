@@ -455,21 +455,37 @@ class ContentSidebarWidget
      */
     public function khotabMostDownloadedByCategory(int $categoryId): Collection
     {
-        return DB::connection('main')->table('nuke_islamic_khotab as kh')
-            ->join('khotab_category_index as kci', function ($join) use ($categoryId) {
-                $join->on('kci.khotab_id', '=', 'kh.id')->where('kci.category_id', $categoryId);
-            })
-            ->where('kh.hidden', 0)
-            ->where('kh.vedio', 1)
-            ->select(['kh.id', 'kh.title', 'kh.author', 'kh.frame', 'kh.hits', 'kh.downcount', 'kh.time'])
-            ->orderByDesc('kh.hits')
-            ->limit(5)
-            ->get()
-            ->map(function ($item) {
-                $item->thumb = $this->topitemsThumb((int) $item->frame, (int) $item->id);
+        // C-2 (parity restoration, same shape as C-1): cached. Legacy reached
+        // this through its own `topitems()` (`category.php:119`), which caches
+        // the raw rows for 300s (`functions.php:1029-1033`,
+        // `SimpleCache::set($cacheKey, $items, 300)`) keyed on `md5($sql)` —
+        // and that SQL string contains BOTH this `category_id` and the
+        // `hidden = 0` predicate, so legacy itself keeps this page's entries
+        // separate from `series.php`'s hidden-inclusive ones. The port lost
+        // the caching only because the shared cached `topitems()` helper
+        // below cannot express the `khotab_category_index` join. The SQL here
+        // is unchanged, `hidden = 0` included.
+        //
+        // Namespace is `category-khotab`, deliberately distinct from C-1's
+        // `category-series-khotab`: the two pairs can return different rows
+        // for the same category precisely because of `hidden = 0`.
+        return $this->rememberRows(
+            $this->cacheKey('category-khotab', ['category' => $categoryId, 'order' => 'hits', 'limit' => 5]),
+            fn () => DB::connection('main')->table('nuke_islamic_khotab as kh')
+                ->join('khotab_category_index as kci', function ($join) use ($categoryId) {
+                    $join->on('kci.khotab_id', '=', 'kh.id')->where('kci.category_id', $categoryId);
+                })
+                ->where('kh.hidden', 0)
+                ->where('kh.vedio', 1)
+                ->select(['kh.id', 'kh.title', 'kh.author', 'kh.frame', 'kh.hits', 'kh.downcount', 'kh.time'])
+                ->orderByDesc('kh.hits')
+                ->limit(5)
+                ->get()
+        )->map(function ($item) {
+            $item->thumb = $this->topitemsThumb((int) $item->frame, (int) $item->id);
 
-                return $item;
-            });
+            return $item;
+        });
     }
 
     /**
@@ -485,21 +501,27 @@ class ContentSidebarWidget
      */
     public function khotabMostRecentByCategory(int $categoryId): Collection
     {
-        return DB::connection('main')->table('nuke_islamic_khotab as kh')
-            ->join('khotab_category_index as kci', function ($join) use ($categoryId) {
-                $join->on('kci.khotab_id', '=', 'kh.id')->where('kci.category_id', $categoryId);
-            })
-            ->where('kh.hidden', 0)
-            ->where('kh.vedio', 1)
-            ->select(['kh.id', 'kh.title', 'kh.author', 'kh.frame', 'kh.hits', 'kh.downcount', 'kh.time'])
-            ->orderByDesc('kh.time')
-            ->limit(5)
-            ->get()
-            ->map(function ($item) {
-                $item->thumb = $this->topitemsThumb((int) $item->frame, (int) $item->id);
+        // C-2 (parity restoration): cached — see the "most downloaded"
+        // counterpart above (`category.php:129` is its legacy call site).
+        // Separate `order` part in the key so the two orderings cannot share
+        // an entry.
+        return $this->rememberRows(
+            $this->cacheKey('category-khotab', ['category' => $categoryId, 'order' => 'time', 'limit' => 5]),
+            fn () => DB::connection('main')->table('nuke_islamic_khotab as kh')
+                ->join('khotab_category_index as kci', function ($join) use ($categoryId) {
+                    $join->on('kci.khotab_id', '=', 'kh.id')->where('kci.category_id', $categoryId);
+                })
+                ->where('kh.hidden', 0)
+                ->where('kh.vedio', 1)
+                ->select(['kh.id', 'kh.title', 'kh.author', 'kh.frame', 'kh.hits', 'kh.downcount', 'kh.time'])
+                ->orderByDesc('kh.time')
+                ->limit(5)
+                ->get()
+        )->map(function ($item) {
+            $item->thumb = $this->topitemsThumb((int) $item->frame, (int) $item->id);
 
-                return $item;
-            });
+            return $item;
+        });
     }
 
     /**
