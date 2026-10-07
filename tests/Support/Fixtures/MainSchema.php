@@ -270,7 +270,14 @@ class MainSchema
     {
         return function (Blueprint $table) {
             $table->increments('id');
-            $table->unsignedInteger('author')->default(0);
+            // C-1 (2026-10-07): made nullable to match the real column,
+            // confirmed by production `SHOW CREATE TABLE` — `author int(6)
+            // DEFAULT NULL`. Needed so the `INNER JOIN nuke_islamic_authors`
+            // exclusion of NULL-author rows (2 such rows in production's
+            // `vedio=1 AND hidden=0` scope) is actually testable. Widening a
+            // NOT NULL column to nullable cannot affect any existing test:
+            // every insert still supplies a value or takes the default.
+            $table->unsignedInteger('author')->nullable()->default(0);
             $table->unsignedInteger('channel_id')->nullable();
             $table->unsignedInteger('ser_id')->default(0);
             $table->unsignedInteger('group_id')->default(0);

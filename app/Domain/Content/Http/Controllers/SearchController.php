@@ -208,7 +208,11 @@ class SearchController
     private function runSearch(string $department, array $filters, ContentListingService $listing): array
     {
         return match ($department) {
-            'video' => [$listing->khotabAdvancedSearch($filters, 'tb1.weight', true), $listing->khotabSeriesAdvancedSearch($filters, true), null],
+            // C-1: the 4th argument enables the results-pass-only
+            // `STRAIGHT_JOIN` hint — this department's item query is the one
+            // production proved was paying `Using temporary; Using filesort`.
+            // See `ContentListingService::khotabAdvancedSearchQuery()`.
+            'video' => [$listing->khotabAdvancedSearch($filters, 'tb1.weight', true, true), $listing->khotabSeriesAdvancedSearch($filters, true), null],
             'audio' => [$listing->khotabAudioAdvancedSearch($filters), $listing->khotabAudioSeriesAdvancedSearch($filters), null],
             'dumped_files' => [$listing->khotabDumpedFilesAdvancedSearch($filters), null, null],
             'fatawa' => [

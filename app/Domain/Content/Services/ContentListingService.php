@@ -814,19 +814,77 @@ class ContentListingService
      *   ordering is made department-source-accurate for that caller.
      * - `$validateChannelExists`: see `applyAdvancedSearchFilters()`.
      *
+     * C-1 addition, defaulted off for exactly the same reason as the two
+     * above — `KhotabSearchController`'s GET call stays byte-identical:
+     * - `$straightJoinResults`: see `khotabAdvancedSearchQuery()`.
+     *
      * @param  array{title?: string, channel_id?: int, author_id?: int, start?: int, end?: int}  $filters
      */
-    public function khotabAdvancedSearch(array $filters, string $orderBy = 'tb1.time', bool $validateChannelExists = false): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    public function khotabAdvancedSearch(array $filters, string $orderBy = 'tb1.time', bool $validateChannelExists = false, bool $straightJoinResults = false): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
-        $query = DB::connection('main')->table('nuke_islamic_khotab as tb1')
+        return $this->khotabAdvancedSearchQuery($filters, $orderBy, $validateChannelExists, $straightJoinResults)->paginate(20);
+    }
+
+    /**
+     * `khotabAdvancedSearch()`'s query, returned unpaginated.
+     *
+     * Extracted for ONE reason: `->paginate()` executes, `->toSql()` does
+     * not, so this is what lets both pagination passes' emitted SQL be
+     * asserted without a MySQL server (see
+     * `ContentListingServiceSearchStraightJoinTest`). The public method
+     * above is the only production caller and its behavior is unchanged.
+     *
+     * `$straightJoinResults` emits MySQL's `STRAIGHT_JOIN` SELECT modifier.
+     * Production `EXPLAIN` (2026-10-07, `w2acp_db2025-2`) proved that
+     * without it MariaDB drives this join from `nuke_islamic_authors`
+     * (`ALL`, 335 rows) and probes `nuke_islamic_khotab` second, which puts
+     * `ORDER BY tb1.weight DESC` on a non-driving table — unservable by any
+     * index, so the whole matched set is materialized and sorted
+     * (`Using temporary; Using filesort`) and `LIMIT 20` cannot terminate
+     * early. Forcing `tb1` first makes it `range` on
+     * `idx_khotab_news_listing (vedio, weight, time)` with `tb2` as
+     * `eq_ref PRIMARY`, and both disappear.
+     *
+     * Two things here must NOT be "tidied up":
+     *
+     * 1. The hint belongs in the SELECT list, not the join. Laravel's
+     *    pagination count clone nulls `columns` but keeps `joins`
+     *    (`Illuminate\Database\Query\Builder::runPaginationCountQuery()`),
+     *    so a SELECT-list hint is dropped from the `count(*)` query while
+     *    Laravel's native `straightJoin()` would survive into it. The COUNT
+     *    was never shown to benefit from `tb1`-first and plausibly loses
+     *    (~245k extra `eq_ref` probes into `tb2`), so it is deliberately
+     *    left on its current plan.
+     * 2. The driver gate is required, not defensive. `STRAIGHT_JOIN` is
+     *    MySQL/MariaDB-only and the test suite runs this connection on
+     *    SQLite, which rejects it as a syntax error.
+     *
+     * The `INNER JOIN` is also load-bearing and stays: it excludes rows
+     * whose `author` has no `nuke_islamic_authors` row (2 such rows in the
+     * `vedio=1 AND hidden=0` scope on production, all `author IS NULL`).
+     * `author IS NOT NULL` happens to be equivalent on today's data but no
+     * foreign key enforces that, so it is not substituted.
+     *
+     * @param  array{title?: string, channel_id?: int, author_id?: int, start?: int, end?: int}  $filters
+     */
+    protected function khotabAdvancedSearchQuery(array $filters, string $orderBy, bool $validateChannelExists, bool $straightJoinResults): \Illuminate\Database\Query\Builder
+    {
+        $connection = DB::connection('main');
+
+        $straightJoin = $straightJoinResults && in_array($connection->getDriverName(), ['mysql', 'mariadb'], true);
+
+        $query = $connection->table('nuke_islamic_khotab as tb1')
             ->join('nuke_islamic_authors as tb2', 'tb1.author', '=', 'tb2.id')
             ->where('tb1.vedio', '1')
             ->where('tb1.hidden', '0')
-            ->select(['tb1.id', 'tb1.title', 'tb1.author', 'tb1.hits', 'tb1.time', 'tb1.weight', 'tb1.channel_id', 'tb2.name', 'tb2.prename']);
+            ->select([
+                $straightJoin ? DB::raw('STRAIGHT_JOIN `tb1`.`id`') : 'tb1.id',
+                'tb1.title', 'tb1.author', 'tb1.hits', 'tb1.time', 'tb1.weight', 'tb1.channel_id', 'tb2.name', 'tb2.prename',
+            ]);
 
         $this->applyAdvancedSearchFilters($query, 'tb1.title', 'tb1.channel_id', 'tb1.author', 'tb1.time', $filters, $validateChannelExists);
 
-        return $query->orderByDesc($orderBy)->paginate(20);
+        return $query->orderByDesc($orderBy);
     }
 
     // ---- Post-Wave-4: chat_room's lesson-browsing half (task 4.11, see
