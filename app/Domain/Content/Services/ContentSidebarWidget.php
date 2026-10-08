@@ -5,9 +5,11 @@ namespace App\Domain\Content\Services;
 use App\Domain\Content\Models\Channel;
 use App\Domain\Content\Support\MediaPathResolver;
 use App\Domain\Content\Support\MediaUrl;
+use App\Support\Performance\RequestMetrics;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * ============================================================================
@@ -547,7 +549,7 @@ class ContentSidebarWidget
         //
         // Keyed on `category` alone, deliberately: neither query filters by
         // series, so every series page under one category shares one entry.
-        return $this->rememberRows(
+        return $this->rememberRowsProbed(
             $this->cacheKey('category-series-khotab', ['category' => $categoryId, 'order' => 'hits', 'limit' => 5]),
             fn () => DB::connection('main')->table('nuke_islamic_khotab as kh')
                 ->join('khotab_category_index as kci', function ($join) use ($categoryId) {
@@ -557,7 +559,9 @@ class ContentSidebarWidget
                 ->select(['kh.id', 'kh.title', 'kh.author', 'kh.frame', 'kh.hits', 'kh.downcount', 'kh.time'])
                 ->orderByDesc('kh.hits')
                 ->limit(5)
-                ->get()
+                ->get(),
+            $categoryId,
+            'hits'
         )->map(function ($item) {
             $item->thumb = $this->topitemsThumb((int) $item->frame, (int) $item->id);
 
@@ -571,7 +575,7 @@ class ContentSidebarWidget
         // C-1 (parity restoration): cached — see the "most downloaded"
         // counterpart above. Separate `order` part in the key so the two
         // orderings cannot share an entry.
-        return $this->rememberRows(
+        return $this->rememberRowsProbed(
             $this->cacheKey('category-series-khotab', ['category' => $categoryId, 'order' => 'time', 'limit' => 5]),
             fn () => DB::connection('main')->table('nuke_islamic_khotab as kh')
                 ->join('khotab_category_index as kci', function ($join) use ($categoryId) {
@@ -581,7 +585,9 @@ class ContentSidebarWidget
                 ->select(['kh.id', 'kh.title', 'kh.author', 'kh.frame', 'kh.hits', 'kh.downcount', 'kh.time'])
                 ->orderByDesc('kh.time')
                 ->limit(5)
-                ->get()
+                ->get(),
+            $categoryId,
+            'time'
         )->map(function ($item) {
             $item->thumb = $this->topitemsThumb((int) $item->frame, (int) $item->id);
 
@@ -898,6 +904,69 @@ class ContentSidebarWidget
         );
 
         return collect($cached)->map(fn (array $row) => (object) $row);
+    }
+
+    /**
+     * TEMPORARY probe (P-1) — remove when the `categories.series`
+     * measurement window closes. Default OFF
+     * (`performance.category_series_probe`); with the flag off this method
+     * is a byte-equivalent passthrough to `rememberRows()`.
+     *
+     * Wraps `rememberRows()` WITHOUT altering it. The closure
+     * `Cache::remember()` receives runs if and only if the entry is absent
+     * or expired, so logging from inside that closure is MISS-ONLY by
+     * construction — there is no code path that can emit on a cache hit,
+     * which is why no `outcome` field exists. Note that an empty result is
+     * stored as `[]`, which is not null, so an empty category's entry
+     * genuinely *hits* on subsequent reads and emits nothing.
+     *
+     * The cache key, the 300s TTL, `Cache::remember()`'s semantics and race
+     * behaviour, the returned rows and the caller's thumbnail decoration
+     * are all unchanged. Deliberately NOT `Cache::has()`/`get()`/`put()`,
+     * which would lose atomicity, open a TOCTOU window between the check
+     * and the read, and change the store round-trip count — contaminating
+     * the very cost being measured.
+     *
+     * `$rows()` runs OUTSIDE the try/catch and its result is returned
+     * regardless, so a logging failure can neither lose rows nor prevent
+     * the cache fill. `RequestMetrics` is resolved per call rather than
+     * injected, matching `PerformanceServiceProvider`'s own reasoning: the
+     * scoped binding must be the current request's instance, never one
+     * captured earlier.
+     *
+     * Only `category_id` is recorded as a business identifier — never SQL,
+     * bindings, URL, path, query string, body, headers, cookies, session,
+     * user or IP.
+     *
+     * @param  \Closure(): Collection<int, \stdClass>  $rows
+     * @return Collection<int, \stdClass>
+     */
+    private function rememberRowsProbed(string $key, \Closure $rows, int $categoryId, string $order): Collection
+    {
+        if (! config('performance.category_series_probe', false)) {
+            return $this->rememberRows($key, $rows);
+        }
+
+        return $this->rememberRows($key, function () use ($rows, $categoryId, $order) {
+            $startedAt = microtime(true);
+            $fresh = $rows();
+            $durationMs = round((microtime(true) - $startedAt) * 1000, 2);
+
+            try {
+                Log::channel('category-series-probe')->info('category-series top-items miss', [
+                    'request_id' => app(RequestMetrics::class)->requestId(),
+                    'category_id' => $categoryId,
+                    'order' => $order,
+                    'duration_ms' => $durationMs,
+                ]);
+            } catch (\Throwable) {
+                // Observability must never break a request that already
+                // worked — the same contract as SlowQueryListener::handle()
+                // and MonitorsRequestPerformance::terminate().
+            }
+
+            return $fresh;
+        });
     }
 
     /**

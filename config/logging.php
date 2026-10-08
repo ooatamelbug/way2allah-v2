@@ -85,6 +85,23 @@ return [
             'replace_placeholders' => false,
         ],
 
+        /*
+         * TEMPORARY probe (P-1) channel — remove together with
+         * `ContentSidebarWidget::rememberRowsProbed()` once the
+         * categories.series measurement window closes. Nothing writes here
+         * unless `performance.category_series_probe` is explicitly enabled,
+         * so adding this channel is inert on its own. Level is fixed rather
+         * than following LOG_LEVEL, for the same reason the two channels
+         * above give. Short retention so forgotten files self-prune.
+         */
+        'category-series-probe' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/category-series-probe.log'),
+            'level' => 'info',
+            'days' => env('CATEGORY_SERIES_PROBE_RETENTION_DAYS', 3),
+            'replace_placeholders' => false,
+        ],
+
         'single' => [
             'driver' => 'single',
             'path' => storage_path('logs/laravel.log'),

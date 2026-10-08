@@ -59,4 +59,19 @@ return [
      * already binding-free; this only bounds pathological generated SQL.
      */
     'max_sql_length' => (int) env('PERFORMANCE_MAX_SQL_LENGTH', 500),
+
+    /*
+     * TEMPORARY probe (P-1) — remove together with
+     * `ContentSidebarWidget::rememberRowsProbed()` once the
+     * categories.series measurement window closes.
+     *
+     * When true, the two `...ByCategoryForSeries()` top-items widgets emit
+     * one record per CACHE MISS to the `category-series-probe` channel:
+     * `request_id`, `category_id`, `order`, `duration_ms`. Nothing is
+     * emitted on a cache hit, and no other widget or route is instrumented.
+     *
+     * Default false, so merging the probe is inert until this is set
+     * explicitly (which requires a `config:clear`/`config:cache` rebuild).
+     */
+    'category_series_probe' => (bool) env('PERFORMANCE_CATEGORY_SERIES_PROBE', false),
 ];
