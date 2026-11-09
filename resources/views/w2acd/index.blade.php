@@ -14,38 +14,23 @@
 
 @section('content')
     <x-page-chrome heading="قائمة الإسطوانات الدعوية" :breadcrumb="[['title' => 'الاسطوانات الدعوية', 'url' => '']]" />
+@if (request()->routeIs('w2acd.index.pretty'))
+@contextualAdmin
+    {{-- W2ACD public admin parity, Phase 3 — OLD Group(0) on cds-main: «لوحة تحكم قسم الاسطوانات» with M4 only. --}}
+    <x-admin.contextual-controls title="لوحة تحكم قسم الاسطوانات" :controls="\App\Domain\Admin\Contextual\Controls\CdGroupControls::mainPanel()" />
+@endcontextualAdmin
+@endif
 
     <div class="w2a-refresh-page w2a-cds-page">
+        {{-- OLD Group(0) → ListGroup(0) (W2ACD visitor parity W3, 2026-11-05): the top-level groups, above the
+             general CD list; no panel when there are none. --}}
+        @if ($subGroups->isNotEmpty())
+            @include('w2acd._subgroup-cards')
+        @endif
+
         <x-content.premium-panel title="قائمة الإسطوانات العامة" icon="fa-dot-circle-o"
             description="مكتبة من الإسطوانات الدعوية المختارة، مرتبة لتصل إلى محتواها بسهولة.">
-            <div class="w2a-cd-grid">
-                @forelse ($items as $item)
-                    @php
-                        $listPhoto = $item->firstThumbnailFilename()
-                            ? '/images/cds_image2/' . $item->firstThumbnailFilename()
-                            : '/images/way2_cddefault.png';
-                        $listThumb = \App\Domain\Content\Support\MediaUrl::thumbnail('h=260&w=260&src=' . $listPhoto);
-                    @endphp
-                    <article class="w2a-cd-card">
-                        <a href="/cds-item-{{ $item->id }}.htm" class="w2a-cd-card__link">
-                            <span class="w2a-cd-card__media">
-                                <img src="{{ $listThumb }}" alt="غلاف إسطوانة {{ $item->title }}" width="260"
-                                    height="260" loading="lazy" decoding="async">
-                                <span class="w2a-cd-card__play" aria-hidden="true"><i class="fa fa-play"></i></span>
-                            </span>
-                            <span class="w2a-cd-card__content">
-                                <strong>{{ $item->title }}</strong>
-                                <span>عرض محتويات الإسطوانة <i class="fa fa-angle-right" aria-hidden="true"></i></span>
-                            </span>
-                        </a>
-                    </article>
-                @empty
-                    <div class="w2a-empty-state w2a-cd-grid__empty">
-                        <i class="fa fa-folder-open-o" aria-hidden="true"></i>
-                        <strong>لا توجد إسطوانات متاحة حالياً.</strong>
-                    </div>
-                @endforelse
-            </div>
+            @include('w2acd._cd-grid')
             <div class="w2a-refresh-pagination" aria-label="صفحات الإسطوانات">
                 {{ $items->onEachSide(1)->links('components.content.premium-pagination') }}
             </div>

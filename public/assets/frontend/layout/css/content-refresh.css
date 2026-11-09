@@ -284,6 +284,114 @@
     overflow-x: auto;
 }
 
+/* Advanced-search results (owner UI refinement, 2026-11-03): compact rows —
+   title first, one wrapping line of sheikh / channel / count beneath. Scoped to
+   this page (search.htm and other red_sub users untouched); !important only
+   where the global legacy-table rules below already use it. */
+.w2a-video-search-results #tabelgrp > tbody > tr > td {
+    padding: 10px 14px !important;
+    vertical-align: top !important;
+}
+
+.w2a-video-search-results #tabelgrp .table_order {
+    width: 44px !important;
+    padding-inline: 10px 4px !important;
+}
+
+.w2a-result {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.w2a-result__title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 800;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+
+.w2a-video-search-results #tabelgrp .w2a-result__title > a {
+    color: var(--w2a-ink-900) !important;
+    font-weight: 800 !important;
+}
+
+.w2a-video-search-results #tabelgrp .w2a-result__title > a:hover,
+.w2a-video-search-results #tabelgrp .w2a-result__title > a:focus-visible {
+    color: var(--w2a-primary-700) !important;
+}
+
+.w2a-result__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 18px;
+    color: var(--w2a-ink-600);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.w2a-result__meta > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.w2a-result__meta i {
+    color: var(--w2a-primary-600);
+}
+
+.w2a-video-search-results #tabelgrp .w2a-result__author a {
+    color: var(--w2a-primary-700) !important;
+    font-weight: 700 !important;
+}
+
+.w2a-result__channel img {
+    border-radius: 6px;
+}
+
+.w2a-result__badge {
+    padding: 2px 10px;
+    border-radius: 999px;
+    color: var(--w2a-primary-700);
+    background: var(--w2a-primary-50);
+    font-weight: 700;
+}
+
+/* Keyword highlight on the text line: custom.css lifts .red_sub (vertical-align: top)
+   and the base sub style shifts and shrinks it. */
+.w2a-video-search-results .red_sub {
+    position: static;
+    bottom: auto;
+    padding: 0 2px;
+    border-radius: 3px;
+    background: #fef3c7;
+    font-size: inherit;
+    line-height: inherit;
+    vertical-align: baseline;
+}
+
+@media (max-width: 575.98px) {
+    .w2a-video-search-results #tabelgrp > tbody > tr > td {
+        padding: 9px 8px !important;
+    }
+
+    .w2a-video-search-results #tabelgrp .table_order {
+        width: 32px !important;
+    }
+
+    .w2a-result__title {
+        font-size: 15px;
+    }
+
+    .w2a-result__meta {
+        gap: 6px 12px;
+        font-size: 13px;
+    }
+}
+
 /* Fatwa channels */
 
 .w2a-channel-grid {
@@ -1365,6 +1473,37 @@ a.w2a-pagination__page:hover {
     font-weight: 500;
     color: var(--w2a-ink-600, #475569);
     line-height: 1.4;
+}
+
+/* Narrow sidebars (e.g. Khotab author «جديد المواد», ~108px of text beside the badge and thumbnail):
+   a long date such as «الخميس 10 يناير 2019 مـ» no longer runs past the card's left edge and gets
+   clipped by the panel — the tag stays on one line where it fits and wraps inside the column where
+   it does not. Titles keep their 2-line clamp; a long unbroken word breaks instead of overflowing. */
+.w2a-ranking-item__link {
+    box-sizing: border-box;
+    max-width: 100%;
+}
+
+.w2a-ranking-item__meta {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.w2a-ranking-meta-tag {
+    display: inline-block;
+    box-sizing: border-box;
+    max-width: 100%;
+    padding-inline: 6px;
+    white-space: normal;
+    overflow-wrap: break-word;
+}
+
+.w2a-ranking-meta-tag i {
+    margin-inline-end: 2px;
+}
+
+.w2a-ranking-item__title {
+    overflow-wrap: anywhere;
 }
 
 .w2a-ranking-meta-tag i {
@@ -3497,4 +3636,382 @@ table#tabelgrp .table_order {
     aside {
         margin-top: 20px !important;
     }
+}
+
+/* ==========================================================================
+   W2ACD group page (cds-group-{id}.htm) — sub-group card, OLD order
+   OLD group_cd_content.htm + css/style.css .var_group: the title on its own
+   line, then the icon (89×88) on the right with four stacked lines beside it.
+   Scoped to this page's own classes; the shared Anasheed card is untouched.
+   ========================================================================== */
+.w2a-cds-page .w2a-cd-subgroup-title {
+    display: block;
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.4;
+    color: var(--w2a-ink-900);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--w2a-border);
+    transition: color var(--w2a-motion-fast);
+}
+
+.w2a-cds-page .w2a-cd-subgroup:hover .w2a-cd-subgroup-title {
+    color: var(--w2a-primary-600);
+}
+
+.w2a-cds-page .w2a-cd-subgroup-body {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    min-width: 0;
+}
+
+.w2a-cds-page .w2a-cd-subgroup-icon {
+    flex: 0 0 89px;
+    width: 89px;
+    height: 88px;
+    overflow: hidden;
+    border-radius: var(--w2a-radius-md);
+    background: var(--w2a-surface-subtle);
+}
+
+.w2a-cds-page .w2a-cd-subgroup-icon img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.w2a-cds-page .w2a-cd-subgroup-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.5;
+    color: var(--w2a-ink-600);
+}
+
+.w2a-cds-page .w2a-cd-subgroup-line {
+    display: block;
+    overflow-wrap: anywhere;
+}
+
+.w2a-cds-page .w2a-cd-subgroup-line.is-comment {
+    font-weight: 400;
+    color: var(--w2a-ink-500);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Sheikh pages — OLD apply_search("author"): «بحث متقدم في سلاسل و مواد الداعية» toggles the advanced-search form. */
+.w2a-author-search {
+    margin: 0 0 20px;
+}
+.w2a-author-search > summary {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-bottom: 12px;
+    padding: 9px 20px;
+    border: 1px solid var(--w2a-primary-700);
+    border-radius: 12px;
+    background: var(--w2a-primary-700);
+    color: #fff;
+    font-weight: 800;
+    cursor: pointer;
+    list-style: none;
+}
+.w2a-author-search > summary::-webkit-details-marker {
+    display: none;
+}
+.w2a-author-search > summary:focus-visible {
+    outline: 3px solid var(--w2a-primary-700);
+    outline-offset: 3px;
+}
+.w2a-author-search__panel {
+    padding: 18px 20px;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    background: #fff;
+}
+.w2a-author-search__title {
+    margin: 0 0 14px;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+/* Anasheed news pages (owner UI refresh, 2026-11-04): spaced panels; on phones a compact
+   horizontal card — thumbnail beside the title and date — instead of a full-width image. */
+.w2a-anasheed-news-page {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+
+@media (max-width: 575.98px) {
+    .w2a-anasheed-news-page .w2a-media-items-grid {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+    }
+
+    .w2a-anasheed-news-page .w2a-media-item-card {
+        flex-direction: row !important;
+        align-items: stretch;
+    }
+
+    .w2a-anasheed-news-page .w2a-media-thumb-wrap {
+        flex: 0 0 112px;
+        width: 112px !important;
+        height: auto !important;
+        min-height: 72px;
+    }
+
+    .w2a-anasheed-news-page .w2a-media-item-body {
+        padding: 10px 12px !important;
+        gap: 6px !important;
+        min-width: 0;
+    }
+}
+
+/* Fatwa channel question list (owner UI refinement, 2026-11-04, Fatwa visitor parity F6): one compact,
+   right-aligned card per question — title, then topic and scholar grouped beneath — and the pager on one
+   row. Scoped to `.w2a-fatwa-channel-list` (fatawa/channel-show.blade.php only); the selectors outrank the
+   global `table#sample_5` rules, including the centred first cell. */
+.portlet.box.blue .w2a-fatwa-channel-list table#sample_5 {
+    display: block !important;
+    margin: 12px 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    overflow: visible !important;
+}
+
+.portlet.box.blue .w2a-fatwa-channel-list table#sample_5 > tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: transparent !important;
+}
+
+.portlet.box.blue .w2a-fatwa-channel-list table#sample_5 > tbody > tr,
+.portlet.box.blue .w2a-fatwa-channel-list table#sample_5 > tbody > tr:nth-of-type(odd),
+.portlet.box.blue .w2a-fatwa-channel-list table#sample_5 > tbody > tr:hover {
+    display: block;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+.portlet.box.blue .w2a-fatwa-channel-list table#sample_5 > tbody > tr > td.w2a-fatwa-q {
+    display: block;
+    width: auto !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    color: inherit !important;
+    font-weight: inherit !important;
+    text-align: right !important;
+}
+
+.w2a-fatwa-q__card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 16px;
+    border: 1px solid var(--w2a-border);
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: var(--w2a-shadow-xs);
+    transition:
+        border-color var(--w2a-motion-fast),
+        box-shadow var(--w2a-motion-fast);
+}
+
+.w2a-fatwa-q__card:hover {
+    border-color: var(--w2a-primary-300);
+    box-shadow: var(--w2a-shadow-sm);
+}
+
+.portlet.box.blue .w2a-fatwa-channel-list table#sample_5 td h5.w2a-fatwa-q__title {
+    margin: 0 !important;
+    font-size: 16px !important;
+    font-weight: 800 !important;
+    line-height: 1.6 !important;
+    text-align: right;
+}
+
+.portlet.box.blue .w2a-fatwa-channel-list table#sample_5 td h5.w2a-fatwa-q__title a {
+    color: var(--w2a-ink-900) !important;
+}
+
+.portlet.box.blue .w2a-fatwa-channel-list table#sample_5 td h5.w2a-fatwa-q__title a:hover {
+    color: var(--w2a-primary-700) !important;
+}
+
+.w2a-fatwa-q__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 22px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--w2a-border);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.w2a-fatwa-q__meta-item {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+}
+
+.w2a-fatwa-q__label {
+    flex: 0 0 auto;
+    color: var(--w2a-ink-500);
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.w2a-fatwa-q__label .fa {
+    color: var(--w2a-primary-500);
+}
+
+.portlet.box.blue .w2a-fatwa-channel-list table#sample_5 .w2a-fatwa-q__meta a {
+    color: var(--w2a-primary-700) !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+}
+
+/* The pager: the summary above the controls, so the controls get the full row (no lone «التالي»). */
+.w2a-fatwa-channel-list .w2a-pagination {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+}
+
+.w2a-fatwa-channel-list .w2a-pagination__summary {
+    text-align: center !important;
+}
+
+.w2a-fatwa-channel-list .w2a-pagination__list {
+    justify-content: center !important;
+}
+
+@media (max-width: 575.98px) {
+    .w2a-fatwa-q__card {
+        padding: 12px 14px;
+    }
+
+    .portlet.box.blue .w2a-fatwa-channel-list table#sample_5 td h5.w2a-fatwa-q__title {
+        font-size: 15px !important;
+    }
+
+    .w2a-fatwa-q__meta {
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    /* Compact controls: two balanced, centred rows on a phone. */
+    .w2a-fatwa-channel-list .w2a-pagination__list {
+        gap: 5px !important;
+    }
+
+    .w2a-fatwa-channel-list .w2a-pagination__control,
+    .w2a-fatwa-channel-list .w2a-pagination__page,
+    .w2a-fatwa-channel-list .w2a-pagination__ellipsis {
+        width: auto !important;
+        min-width: 36px !important;
+        min-height: 36px !important;
+        padding: 0 8px !important;
+        font-size: 13px !important;
+    }
+}
+
+/* ---- Collection card, opt-in linked variant (media-collection-grid secondaryHref, 2026-11-08) ----
+   The title link is stretched over the card so the whole card still opens the group / series;
+   the secondary (author) link sits above that overlay. Only cards with .w2a-cat-series-card--linked. */
+.w2a-cat-series-card--linked {
+    position: relative !important;
+}
+
+.w2a-cat-series-card--linked .w2a-cat-series-card__link {
+    color: inherit !important;
+    text-decoration: none !important;
+}
+
+.w2a-cat-series-card--linked .w2a-cat-series-card__link::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+}
+
+.w2a-cat-series-card--linked .w2a-cat-series-card__link:focus-visible {
+    outline: none;
+}
+
+.w2a-cat-series-card--linked .w2a-cat-series-card__link:focus-visible::after {
+    outline: 2px solid var(--w2a-primary-600, #125688);
+    outline-offset: -3px;
+}
+
+.w2a-cat-series-card--linked .w2a-cat-series-card__secondary {
+    position: relative;
+    z-index: 2;
+    align-self: flex-start;
+    text-decoration: none !important;
+}
+
+.w2a-cat-series-card--linked .w2a-cat-series-card__secondary:hover {
+    text-decoration: underline !important;
+}
+
+.w2a-cat-series-card--linked .w2a-cat-series-card__secondary:focus-visible {
+    outline: 2px solid var(--w2a-primary-600, #125688);
+    outline-offset: 2px;
+}
+
+/* ---- Channel author page (channel-{id}-{author}.htm, 2026-11-08): two series / group columns
+   inside the 9-column main area, one on phones. Scoped — other grids keep 3 / 2 / 1. ---- */
+.w2a-channel-author .w2a-cat-series-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+@media (max-width: 575px) {
+    .w2a-channel-author .w2a-cat-series-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+}
+
+/* Channel author page: the item metadata strip (date / duration / comments / views) uses the full row
+   width, each pair kept on one line (owner decision 1, 2026-11-08). Scoped — the shared strip elsewhere
+   is unchanged. */
+.w2a-channel-author .portlet.box.blue table#tabelkht td .page-header.color_00a,
+.w2a-channel-author .portlet.box table#tabelkht td .page-header.color_00a {
+    display: flex !important;
+    width: 100% !important;
+}
+
+/* The cells carry the grid's `flex-basis: 25%`; four of them plus the strip's gaps exceed 100%, so the
+   last always wrapped. Content-sized cells fit on one line where there is room, and still wrap on phones. */
+.w2a-channel-author .portlet.box.blue table#tabelkht td .page-header.color_00a > div,
+.w2a-channel-author .portlet.box table#tabelkht td .page-header.color_00a > div {
+    flex: 0 1 auto !important;
+}
+
+.w2a-channel-author table#tabelkht td .page-header.color_00a > div,
+.w2a-channel-author table#tabelkht td .page-header.color_00a span {
+    white-space: nowrap !important;
 }

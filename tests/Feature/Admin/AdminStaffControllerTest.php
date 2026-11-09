@@ -2,8 +2,10 @@
 
 use App\Domain\Admin\Models\AdminUser;
 use App\Support\Permission\Permission;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Tests\Support\Fixtures\MainSchema;
 use Tests\Support\Fixtures\VbulletinSchema;
 use Tests\Support\InMemoryConnection;
@@ -36,7 +38,7 @@ it('lists staff', function () {
 
 it('AdminCP Final 12-Route Browser Visual Evidence (2026-08-23): renders each staff member\'s real avatar thumbnail inline with their name, matching authors/index.php:251', function () {
     InMemoryConnection::setup('main', [
-        'nuke_authors' => function (\Illuminate\Database\Schema\Blueprint $table) {
+        'nuke_authors' => function (Blueprint $table) {
             (MainSchema::nukeAuthors())($table);
             $table->string('thumb')->nullable();
         },
@@ -86,7 +88,7 @@ it('task 5.7 fix: the new admin never receives the legacy hardcoded default pass
     $created = AdminUser::on('main')->where('uid', 99)->first();
     expect($created->password)->not->toBe(md5('way2allah'))
         ->and(str_starts_with($created->password, '$2y$'))->toBeTrue()
-        ->and(\Illuminate\Support\Facades\Hash::check('way2allah', $created->password))->toBeFalse();
+        ->and(Hash::check('way2allah', $created->password))->toBeFalse();
 });
 
 it('rejects adding a vBulletin member who is already an admin', function () {

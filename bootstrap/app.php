@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Middleware\EncryptCookies;
 use App\Http\Middleware\MonitorsRequestPerformance;
+use Illuminate\Cookie\Middleware\EncryptCookies as BaseEncryptCookies;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -29,6 +31,14 @@ return Application::configure(basePath: dirname(__DIR__))
         // already been sent to the client. Self-disables entirely via
         // config('performance.enabled').
         $middleware->prepend(MonitorsRequestPerformance::class);
+
+        // N1 / R14-A (2026-11-08) — the web group's cookie encryption, minus
+        // exactly the configured vBulletin auth cookies, which the forum sets
+        // unencrypted (see App\Http\Middleware\EncryptCookies). Every other
+        // cookie keeps Laravel's encryption.
+        $middleware->web(replace: [
+            BaseEncryptCookies::class => EncryptCookies::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

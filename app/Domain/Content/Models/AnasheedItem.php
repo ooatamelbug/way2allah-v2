@@ -143,37 +143,17 @@ class AnasheedItem extends Model implements Viewable
     }
 
     /**
-     * `anasheed/functions.php:312`'s `list_anasheed()` group filter,
-     * including its group-98 special case — extracted here (Wave 5) once
-     * a second real consumer needed the identical filter
-     * (`AnasheedGroupController`, `AnasheedNewsController`), rather than
-     * duplicating the 3-line conditional a second time. IF-029 confirms
-     * why group 98 is special: it's `anasheed-news.htm`'s themed
-     * aggregation target, and `OR group_id='16'` is that theme's own
-     * business rule.
-     */
-    public function scopeInGroup(Builder $query, int $groupId): void
-    {
-        if ($groupId === 98) {
-            $query->whereIn('group_id', [98, 16]);
-        } else {
-            $query->where('group_id', $groupId);
-        }
-    }
-
-    /**
      * G-02 (Homepage Migration Blueprint §7): `functions.php:195-224`'s
      * `listvars()` — its `$arr['parent']` branch, filtering `parent_id`
      * (a genuinely DIFFERENT column from `group_id` above, confirmed via
      * direct re-read of `listvars()`). Homepage sections 6/13/14 call
      * `listvars(['parent'=>158|12|57, ...])`.
      *
-     * Carries the SAME `98 -> [16,98]` special case as `scopeInGroup()`
-     * (`listvars()` line 216: `if ($arr['parent']=='98'){$arr['parent']='16,98';}`)
-     * — a coincidental duplication of the same business rule across two
-     * different columns, not a shared implementation. Deliberately NOT
-     * merged with `scopeInGroup()`: doing so would silently change which
-     * column a caller filters on.
+     * Carries the `98 -> [16,98]` special case (`listvars()` line 216:
+     * `if ($arr['parent']=='98'){$arr['parent']='16,98';}`) — on `parent_id`,
+     * as OLD's news pages do. (The Gen 2 `group_id` variant, `scopeInGroup()`,
+     * was removed with visitor parity A4, 2026-11-04: OLD's group page never
+     * merged 98 and 16.)
      *
      * Column is qualified `an.parent_id` (not bare `parent_id`) matching
      * `listvars()`'s own SQL (`an.parent_id in (...)`) exactly —

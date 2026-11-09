@@ -3,10 +3,14 @@
 namespace App\Domain\Identity\Guards;
 
 use App\Domain\Identity\Models\VbUser;
+use App\Domain\Identity\Support\VbulletinCookieNames;
+use App\Domain\Identity\Support\VbulletinSessionBinding;
+use App\Domain\Identity\Support\VbulletinSessionBindingConfigurationException;
 use Illuminate\Auth\GuardHelpers;
 use Illuminate\Contracts\Auth\Guard;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Public-site authentication (ADR-0011, Blueprint v1.0 §9). Reads the same
@@ -17,17 +21,29 @@ use Illuminate\Http\Request;
  * Faithfully reproduces the legacy check_login()/get_session()/get_cookie()
  * logic in w2a_config.php:
  *  - `bb_sessionhash` cookie: looked up in `session`, valid only if the
- *    stored `idhash` matches md5(User-Agent + first-3-octets-of-IP) and the
- *    session has been active within the last 900 seconds (15 minutes).
+ *    session is younger than the forum's `cookietimeout` (default 900 s), its
+ *    `idhash` matches vBulletin's md5(User-Agent . ipSubstring(ALT_IP)), AND its
+ *    `host` matches the request's IPADDRESS under the same ipSubstring rule —
+ *    vBulletin's two IP checks (D1, 2026-11-09, decision-log #138), computed by
+ *    VbulletinSessionBinding from the raw server values, never `request()->ip()`.
+ *    A malformed or unsafe binding configuration accepts no session cookie (logged).
  *  - `bb_userid` + `bb_password` cookie pair: valid only if
  *    md5(user.password . cookie_salt) matches the `bb_password` cookie.
+ *
+ * Cookie names (N1 / R14-A, 2026-11-08): `{prefix}sessionhash` / `{prefix}userid` /
+ * `{prefix}password` from VbulletinCookieNames (`services.vbulletin.cookie_prefix`,
+ * default `bb_`, the names above) — the same source as the EncryptCookies
+ * exemption that lets these unencrypted forum cookies reach this guard. Only the
+ * configured prefix is read. Read-only: the forum's `session` row is never touched
+ * (no `lastactivity` refresh). vB5's token-based remember-me `password` cookie is
+ * not supported — it never matches the md5 check, so it fails closed.
  */
 class VbulletinSessionGuard implements Guard
 {
     use GuardHelpers;
 
-    /** Legacy session table's inactivity window, in seconds (w2a_config.php get_session()). */
-    private const SESSION_TTL_SECONDS = 900;
+    /** Validated once per request; false = the configuration was refused (fail closed). */
+    private VbulletinSessionBinding|false|null $binding = null;
 
     public function __construct(private readonly Request $request) {}
 
@@ -52,7 +68,8 @@ class VbulletinSessionGuard implements Guard
 
     private function viaSessionHashCookie(): ?VbUser
     {
-        $sessionHash = $this->request->cookie('bb_sessionhash');
+        $name = VbulletinCookieNames::sessionHash();
+        $sessionHash = $name === null ? null : $this->request->cookie($name);
 
         if (! is_string($sessionHash) || $sessionHash === '') {
             return null;
@@ -67,11 +84,23 @@ class VbulletinSessionGuard implements Guard
             return null;
         }
 
-        if ($session->idhash !== $this->expectedIdHash()) {
+        $binding = $this->binding();
+        if ($binding === null) {
             return null;
         }
 
-        if ((time() - (int) $session->lastactivity) >= self::SESSION_TTL_SECONDS) {
+        // 1. Not expired (vBulletin: lastactivity > now - cookietimeout).
+        if ((time() - (int) $session->lastactivity) >= $binding->cookieTimeout()) {
+            return null;
+        }
+
+        // 2. idhash from ALT_IP (vBulletin session/web.php:37, session.php:299).
+        if (! hash_equals($binding->idHash($this->request), (string) $session->idhash)) {
+            return null;
+        }
+
+        // 3. session.host against IPADDRESS (vBulletin session.php:347).
+        if (! $binding->hostMatches((string) ($session->host ?? ''), $this->request)) {
             return null;
         }
 
@@ -80,8 +109,10 @@ class VbulletinSessionGuard implements Guard
 
     private function viaCredentialCookie(): ?VbUser
     {
-        $userId = $this->request->cookie('bb_userid');
-        $passwordCookie = $this->request->cookie('bb_password');
+        $userIdName = VbulletinCookieNames::userId();
+        $passwordName = VbulletinCookieNames::password();
+        $userId = $userIdName === null ? null : $this->request->cookie($userIdName);
+        $passwordCookie = $passwordName === null ? null : $this->request->cookie($passwordName);
 
         if (! is_string($userId) || $userId === '' || ! is_string($passwordCookie) || $passwordCookie === '') {
             return null;
@@ -110,10 +141,17 @@ class VbulletinSessionGuard implements Guard
         return hash_equals($expected, $passwordCookie) ? $vbUser : null;
     }
 
-    private function expectedIdHash(): string
+    private function binding(): ?VbulletinSessionBinding
     {
-        $ip = implode('.', array_slice(explode('.', (string) $this->request->ip()), 0, 3));
+        if ($this->binding === null) {
+            try {
+                $this->binding = VbulletinSessionBinding::fromConfig();
+            } catch (VbulletinSessionBindingConfigurationException $e) {
+                $this->binding = false;
+                Log::error('forum-auth: session binding configuration refused — forum session cookies are not accepted', ['reason' => $e->getMessage()]);
+            }
+        }
 
-        return md5($this->request->userAgent().$ip);
+        return $this->binding === false ? null : $this->binding;
     }
 }

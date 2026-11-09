@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -13,10 +14,9 @@ use Throwable;
 /**
  * cPanel No-SSH Deployment Repackaging — a browser-driven, one-time
  * equivalent of the CLI deployment sequence
- * (`migrate --force` / `RoleSeeder` / `AdminPermissionSeeder` /
- * `admin:sync-permissions` / cache commands) for an owner whose cPanel
- * account has no SSH, no Terminal, and no way to run `php artisan`
- * manually. This is deployment infrastructure, not an application
+ * (`migrate --force` / `RoleSeeder` / `AdminPermissionSeeder` / cache
+ * commands) for an owner whose cPanel account has no SSH, no Terminal,
+ * and no way to run `php artisan` manually. This is deployment infrastructure, not an application
  * feature — it exists to be used exactly once per deployment and then
  * permanently disabled (see `isLocked()`).
  *
@@ -34,16 +34,27 @@ use Throwable;
  *    `install()` return 410 Gone unconditionally, before even checking
  *    the token — a stolen/leaked token is useless post-lock.
  * 4. The hardcoded step sequence — no arbitrary Artisan command can be
- *    requested through this endpoint; `install()` calls exactly 8 named
+ *    requested through this endpoint; `install()` runs exactly the named
  *    operations, always in this order, nothing else.
  *
  * Idempotency: every step here is safe to re-run from scratch after a
  * partial failure — `migrate` skips already-applied migrations (tracked
  * in its own table), both seeders use `firstOrCreate` exclusively (no
- * bare `::create()` calls, verified), `admin:sync-permissions` is
- * already idempotent by design (decision-log #32), and the cache
- * commands simply overwrite. No step here depends on a previous run
- * having reached any particular point.
+ * bare `::create()` calls, verified), and the cache commands simply
+ * overwrite. No step here depends on a previous run having reached any
+ * particular point.
+ *
+ * No step touches admin grants (2026-10-14, plan §27). The installer used
+ * to run `admin:sync-permissions`, which *replaces* every admin's Spatie
+ * grants with what the legacy `nuke_authors` data says: each run imported
+ * legacy assignments for any matching permission and erased grants made in
+ * Laravel's permission editor. Laravel/Spatie is now the authorization
+ * authority, so the step was removed. `admin:sync-permissions` remains a
+ * deliberate, manual legacy-bootstrap tool, never part of deployment. As a
+ * consequence, later changes to legacy `radminsuper` or permission blobs
+ * do not propagate to Laravel — intentionally; existing Laravel
+ * permissions and super-admin roles stay authoritative until changed
+ * through Laravel.
  */
 class DeploymentInstallerController extends Controller
 {
@@ -55,7 +66,6 @@ class DeploymentInstallerController extends Controller
         ['key' => 'migrate', 'label' => 'تشغيل الترحيلات (migrations)'],
         ['key' => 'roles', 'label' => 'تهيئة الأدوار (RoleSeeder)'],
         ['key' => 'permissions', 'label' => 'تهيئة صلاحيات لوحة التحكم (AdminPermissionSeeder)'],
-        ['key' => 'sync', 'label' => 'مزامنة صلاحيات المشرفين الحقيقيين (admin:sync-permissions)'],
         ['key' => 'optimize_clear', 'label' => 'تفريغ أي ذاكرة تخزين مؤقت قديمة'],
         ['key' => 'config_cache', 'label' => 'تخزين الإعدادات مؤقتًا (config:cache)'],
         ['key' => 'route_cache', 'label' => 'تخزين المسارات مؤقتًا (route:cache)'],
@@ -126,10 +136,6 @@ class DeploymentInstallerController extends Controller
             'migrate' => Artisan::call('migrate', ['--force' => true]),
             'roles' => Artisan::call('db:seed', ['--force' => true, '--class' => 'Database\\Seeders\\RoleSeeder']),
             'permissions' => Artisan::call('db:seed', ['--force' => true, '--class' => 'Database\\Seeders\\AdminPermissionSeeder']),
-            // No --force here — the real command has no such flag (verified
-            // directly against the console signature; it is not a
-            // ConfirmableTrait command and never prompts).
-            'sync' => Artisan::call('admin:sync-permissions'),
             'optimize_clear' => Artisan::call('optimize:clear'),
             'config_cache' => Artisan::call('config:cache'),
             'route_cache' => Artisan::call('route:cache'),
@@ -148,8 +154,8 @@ class DeploymentInstallerController extends Controller
     private function checkDatabaseConnections(): void
     {
         config(['database.default' => config('database.default')]);
-        \Illuminate\Support\Facades\DB::connection()->getPdo();
-        \Illuminate\Support\Facades\DB::connection('main')->getPdo();
+        DB::connection()->getPdo();
+        DB::connection('main')->getPdo();
     }
 
     private function abortIfUnavailable(): void

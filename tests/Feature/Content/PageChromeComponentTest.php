@@ -6,7 +6,6 @@
  * legacy `title()`/`breadcrumb()` DOM (`functions.php:453-543`).
  * Structural assertions throughout, not mere text presence.
  */
-
 it('renders no heading at all when heading is omitted (default null)', function () {
     $html = $this->blade('<x-page-chrome :breadcrumb="[[\'title\' => \'x\']]" />');
     $html = (string) $html;
@@ -22,7 +21,7 @@ it('renders the heading as a bare <h3 class="page-title"> with no decorative ico
     // The confirmed legacy malformed-icon bug (functions.php:541-543) must
     // never be reproduced — LEGACY_BUG_NOT_FOR_REPRODUCTION.
     expect($html)->not->toContain('fa-gift');
-    expect($html)->not->toContain("class=\\fa");
+    expect($html)->not->toContain('class=\\fa');
 });
 
 it('always renders the .page-bar > ul.page-breadcrumb container and an unconditional Home item', function () {

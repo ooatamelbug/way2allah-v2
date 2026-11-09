@@ -12,6 +12,11 @@
         ['title' => $w2acdItem->title, 'url' => ''],
     ]" />
 
+    {{-- Contextual administration (OLD item_cp_cd.htm: «تعديل» / «مسح»). --}}
+    @contextualAdmin
+        <x-admin.contextual-controls title="لوحة تحكم الاسطوانة" :controls="\App\Domain\Admin\Contextual\Controls\PublicPageControls::cd($w2acdItem)" />
+    @endcontextualAdmin
+
     <div class="row service-box margin-bottom-40 sh-w2a-block">
         <div class="col-lg-8 col-md-8 col-sm-12">
             <x-content.premium-panel title="تفاصيل الاسطوانة" icon="fa-desktop">

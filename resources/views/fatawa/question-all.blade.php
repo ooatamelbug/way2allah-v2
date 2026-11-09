@@ -22,9 +22,10 @@
 
     Deliberate, classified omissions from a byte-for-byte port (see the
     full report for the complete list):
-    - `adminAnswerControls()`/`adminAnswerMoreControls()`: ADMIN_ONLY,
-      link to legacy's own `admin.php?op=...` — no migrated admin panel
-      exists in this app. UNREACHABLE_IN_CURRENT_MIGRATION, omitted.
+    - `adminAnswerControls()`/`adminAnswerMoreControls()`: ADMIN_ONLY.
+      Since the Fatwa OLD public admin parity (2026-10-30) the OLD
+      production panel and per-fatwa icons are rendered for authorized
+      admins only (FatwaControls), never for visitors.
     - The `.container-video{i}` hidden `<video>` modal + `playPause{i}()`
       + `close-video{i}`: DEAD_LEGACY — its own click-wiring
       (`$(".watch_video...").click(...)`) is commented out in source, so
@@ -137,15 +138,18 @@
             @endif
         </ul>
     </div>
+@contextualAdmin
+    {{-- OLD all_questions() / all_fatawa_for_auther(): AdvancedStats($id,…,"all_details") — «اضافة فتوى للسؤال», «تعديل السؤال», «اضافة لموضوع أخر», «نقل لموضوع أخر» / «حذف من موضوع» (its «حذف السؤال» is dead in production). Admins only. --}}
+    <x-admin.contextual-controls title="لوحة تحكم المشرفين" :controls="\App\Domain\Admin\Contextual\Controls\FatwaControls::question($generalQuestionModel)" />
+@endcontextualAdmin
 
     <div class="row service-box margin-bottom-40 w2a-media-layout">
         <div class="col-lg-9 col-md-8 col-sm-7 nopadding flex flex-column gap-5">
             {{--
                 answer2.php:93's adminAnswerControls($q,$cat_id,$id) —
-                ADMIN_ONLY (links to legacy's own admin.php?op=..., which
-                has no migrated equivalent here) — UNREACHABLE_IN_CURRENT_MIGRATION,
-                intentionally omitted rather than exposed with a broken
-                target.
+                ADMIN_ONLY; the OLD production equivalents are the
+                admin-only panel above and the icons in each fatwa's title
+                (FatwaControls).
             --}}
             @foreach ($answers as $answer)
                 <a id="{{ $answer->id }}"></a>
@@ -158,6 +162,10 @@
                                     {{ $answer->author_prename }} : {{ $answer->author_name }}
                                 </a>
                             </div>
+@contextualAdmin
+                            {{-- OLD all_Details() + details.htm: the icons beside each fatwa. Admins only. --}}
+                            <x-admin.contextual-controls variant="inline" class="pull-left" :controls="\App\Domain\Admin\Contextual\Controls\FatwaControls::fatwa((int) $answer->id, $answer->general_question_id)" />
+@endcontextualAdmin
                         </div>
                         <div class="portlet-body ">
                             <div class="anasheed-details mada-details">

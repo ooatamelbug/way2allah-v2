@@ -158,14 +158,14 @@ it('records correct, correctly-typed values and the current request correlation 
 
 // ---- the cache contract did not move -----------------------------------
 
-it('still calls Cache::remember exactly once with the unchanged key and the unchanged 300s TTL', function () {
+it('still calls Cache::remember exactly once with the key (versioned `hidden=0`, security fix #94) and the unchanged 300s TTL', function () {
     probeHandler();
 
     Cache::partialMock()
         ->shouldReceive('remember')
         ->once()
         ->with(
-            'sidebar:category-series-khotab:category=11:limit=5:order=hits',
+            'sidebar:category-series-khotab:category=11:hidden=0:limit=5:order=hits',
             300,
             Mockery::type(Closure::class)
         )
@@ -174,14 +174,14 @@ it('still calls Cache::remember exactly once with the unchanged key and the unch
     app(ContentSidebarWidget::class)->khotabMostDownloadedByCategoryForSeries(11);
 });
 
-it('still calls Cache::remember exactly once with the unchanged key and TTL for the time ordering', function () {
+it('still calls Cache::remember exactly once with the versioned key and unchanged TTL for the time ordering', function () {
     probeHandler();
 
     Cache::partialMock()
         ->shouldReceive('remember')
         ->once()
         ->with(
-            'sidebar:category-series-khotab:category=11:limit=5:order=time',
+            'sidebar:category-series-khotab:category=11:hidden=0:limit=5:order=time',
             300,
             Mockery::type(Closure::class)
         )

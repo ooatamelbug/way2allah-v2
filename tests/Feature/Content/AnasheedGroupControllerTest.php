@@ -68,8 +68,10 @@ it('show: a top-level group (parent_id=0) has a breadcrumb with only itself, cur
 // ---- var-group-{id}.htm parity: css/custom.css + the real portlet/card/download-block structure ----
 
 it('show: renders premium subgroup, download, and searchable media-card sections', function () {
+    // Group 1 is itself a sub-group: OLD Group() shows the series block only when parent_id > 0 (visitor parity A10).
     DB::connection('main')->table('nuke_anasheed_groups')->insert([
-        ['id' => 1, 'title' => 'Parent Group', 'parent_id' => 0, 'child' => 0, 'anasheed' => 0, 'hits' => 0, 'des' => null],
+        ['id' => 50, 'title' => 'Root', 'parent_id' => 0, 'child' => 1, 'anasheed' => 0, 'hits' => 0, 'des' => null],
+        ['id' => 1, 'title' => 'Parent Group', 'parent_id' => 50, 'child' => 0, 'anasheed' => 0, 'hits' => 0, 'des' => null],
         ['id' => 2, 'title' => 'Sub Group', 'parent_id' => 1, 'child' => 1, 'anasheed' => 5, 'hits' => 9, 'des' => 'A comment'],
     ]);
     DB::connection('main')->table('nuke_anasheed_anasheed')->insert(['id' => 1, 'title' => 'Group Item', 'group_id' => 1]);
@@ -147,7 +149,7 @@ it('show: media cards use the raw frame path, optimized fallback, and formatted 
 
 // ---- G-13-04 (media/visual parity phase): sub-group icon thumbnail, anasheed/functions.php:208-212 ----
 
-it('show: subgroup cards use a consistent folder icon instead of legacy image thumbnails', function () {
+it('show: subgroup cards show the group icon image when icon = 1 (OLD ListGroup(), visitor parity A9)', function () {
     DB::connection('main')->table('nuke_anasheed_groups')->insert([
         ['id' => 1, 'title' => 'Parent Group', 'parent_id' => 0, 'icon' => 0],
         ['id' => 2, 'title' => 'Sub Group', 'parent_id' => 1, 'icon' => 1],
@@ -157,11 +159,11 @@ it('show: subgroup cards use a consistent folder icon instead of legacy image th
 
     expect($content)
         ->toContain('w2a-subgroup-icon-wrap')
-        ->toContain('fa-folder-open')
-        ->not->toContain('/media/anasheed/icons/0/2.jpg');
+        ->toContain('/media/anasheed/icons/0/2.jpg')
+        ->not->toContain('fa-folder-open');
 });
 
-it('show: subgroup cards no longer load the legacy pix001 fallback image', function () {
+it('show: subgroup cards without an icon use OLD\'s pix001 fallback image (visitor parity A9)', function () {
     DB::connection('main')->table('nuke_anasheed_groups')->insert([
         ['id' => 1, 'title' => 'Parent Group', 'parent_id' => 0, 'icon' => 0],
         ['id' => 2, 'title' => 'Sub Group', 'parent_id' => 1, 'icon' => 0],
@@ -169,10 +171,10 @@ it('show: subgroup cards no longer load the legacy pix001 fallback image', funct
 
     $content = $this->get('/var-group-1.htm')->assertOk()->getContent();
 
-    expect($content)->toContain('w2a-subgroup-card')->not->toContain('/images/pix001.gif');
+    expect($content)->toContain('w2a-subgroup-card')->toContain('/images/pix001.gif')->not->toContain('/media/anasheed/icons/0/2.jpg');
 });
 
-it('show: group 98\'s items also include group 16\'s items — the confirmed hardcoded special case', function () {
+it('show: group 98 lists only its own items — OLD ListAnasheed() never merged group 16 (visitor parity A4; 98 + 16 is the news page\'s rule)', function () {
     DB::connection('main')->table('nuke_anasheed_groups')->insert(['id' => 98, 'title' => 'News Group', 'parent_id' => 0]);
     DB::connection('main')->table('nuke_anasheed_anasheed')->insert([
         ['id' => 1, 'title' => 'Item In 98', 'group_id' => 98],
@@ -182,7 +184,7 @@ it('show: group 98\'s items also include group 16\'s items — the confirmed har
 
     $response = $this->get('/var-group-98.htm');
 
-    $response->assertOk()->assertSee('Item In 98')->assertSee('Item In 16')->assertDontSee('Item In Other Group');
+    $response->assertOk()->assertSee('Item In 98')->assertDontSee('Item In 16')->assertDontSee('Item In Other Group');
 });
 
 it('show: a non-special group only shows its own items', function () {

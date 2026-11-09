@@ -4,6 +4,7 @@ namespace App\Domain\Content\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
@@ -49,9 +50,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $hidden
  * @property int|null $lastupdate
  * @property int|null $ramadan
- * @property-read \App\Domain\Content\Models\Author|null $author
- * @property-read \App\Domain\Content\Models\Channel|null $channel
- * @property-read \App\Domain\Content\Models\KhotabGroup|null $group
+ * @property-read Author|null $author
+ * @property-read Channel|null $channel
+ * @property-read KhotabGroup|null $group
  */
 class Series extends Model
 {
@@ -81,7 +82,7 @@ class Series extends Model
     }
 
     /** `series_category_index` junction table (Fact, `db_migration.sql`) — unlike `nuke_islamic_groups.cat`, series' category linkage was already fixed off the pipe-delimited `cat` column pattern. */
-    public function categories(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    public function categories(): BelongsToMany
     {
         return $this->belongsToMany(Category::class, 'series_category_index', 'series_id', 'category_id');
     }

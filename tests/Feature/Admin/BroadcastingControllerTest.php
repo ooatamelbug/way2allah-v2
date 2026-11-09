@@ -4,7 +4,6 @@ use App\Domain\Admin\Models\AdminUser;
 use App\Domain\Content\Models\Channel;
 use App\Support\Permission\Permission;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Tests\Support\Fixtures\MainSchema;
 use Tests\Support\InMemoryConnection;
 

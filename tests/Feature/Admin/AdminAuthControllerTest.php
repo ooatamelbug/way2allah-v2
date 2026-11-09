@@ -159,16 +159,23 @@ it('the sidebar renders real Metronic parent/arrow/sub-menu markup for grouped m
 
     $content = $this->get('/admincp/')->assertOk()->getContent();
 
-    expect(substr_count($content, '<span class="arrow "></span>'))->toBe(5)
-        ->and(substr_count($content, 'class="sub-menu"'))->toBe(5)
+    // 6 grouped parents since OLD Admin Migration Phase 1 added الأناشيد
+    // (Anasheed mirror management) — a module with a non-empty child list,
+    // so by the same sidebar.php rule this test protects it renders as an
+    // expandable parent. Asserted by name below, not just counted.
+    expect(substr_count($content, '<span class="arrow "></span>'))->toBe(6)
+        ->and(substr_count($content, 'class="sub-menu"'))->toBe(6)
         ->and($content)->toContain('المشرفين')
         ->toContain('البث المباشر')
         ->toContain('مساجد و أماكن')
         ->toContain('المرئيات')
         ->toContain('التلاوات')
+        ->toContain('الأناشيد')
         ->toContain(route('admin.locations.create'))
         ->toContain(route('admin.staff.create'))
-        ->toContain(route('admin.link-quality.khotab.large-files'));
+        ->toContain(route('admin.link-quality.khotab.large-files'))
+        ->toContain(route('admin.mirrors.khotab.index'))
+        ->toContain(route('admin.mirrors.anasheed.index'));
 });
 
 it('survey/soundcloud/youtube/questionnaire stay flat, matching their real empty $modulelinks in legacy — broadcasting is grouped, matching its real 1-entry $modulelinks', function () {

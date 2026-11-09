@@ -2,7 +2,7 @@
 
 namespace App\Domain\Admin\Http\Controllers;
 
-use App\Domain\Admin\Models\SiteOption;
+use App\Support\Settings\SiteOption;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;

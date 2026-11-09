@@ -55,6 +55,18 @@
 @section('content')
     <x-page-chrome :heading="'مجموعة ' . $groupModel->title . ' - ' . $authorName" :breadcrumb="$breadcrumbTrail" />
 
+    {{-- Contextual administration (OLD ListCats(): «اضف للكل / امسح من الكل» beside each of the group's categories). --}}
+    @contextualAdmin
+        @include('admin.contextual._category-rows', [
+            'heading' => 'تصنيفات المجموعة',
+            'rows' => \App\Domain\Admin\Contextual\Controls\KhotabContainerControls::categories('group', (int) $groupModel->id, $groupModel->getAttribute('cat')),
+        ])
+        {{-- OLD Group(): «لوحة تحكم المجموعة» (group_cp.htm), right after the category block. --}}
+        <x-admin.contextual-controls title="لوحة تحكم المجموعة" :controls="\App\Domain\Admin\Contextual\Controls\KhotabGroupControls::panel($groupModel)" />
+    @endcontextualAdmin
+    {{-- OLD ListSeries() / ListKhotab() admin icons beside each series and item (KhotabUpSeries / KhotabUpKhotab). --}}
+    @php($contextualRows = app(\App\Domain\Admin\Contextual\ContextualAdmin::class)->active())
+
     <div class="row service-box margin-bottom-40">
         <div class="col-lg-9 col-md-8 col-sm-7 nopadding flex flex-column gap-5">
             {{--
@@ -72,7 +84,8 @@
                     </div>
                     <div class="portlet-body ">
                         @if ($series->isNotEmpty())
-                            <x-content.media-collection-grid :items="$series" secondary="channel" />
+                            <x-content.media-collection-grid :items="$series" secondary="channel"
+                                :row-controls="$contextualRows ? fn ($row) => [\App\Domain\Admin\Contextual\Controls\KhotabGroupControls::forSeries((int) $row->id)] : null" />
                         @else
                             <h5>لا توجد سلاسل مطابقة بقاعدة بيانات الموقع</h5>
                         @endif
@@ -94,7 +107,8 @@
                         <div class="caption"><i class="fa fa-child"></i> قائمة المواد</div>
                     </div>
                     <div class="portlet-body">
-                        <x-content.khotab-item-list :items="$items" :video="(bool) $groupModel->vedio" />
+                        <x-content.khotab-item-list :items="$items" :video="(bool) $groupModel->vedio"
+                            :row-controls="$contextualRows ? fn ($row) => [\App\Domain\Admin\Contextual\Controls\KhotabGroupControls::forItem((int) $row->id)] : null" />
                     </div>
                 </div>
             </div>

@@ -7,6 +7,7 @@ use App\Domain\Admin\Models\Survey;
 use App\Domain\Admin\Models\SurveyAnswer;
 use App\Domain\Admin\Models\SurveyQuestion;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -181,9 +182,9 @@ class SurveyController
      */
     public function allStats(Survey $survey): View
     {
-        /** @var \Illuminate\Database\Eloquent\Collection<int, SurveyAnswer> $answers */
+        /** @var Collection<int, SurveyAnswer> $answers */
         $answers = $survey->answers()->get();
-        /** @var \Illuminate\Database\Eloquent\Collection<int, SurveyQuestion> $questions */
+        /** @var Collection<int, SurveyQuestion> $questions */
         $questions = $survey->questionsRelation()->get();
 
         $summaries = [];
@@ -197,8 +198,8 @@ class SurveyController
         return view('admin.survey.all-stats', compact('survey', 'summaries'));
     }
 
-    /** @param  \Illuminate\Database\Eloquent\Collection<int, SurveyAnswer>  $answers */
-    private function summarizeQuestion(SurveyQuestion $question, \Illuminate\Database\Eloquent\Collection $answers): array
+    /** @param  Collection<int, SurveyAnswer>  $answers */
+    private function summarizeQuestion(SurveyQuestion $question, Collection $answers): array
     {
         $tally = [];
 

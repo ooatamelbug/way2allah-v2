@@ -118,10 +118,10 @@ it('fatawa-authors.htm (op=fatwa) generates real khotab-fatwa-{id}.htm links, by
 
     for ($i = 1; $i <= 12; $i++) {
         DB::connection('main')->table('nuke_fatwa_general_questions')->insert([
-            'id' => 500 + $i, 'question_text' => 'Q' . $i, 'topic_id' => '0',
+            'id' => 500 + $i, 'question_text' => 'Q'.$i, 'topic_id' => '0',
         ]);
         DB::connection('main')->table('nuke_fatwa_questions')->insert([
-            'id' => $i, 'auther_id' => 17, 'general_question_id' => '|' . (500 + $i) . '|', 'question_text' => 'A' . $i,
+            'id' => $i, 'auther_id' => 17, 'general_question_id' => '|'.(500 + $i).'|', 'question_text' => 'A'.$i,
         ]);
     }
 
@@ -924,7 +924,9 @@ it('dumped-lectures.htm: resolves via KhotabDumpController::index(), identical t
     $prettyContent = $this->get('/dumped-lectures.htm')->assertOk()->getContent();
     $rawContent = $this->get('/khotab/dump')->assertOk()->getContent();
 
-    expect($prettyContent)->toBe($rawContent);
+    // og:url is the requested URL (IF-056, as Gen 2) — the only per-URL difference.
+    $withoutOgUrl = fn (string $html) => (string) preg_replace('/<meta property="og:url" content="[^"]*">/', '', $html);
+    expect($withoutOgUrl($prettyContent))->toBe($withoutOgUrl($rawContent));
     expect(strpos($prettyContent, 'Newer PDF'))->toBeLessThan(strpos($prettyContent, 'Older PDF'));
 });
 

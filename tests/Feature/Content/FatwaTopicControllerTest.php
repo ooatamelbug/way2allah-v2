@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Content\Support\ArabicDateConverter;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\Fixtures\MainSchema;
 use Tests\Support\InMemoryConnection;
@@ -226,7 +227,7 @@ it('show: each topic row uses the real portlet/h5/question-count/date DOM, with 
         ->toContain('عدد الأسئلة:')
         ->toContain('2') // both Q1 (exact) and Q2 (multi-membership) count via LIKE
         ->toContain('<i class="fa fa-calendar-o"></i>')
-        ->toContain(\App\Domain\Content\Support\ArabicDateConverter::convert('2023-08-07'))
+        ->toContain(ArabicDateConverter::convert('2023-08-07'))
         ->not->toContain('٢٠٢٣م'); // no-space regression guard
 });
 
@@ -261,8 +262,8 @@ it('fatawa-category-{id}.htm still resolves to page 1 and inherits the full pres
     $viaTopicsPageOne = $this->get('/fatawa-topics-1-1.htm')->assertOk()->getContent();
 
     // Strip per-request CSRF tokens before comparing, same approach as the
-    // route-equivalence test above.
-    $strip = fn (string $html) => preg_replace('/name="_token" value="[^"]*"|content="[^"]*" name="csrf-token"|name="csrf-token" content="[^"]*"/', '', $html);
+    // route-equivalence test above. og:url is per-request too (IF-056: the requested URL, as Gen 2).
+    $strip = fn (string $html) => preg_replace('/name="_token" value="[^"]*"|content="[^"]*" name="csrf-token"|name="csrf-token" content="[^"]*"|<meta property="og:url" content="[^"]*">/', '', $html);
 
     expect($strip($viaCategory))->toBe($strip($viaTopicsPageOne))
         ->toContain('<h1 style=""></h1>')
@@ -270,14 +271,20 @@ it('fatawa-category-{id}.htm still resolves to page 1 and inherits the full pres
         ->toContain('Topic');
 });
 
-it('questions: exact-matches the pipe-wrapped topic_id, not a LIKE multi-membership match, via the topic-first-category-second route order', function () {
+// Superseded 2026-10-30 (decision-log #69, owner-approved Fatwa blocker fix R1):
+// this used to pin Gen 2's exact `topic_id = '|10|'` match. OLD's `questions()`
+// lists by membership (`LIKE '%|10|%'`) and the approved Q4 / Q6 controls rely
+// on it, so a multi-topic question is listed — but only for a whole token.
+it('questions: matches the topic as a whole pipe token (OLD membership), via the topic-first-category-second route order', function () {
     $db = DB::connection('main');
     $db->table('nuke_w2a_cat')->insert(['id' => 1, 'title' => 'Cat', 'main_cat' => 0, 'q_count' => 1]);
     $db->table('nuke_fatwa_topics')->insert(['id' => 10, 'topic_name' => 'Topic', 'parent_id' => 1]);
     $db->table('nuke_fatwa_general_questions')->insert([
         ['id' => 100, 'question_text' => 'Exact single-topic match', 'topic_id' => '|10|'],
-        ['id' => 101, 'question_text' => 'Multi-topic string, not exact', 'topic_id' => '|10|20|'],
+        ['id' => 101, 'question_text' => 'Multi-topic member', 'topic_id' => '|20|10|'],
         ['id' => 102, 'question_text' => 'Different topic entirely', 'topic_id' => '|20|'],
+        ['id' => 103, 'question_text' => 'Token 110 is not 10', 'topic_id' => '|110|'],
+        ['id' => 104, 'question_text' => 'Token 100 is not 10', 'topic_id' => '|5|100|'],
     ]);
 
     // Topic id (10) first, category id (1) second — matches .htaccess:301-302
@@ -286,8 +293,10 @@ it('questions: exact-matches the pipe-wrapped topic_id, not a LIKE multi-members
 
     $response->assertOk()
         ->assertSee('Exact single-topic match')
-        ->assertDontSee('Multi-topic string, not exact')
-        ->assertDontSee('Different topic entirely');
+        ->assertSee('Multi-topic member')
+        ->assertDontSee('Different topic entirely')
+        ->assertDontSee('Token 110 is not 10')
+        ->assertDontSee('Token 100 is not 10');
 });
 
 it('questions: the explicit-page 3-parameter route form also works', function () {
@@ -461,8 +470,10 @@ it('category: fatawa-category-{id}.htm renders identically to fatawa-topics-{id}
     ]);
     $db->table('nuke_fatwa_topics')->insert(['id' => 10, 'topic_name' => 'Topic A', 'parent_id' => 1]);
 
-    $viaCategory = $this->get('/fatawa-category-1.htm')->assertOk()->getContent();
-    $viaTopicsPageOne = $this->get('/fatawa-topics-1-1.htm')->assertOk()->getContent();
+    // og:url is the requested URL (IF-056, as Gen 2) — the only per-URL difference.
+    $withoutOgUrl = fn (string $html) => (string) preg_replace('/<meta property="og:url" content="[^"]*">/', '', $html);
+    $viaCategory = $withoutOgUrl($this->get('/fatawa-category-1.htm')->assertOk()->getContent());
+    $viaTopicsPageOne = $withoutOgUrl($this->get('/fatawa-topics-1-1.htm')->assertOk()->getContent());
 
     expect($viaCategory)->toBe($viaTopicsPageOne)
         ->toContain('Child With Questions')

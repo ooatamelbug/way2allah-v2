@@ -21,6 +21,9 @@ use Illuminate\Contracts\View\View;
  * already established): a "pinned" list (`fixed=1`, limit 100) and a
  * "newest" list (no fixed filter, limit 32) — matching `more.php:19-24`
  * and `:34-38`'s `$arr` parameters exactly.
+ *
+ * Superseded for selection (visitor parity A1, 2026-11-04): `vars/more.php` is Gen 2. OLD
+ * `modules/Anasheed` `MoreAnasheed()` / `ListNews()` governs — see `show()`.
  */
 class AnasheedNewsController
 {
@@ -39,15 +42,19 @@ class AnasheedNewsController
         $groupId = self::THEME_GROUPS[$theme];
         $group = AnasheedGroup::findOrFail($groupId);
 
-        $pinnedItems = AnasheedItem::inGroup($groupId)
+        // OLD MoreAnasheed() / ListNews() (visitor parity A1, 2026-11-04): the whole department —
+        // items whose `parent_id` (the root group, set on insert) is this one, 98 also taking 16 —
+        // every pinned item, then the newest 24, both `ORDER BY mytime DESC`.
+        $department = $groupId === 98 ? [98, 16] : [$groupId];
+
+        $pinnedItems = AnasheedItem::whereIn('parent_id', $department)
             ->where('fixed', 1)
-            ->orderByDesc('mytime')->orderByDesc('order_in_group')
-            ->limit(100)
+            ->orderByDesc('mytime')
             ->get();
 
-        $newestItems = AnasheedItem::inGroup($groupId)
-            ->orderByDesc('mytime')->orderByDesc('order_in_group')
-            ->limit(32)
+        $newestItems = AnasheedItem::whereIn('parent_id', $department)
+            ->orderByDesc('mytime')
+            ->limit(24)
             ->get();
 
         return view('anasheed.news', compact('group', 'pinnedItems', 'newestItems'));

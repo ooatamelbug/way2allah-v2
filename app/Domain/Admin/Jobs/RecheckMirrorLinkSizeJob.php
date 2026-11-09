@@ -24,9 +24,7 @@ class RecheckMirrorLinkSizeJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public function __construct(private readonly int $id)
-    {
-    }
+    public function __construct(private readonly int $id) {}
 
     public function handle(LinkSizeChecker $checker): void
     {

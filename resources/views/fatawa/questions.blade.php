@@ -73,6 +73,10 @@
             </li>
         </ul>
     </div>
+@contextualAdmin
+    {{-- OLD questions(): AdvancedStats(0,$topic,$cat,"questions") — «اضافة سؤال للموضوع», «تعديل الموضوع» (its «حذف الموضوع» is dead in production). Admins only. --}}
+    <x-admin.contextual-controls title="لوحة تحكم المشرفين" :controls="\App\Domain\Admin\Contextual\Controls\FatwaControls::topic($topicModel)" />
+@endcontextualAdmin
 
     <div class="row service-box margin-bottom-40">
         <div class="col-lg-9 col-md-8 col-sm-7 nopadding flex flex-column gap-5">

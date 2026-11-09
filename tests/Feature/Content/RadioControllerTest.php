@@ -103,10 +103,13 @@ it('IF-032: the 3 personalized-playlist op-routes are not reproduced as working 
     // These 3 .htaccess routes all target radio/index.php, which has no
     // op= handling at all (confirmed) — the file that does implement
     // these ops (radio/indexXX.php) has no route pointing to it and is
-    // dead code. No Laravel route exists for these paths at all.
-    $this->get('/remove-playlist-item-1-audio.htm')->assertNotFound();
-    $this->get('/playlist-item-1.htm')->assertNotFound();
-    $this->get('/save-last-listen.htm')->assertNotFound();
+    // dead code. Owner disposition (decision-log #104): the operations stay
+    // unimplemented; a GET is redirected to the radio page itself, which is
+    // what Gen 2 rendered at these URLs. POST (Gen 2's AJAX method) is not handled.
+    $this->get('/remove-playlist-item-1-audio.htm')->assertStatus(301)->assertRedirect('/radio.htm');
+    $this->get('/playlist-item-1.htm')->assertStatus(301)->assertRedirect('/radio.htm');
+    $this->get('/save-last-listen.htm')->assertStatus(301)->assertRedirect('/radio.htm');
+    $this->post('/save-last-listen.htm')->assertStatus(405);
 });
 
 it('index: loads the two registered stylesheets and two registered scripts, in legacy\'s own registration order', function () {

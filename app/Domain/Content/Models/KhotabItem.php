@@ -5,8 +5,10 @@ namespace App\Domain\Content\Models;
 use App\Domain\Content\Models\Concerns\TracksViews;
 use App\Domain\Content\Models\Contracts\Viewable;
 use App\Domain\Content\Support\MediaPathResolver;
+use App\Domain\Content\Support\MediaUrl;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -95,11 +97,11 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property int $docx
  * @property int|null $docx_time
  * @property int|null $booking
- * @property-read \App\Domain\Content\Models\Author|null $authorModel
- * @property-read \App\Domain\Content\Models\Channel|null $channel
- * @property-read \App\Domain\Content\Models\Series|null $series
- * @property-read \App\Domain\Content\Models\KhotabGroup|null $group
- * @property-read \App\Domain\Content\Models\KhotabAdvanced|null $advanced
+ * @property-read Author|null $authorModel
+ * @property-read Channel|null $channel
+ * @property-read Series|null $series
+ * @property-read KhotabGroup|null $group
+ * @property-read KhotabAdvanced|null $advanced
  */
 class KhotabItem extends Model implements Viewable
 {
@@ -154,9 +156,9 @@ class KhotabItem extends Model implements Viewable
     /**
      * `khotab_category_index` junction table (Fact) — not the raw `cat` column (superseded, see class docblock).
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany<Category, $this>
+     * @return BelongsToMany<Category, $this>
      */
-    public function categories(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    public function categories(): BelongsToMany
     {
         return $this->belongsToMany(Category::class, 'khotab_category_index', 'khotab_id', 'category_id');
     }
@@ -183,6 +185,22 @@ class KhotabItem extends Model implements Viewable
     public function videoGifPath(): string
     {
         return MediaPathResolver::path('khotab_gifs', $this->id, 'gif');
+    }
+
+    /**
+     * Social-sharing image (IF-056) — Gen 2 `khotab/item.php`: `gif == 1` →
+     * `media/khotab_gifs/{id/1000}/{id}.gif`, else
+     * `media/khotab_frames/{id/1000}/{id}.jpg`. Gen 2 emitted that path even
+     * when the file was missing; here a missing file gives null, so the layout
+     * falls back to Gen 2's default image instead of a broken one. Checked
+     * under `admin_khotab.media_root`, as `KhotabBanner` does.
+     */
+    public function socialImageUrl(): ?string
+    {
+        $relative = (int) $this->gif === 1 ? $this->videoGifPath() : $this->videoFramePath();
+        $file = rtrim((string) config('admin_khotab.media_root'), '/').'/'.substr($relative, strlen('media/'));
+
+        return is_file($file) ? MediaUrl::asset($relative) : null;
     }
 
     /** `khotab/functions.php:1055` (`download_khotab_pdf()`'s redirect target). */

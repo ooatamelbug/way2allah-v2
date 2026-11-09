@@ -5,7 +5,11 @@
     'meta' => 'downloads',
     'type' => 'fatawa',
     'emptyText' => 'لا توجد مواد حالياً',
+    'showThumbs' => false,
 ])
+{{-- showThumbs: render each item's resolved `thumb` (ContentSidebarWidget::topitems() — the item's
+     frame, else the list author's JPG, else the placeholder), as OLD Top10() showed one per item.
+     Off by default, so every other page's markup is unchanged. --}}
 
 <section class="w2a-refresh-panel w2a-sidebar-ranking-panel">
     <header class="w2a-refresh-panel__header">
@@ -27,7 +31,7 @@
                         // Resolve target URL cleanly based on content domain
                         if ($type === 'fatawa') {
                             $gId = isset($item->general_question_id)
-                                ? str_replace('|', '', (string) $item->general_question_id)
+                                ? \App\Domain\Content\Support\FatwaPipeIds::linkId($item->general_question_id) // first stored question (decision-log #69)
                                 : null;
                             $targetUrl = $gId
                                 ? "/fatawa-all-{$gId}.htm#{$item->id}"
@@ -54,7 +58,7 @@
                                         (is_string($item->thumbnail) && str_contains($item->thumbnail, ',')
                                             ? explode(',', $item->thumbnail)[0]
                                             : $item->thumbnail)
-                                    : null);
+                                    : ($showThumbs && !empty($item->thumb) ? $item->thumb : null));
 
                         $downloads = $item->num_download ?? ($item->downcount ?? ($item->hits ?? null));
                         $views = $item->num_view ?? ($item->views ?? null);

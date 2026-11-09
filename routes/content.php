@@ -22,13 +22,18 @@ use App\Domain\Content\Http\Controllers\KhotabDayController;
 use App\Domain\Content\Http\Controllers\KhotabDumpController;
 use App\Domain\Content\Http\Controllers\KhotabGroupController;
 use App\Domain\Content\Http\Controllers\KhotabItemController;
-use App\Domain\Content\Http\Controllers\LocationController;
+use App\Domain\Content\Http\Controllers\KhotabItemLegacyCommentPageRedirectController;
 use App\Domain\Content\Http\Controllers\KhotabNewsController;
 use App\Domain\Content\Http\Controllers\KhotabSearchController;
 use App\Domain\Content\Http\Controllers\KhotabSeriesController;
+use App\Domain\Content\Http\Controllers\LegacyModulesPhpRedirectController;
 use App\Domain\Content\Http\Controllers\LiveStreamController;
+use App\Domain\Content\Http\Controllers\LocationController;
 use App\Domain\Content\Http\Controllers\MediaPlayerController;
+use App\Domain\Content\Http\Controllers\MobileController;
+use App\Domain\Content\Http\Controllers\PromotionalFilesController;
 use App\Domain\Content\Http\Controllers\RadioController;
+use App\Domain\Content\Http\Controllers\RadioLegacyOperationRedirectController;
 use App\Domain\Content\Http\Controllers\SearchController;
 use App\Domain\Content\Http\Controllers\TelawahAuthorController;
 use App\Domain\Content\Http\Controllers\TelawahGroupController;
@@ -82,6 +87,10 @@ Route::get('/channel-{channel}-{author}.htm', [ChannelController::class, 'showAu
 Route::get('/khotab-item-{khotab}.htm', [KhotabItemController::class, 'show'])
     ->whereNumber('khotab')
     ->name('khotab.item.show');
+// Gen 2's comment-page URL (decision-log #102) → the canonical `?page=` URL, permanently; no second rendering path.
+Route::get('/khotab-item-{khotab}-page-{page}.htm', KhotabItemLegacyCommentPageRedirectController::class)
+    ->whereNumber(['khotab', 'page'])
+    ->name('khotab.item.legacy-comment-page');
 Route::get('/khotab-download-{khotab}.htm', [KhotabItemController::class, 'download'])
     ->whereNumber('khotab')
     ->name('khotab.item.download');
@@ -91,6 +100,10 @@ Route::get('/khotab-mirror-{khotab}-{mirror}.htm', [KhotabItemController::class,
 Route::get('/khotab-item-pdf-{khotab}.htm', [KhotabItemController::class, 'downloadPdf'])
     ->whereNumber('khotab')
     ->name('khotab.item.download-pdf');
+// OLD `Codes()` — the item banner's HTML / VBulletin / phpBB embed code (owner, 2026-10-22).
+Route::get('/khotab-code-{khotab}-{type}.htm', [KhotabItemController::class, 'bannerCode'])
+    ->whereNumber(['khotab', 'type'])
+    ->name('khotab.item.banner-code');
 Route::post('/khotab-item-{khotab}/comments', [KhotabItemController::class, 'storeComment'])
     ->whereNumber('khotab')
     ->name('khotab.item.store-comment');
@@ -133,6 +146,17 @@ Route::get('/thumbnails.php', [ThumbnailController::class, 'show'])->name('thumb
 | khotab-{video|audio}date-{d}-{m}-{y}.htm / khotab-{video|audio|pdf}_news.htm
 | are all real, live .htaccess rules — kept at their exact legacy path.
 */
+// OLD Admin Migration, final public features (owner, 2026-10-15) — public
+// promotional files, OLD modules/advfiles. The three rewritten URLs keep
+// their exact paths; the library sub-pages (OLD modules.php?op=…) get pretty
+// ones. Phase 5 owns the administration.
+Route::get('/khotab-advfile-{id}.htm', [PromotionalFilesController::class, 'fragment'])->whereNumber('id')->name('advfiles.fragment');
+Route::get('/khotab-advfilefull-{id}.htm', [PromotionalFilesController::class, 'full'])->whereNumber('id')->name('advfiles.full');
+Route::get('/khotab-advfiles.htm', [PromotionalFilesController::class, 'library'])->name('advfiles.library');
+Route::get('/khotab-advfiles-author-{id}.htm', [PromotionalFilesController::class, 'author'])->whereNumber('id')->name('advfiles.author');
+Route::get('/khotab-advfiles-group-{id}.htm', [PromotionalFilesController::class, 'group'])->whereNumber('id')->name('advfiles.group');
+Route::get('/khotab-advfiles-series-{id}.htm', [PromotionalFilesController::class, 'series'])->whereNumber('id')->name('advfiles.series');
+
 Route::get('/khotab-{op}.htm', [KhotabAuthorController::class, 'index'])
     ->where('op', 'video|audio|pdf')
     ->name('khotab.authors.index');
@@ -183,6 +207,13 @@ Route::get('/khotab/search', [KhotabSearchController::class, 'index'])->name('kh
 // #8) — registered at that exact path, same controller action as
 // /khotab/search above (not a duplicate implementation).
 Route::get('/video-advanced-search.htm', [KhotabSearchController::class, 'index'])->name('khotab.search.pretty');
+
+// OLD `advanced_search.htm` (.htaccess:154 → modules/advanced_search
+// `Main_search()`): the same video search, reached directly and from the
+// sheikh pages' «بحث متقدم» form. Advanced-search visitor parity (owner,
+// 2026-11-03): identical behaviour at both URLs; GET, as approved in
+// decision-log #21.
+Route::get('/advanced_search.htm', [KhotabSearchController::class, 'index'])->name('khotab.search.legacy');
 
 // categories.htm is a real, live .htaccess rule (categories/tree.php,
 // default/op-less branch) — confirmed via the Evidence Reconciliation
@@ -293,6 +324,13 @@ Route::get('/cds-main.htm', [W2acdController::class, 'index'])->name('w2acd.inde
 // query string `/w2acd/item.php` uses — `W2acdController::show()` checks
 // both.
 Route::get('/cds-item-{khid}.htm', [W2acdController::class, 'show'])->whereNumber('khid')->name('w2acd.show.pretty');
+// W2ACD public admin parity, Phase 2 — OLD `^cds-group-([0-9]*).htm` and
+// `^cds-group-([0-9]+)-page-([0-9]*).htm` → `w2acd&op=Group` (.htaccess:522-525).
+Route::get('/cds-group-{group}.htm', [W2acdController::class, 'group'])->whereNumber('group')->name('w2acd.group');
+Route::get('/cds-group-{group}-page-{page}.htm', [W2acdController::class, 'group'])->whereNumber(['group', 'page'])->name('w2acd.group.paged');
+// W2ACD public admin parity, Phase 1 — OLD `^cds-code-([0-9]*)-([0-9]*).htm` →
+// `w2acd&op=Codes` (.htaccess:561): the banner's HTML / vBulletin / phpBB embed code.
+Route::get('/cds-code-{khid}-{type}.htm', [W2acdController::class, 'bannerCode'])->whereNumber(['khid', 'type'])->name('w2acd.banner-code');
 
 // gallery — Roadmap task 4.6. gallery.htm / gallery-{id}.htm /
 // albumimg-download-{id}.htm are real, live .htaccess rules (unlike
@@ -304,6 +342,10 @@ Route::get('/gallery-{album}.htm', [GalleryController::class, 'show'])
 Route::get('/albumimg-download-{image}.htm', [GalleryController::class, 'download'])
     ->whereNumber('image')
     ->name('gallery.download');
+// Full-album ZIP (decision-log #107) — the existing button URL; generated on demand, cached privately.
+Route::get('/download-album-{album}.htm', [GalleryController::class, 'downloadAlbum'])
+    ->whereNumber('album')
+    ->name('gallery.download-album');
 
 // anasheed — Roadmap task 4.7. var-item-{id}.htm / var-group-{id}.htm /
 // var-download-{id}.htm / var-mirror-{id}-{id2}.htm are real, live
@@ -403,6 +445,18 @@ Route::get('/recite-news.htm', [TelawahLatestController::class, 'index'])
 // that are deliberately NOT reproduced here).
 Route::get('/radio.htm', [RadioController::class, 'index'])->name('radio.index');
 Route::get('/radio-mobile.htm', [RadioController::class, 'index'])->name('radio.index.mobile');
+// Gen 2's radio operation URLs (`.htaccess:343-345`) — GET only → radio.htm; operations not reimplemented (#104).
+Route::get('/remove-playlist-item-{spec}.htm', RadioLegacyOperationRedirectController::class)
+    ->where('spec', '[0-9]*-[a-z]*')
+    ->name('radio.legacy.remove-playlist-item');
+Route::get('/playlist-item-{id}.htm', RadioLegacyOperationRedirectController::class)
+    ->where('id', '[0-9]*')
+    ->name('radio.legacy.playlist-item');
+Route::get('/save-last-listen.htm', RadioLegacyOperationRedirectController::class)
+    ->name('radio.legacy.save-last-listen');
+
+// Gen 2's two approved query-gated `modules.php` 301s (`.htaccess:187-188, 193-194`); everything else 404s (#104).
+Route::get('/modules.php', LegacyModulesPhpRedirectController::class)->name('legacy.modules-php');
 
 // chat_room's lesson-browsing half — Roadmap task 4.11 (added post-Wave-4,
 // see docs/reviews/gap-closure-action-plan.md item 4). chat_author_{id}.htm
@@ -439,18 +493,17 @@ Route::get('/lesson-download-{lesson}.htm', [ChatRoomLessonController::class, 'd
 // UNRECOVERABLE), and questionnaire.htm (OPEN / SOURCE UNRECOVERABLE) are
 // deliberately NOT registered — see IF-047 through IF-049.
 //
-// location-{id}-author-{id2}.htm: re-verification (not the original Wave C
-// report's assumption) found `chat_room/author.php` — the file this op
-// would reach — never reads $_GET['location'] at all; `$location_id = 10`
-// is unconditionally hardcoded. This route is therefore NOT a generic
-// "any location's author page" — it is byte-for-byte the same output as
-// the already-built chat_author_{id}.htm, for every location value. Routed
-// through LocationController::locationAuthor(), a thin pass-through to the
-// real, unmodified ChatRoomLessonController::author() — not a new query
-// (IF-048). Necessary because Laravel binds a route's "extra" (unnamed-in-
-// the-target-method) segments positionally, not by name — declaring both
-// {location}/{author} explicitly here is what makes {author} actually
-// reach ChatRoomLessonController::author()'s $author parameter correctly.
+// location-{id}-author-{id2}.htm (decision-log #114): uses the REQUESTED
+// location, as OLD `modules/Locations` `Author($id, $location)` does — the
+// location must exist (else 404), the author must be registered at it (else
+// 404), and groups, series, items and both sidebars are scoped to it.
+// Routed through LocationController::locationAuthor() →
+// ChatRoomLessonController::authorAtGivenLocation(). chat_author_{id}.htm
+// stays fixed to location 10 (Gen 2 `chat_room/author.php`'s hardcoded
+// `$location_id = 10`). History: IF-048 originally treated this route as a
+// pass-through to the location-10 chat-room author page; #114 superseded
+// that. Both {location}/{author} are declared by name here because Laravel
+// binds a route's extra segments positionally, not by name.
 Route::get('/location-{location}.htm', [LocationController::class, 'show'])
     ->whereNumber('location')
     ->name('locations.show');
@@ -527,6 +580,15 @@ Route::get('/fatawa.htm', [FatwaTopicController::class, 'index'])->name('fatawa.
 Route::get('/fatawa-topics-{category}-{page}.htm', [FatwaTopicController::class, 'show'])
     ->whereNumber(['category', 'page'])
     ->name('fatawa.topics.show');
+// Fatwa visitor parity F5b (owner, 2026-11-04): OLD's .htaccess:631 serves
+// fatawa-topics-{cat_id}.htm (op=topics, page=1), and OLD's live
+// modules/Fatwa/index.php links every category this way (MainPage()'s tree
+// base link, Logo()'s breadcrumbs). Same page as -1.htm; the paged family
+// above is unchanged.
+Route::get('/fatawa-topics-{category}.htm', [FatwaTopicController::class, 'show'])
+    ->whereNumber('category')
+    ->defaults('page', 1)
+    ->name('fatawa.topics.show.legacy');
 // .htaccess:301-302 — two real rules, t_id first, cat_id second (page
 // defaults to 1 in the 2-parameter form).
 Route::get('/fatawa-group-{topic}-{category}.htm', [FatwaTopicController::class, 'questions'])
@@ -656,9 +718,51 @@ Route::post('/fatawa-friend-sendemail-{question}.htm', [FatwaQuestionController:
 // dispatcher. Only search.htm is registered — confirmed (Legacy Evidence
 // Verification, task 6.2) to be the target of the active JS AJAX
 // generation (new_advanced_search_mawad()/series()) and of header.php's
-// own live, sitewide search form; advanced_search.htm is tied only to an
-// older, dead AJAX generation (mode:"ajax_khotab", never matched by
-// index.php's own checks) — out of scope, per explicit instruction. POST
+// own live, sitewide search form. (advanced_search.htm was set aside here on
+// Gen 2 evidence; OLD's modules/advanced_search did serve it — it is now
+// registered beside video-advanced-search.htm above, 2026-11-03.) POST
 // only, matching legacy exactly (see SearchController's own docblock for
 // the full record of every decision this route embodies).
 Route::post('/search.htm', [SearchController::class, 'search'])->name('search');
+
+/*
+|--------------------------------------------------------------------------
+| OLD Admin Migration Phase 7 — Mobile Downloads (قسم الموبايل)
+|--------------------------------------------------------------------------
+|
+| OLD `modules/Mobile` (PHP-Nuke Downloads), reached through these exact
+| `.htaccess` rewrites (old-project/.htaccess:804-870), registered at their
+| legacy paths like the rest of the site. Retired, as dead in OLD itself:
+| `mobile-toprated-{n}-{type}.htm` / `mobile-mostpopular-{n}-{type}.htm`
+| (the rules passed `num|percent` as the count — an SQL error) and
+| `mobile-outside-{lid}.htm` (cross-site "outside" voting, plan §26.7).
+| Form submissions post to clean `/mobile/...` paths.
+|
+*/
+Route::get('/mobiles.htm', [MobileController::class, 'index'])->name('mobile.index');
+Route::get('/mobiles-cat{cid}.htm', [MobileController::class, 'category'])->whereNumber('cid')->name('mobile.category');
+Route::get('/mobile{cid}-orderby{orderby}.htm', [MobileController::class, 'categoryOrdered'])->whereNumber('cid')->where('orderby', '[a-zA-Z0-9+]+')->name('mobile.category.order');
+Route::get('/mobile{cid}-{min}-{orderby}-{show}.htm', [MobileController::class, 'categoryPage'])->whereNumber(['cid', 'min', 'show'])->where('orderby', '[a-zA-Z0-9+]+')->name('mobile.category.page');
+Route::get('/mobiles-newmobiles.htm', [MobileController::class, 'newMaterials'])->name('mobile.new');
+Route::get('/mobile-shownew-{days}.htm', [MobileController::class, 'newMaterials'])->whereNumber('days')->name('mobile.new.days');
+Route::get('/mobile-seldate-{timestamp}.htm', [MobileController::class, 'addedOn'])->whereNumber('timestamp')->name('mobile.date');
+Route::get('/mobiles-mostpopular.htm', [MobileController::class, 'mostPopular'])->name('mobile.popular');
+Route::get('/mobiles-toprated.htm', [MobileController::class, 'topRated'])->name('mobile.toprated');
+Route::get('/mobile/search', [MobileController::class, 'search'])->name('mobile.search');
+Route::get('/mobile-search-{query}-{min}-{orderby}-{show}.htm', [MobileController::class, 'searchPage'])->where(['query' => '.+', 'orderby' => '[a-zA-Z0-9+]+'])->whereNumber(['min', 'show'])->name('mobile.search.page');
+Route::get('/mobile-search-{query}-{orderby}.htm', [MobileController::class, 'searchOrdered'])->where(['query' => '.+', 'orderby' => '(?:title|date|hits|rating)[AD]'])->name('mobile.search.order');
+Route::get('/mobile-search-{query}.htm', [MobileController::class, 'searchLegacy'])->where('query', '.+')->name('mobile.search.legacy');
+foreach (['details', 'comments', 'editorial'] as $view) {
+    Route::get("/mobileview-{$view}-{lid}.htm", [MobileController::class, $view])->whereNumber('lid')->name("mobile.{$view}");
+    Route::get("/mobileview-{$view}-{lid}-{ttitle}.htm", [MobileController::class, $view])->whereNumber('lid')->where('ttitle', '.*')->name("mobile.{$view}.titled");
+}
+Route::get('/mobile-file-{lid}.htm', [MobileController::class, 'download'])->whereNumber('lid')->name('mobile.download');
+Route::get('/ratemobile-{lid}.htm', [MobileController::class, 'rateForm'])->whereNumber('lid')->name('mobile.rate.form');
+Route::get('/ratemobile-{lid}-{ttitle}.htm', [MobileController::class, 'rateForm'])->whereNumber('lid')->where('ttitle', '.*')->name('mobile.rate.form.titled');
+Route::post('/mobile/{lid}/rate', [MobileController::class, 'rate'])->whereNumber('lid')->name('mobile.rate');
+Route::get('/mobiles-admobile.htm', [MobileController::class, 'submitForm'])->name('mobile.submit.form');
+Route::post('/mobile/submit', [MobileController::class, 'submit'])->name('mobile.submit');
+Route::get('/mobile-mod-{lid}.htm', [MobileController::class, 'correctionForm'])->whereNumber('lid')->name('mobile.correction.form');
+Route::post('/mobile/{lid}/correction', [MobileController::class, 'correction'])->whereNumber('lid')->name('mobile.correction');
+Route::get('/mobile-broken-{lid}.htm', [MobileController::class, 'brokenForm'])->whereNumber('lid')->name('mobile.broken.form');
+Route::post('/mobile/{lid}/broken', [MobileController::class, 'broken'])->whereNumber('lid')->name('mobile.broken');

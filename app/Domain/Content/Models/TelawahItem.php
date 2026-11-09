@@ -4,6 +4,7 @@ namespace App\Domain\Content\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * One row per Quran recitation — the core content table for the
@@ -22,10 +23,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * `AnasheedItem`, not an oversight in this port). Only `downcount` is
  * genuinely written, by `download_telawah()`.
  *
- * No mirrors table exists for this module (confirmed by the absence of
- * any `nuke_telawah_mirror`-shaped table or query anywhere in
- * `telawah/*.php`) — each item has exactly one `link`, unlike
- * `KhotabItem`/`AnasheedItem`.
+ * Generation 2's public pages read no mirrors for this module — each item
+ * shows exactly one `link`. OLD (generation 1) does keep alternative links
+ * in `nuke_telawah_mirror` and administered them; see `mirrors()` and
+ * `TelawahMirror` (Pass 3E.1 §4.1(a) corrected this sentence's earlier,
+ * over-broad wording).
  *
  * @property int $id
  * @property int|null $backup
@@ -67,6 +69,12 @@ class TelawahItem extends Model
     public $timestamps = false;
 
     protected $guarded = ['id'];
+
+    /** OLD's alternative links (`nuke_telawah_mirror.telawa_id`), in OLD's display order. @return HasMany<TelawahMirror, $this> */
+    public function mirrors(): HasMany
+    {
+        return $this->hasMany(TelawahMirror::class, 'telawa_id')->orderBy('id');
+    }
 
     public function group(): BelongsTo
     {

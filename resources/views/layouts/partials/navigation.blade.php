@@ -158,9 +158,7 @@
                     <script type="text/javascript">
                         var popup_authors_autocomplete_list = {
                             @php
-                                $authorsFile = public_path('w2a_autocomplete/authors.txt');
-                                $authorsContents = is_file($authorsFile) ? trim(file_get_contents($authorsFile)) : '';
-                                $authorsList = $authorsContents !== '' ? explode(',|^', $authorsContents) : [];
+                                $authorsList = \App\Domain\Content\Support\AutocompleteFiles::entries('authors.txt');
                             @endphp
                             @foreach ($authorsList as $index => $author)
                                 "{{ $index + 1 }}": "{{ $author }}"
@@ -171,9 +169,7 @@
                         }
                         var popup_channels_autocomplete_list = {
                             @php
-                                $channelsFile = public_path('w2a_autocomplete/channels.txt');
-                                $channelsContents = is_file($channelsFile) ? trim(file_get_contents($channelsFile)) : '';
-                                $channelsList = $channelsContents !== '' ? explode(',|^', $channelsContents) : [];
+                                $channelsList = \App\Domain\Content\Support\AutocompleteFiles::entries('channels.txt');
                             @endphp
                             @foreach ($channelsList as $index => $channel)
                                 "{{ $index + 1 }}": "{{ $channel }}"

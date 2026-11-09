@@ -1,6 +1,6 @@
 <?php
 
-use App\Domain\Content\Http\Controllers\BackupApiController;
+use App\Domain\Admin\Http\Controllers\BackupApiController;
 use Illuminate\Support\Facades\Route;
 
 /*

@@ -163,14 +163,42 @@ class ContentSidebarWidget
 
     // ---- anasheed ---------------------------------------------------
 
-    public function anasheedMostDownloaded(?int $groupId = null): Collection
+    /**
+     * OLD `Top10()` (`modules/Anasheed/index.php`, visitor parity A12, 2026-11-04): items whose `group_id`
+     * is one of the department's direct sub-groups (`$groupIds`; empty = no filter, as OLD did when the
+     * department had none), `hits DESC`, six rows; hidden items listed, as OLD did. OLD printed `hits` as
+     * «مرات التحميل», so `hits` is the displayed number too (owner, 2026-11-04).
+     *
+     * @param  list<int>  $groupIds
+     */
+    public function anasheedMostDownloaded(array $groupIds = []): Collection
     {
-        return $this->withAnasheedThumb($this->query('nuke_anasheed_anasheed', ['id', 'title', 'frame', 'downcount'], 'group_id', $groupId, 'hits', 7));
+        return $this->withAnasheedThumb($this->anasheedDepartmentQuery(['id', 'title', 'frame', 'hits'], $groupIds, 'hits'));
     }
 
-    public function anasheedMostRecent(?int $groupId = null): Collection
+    /**
+     * OLD `Top10()`'s second list: the same department scope, `mytime DESC`, six rows.
+     *
+     * @param  list<int>  $groupIds
+     */
+    public function anasheedMostRecent(array $groupIds = []): Collection
     {
-        return $this->withAnasheedThumb($this->query('nuke_anasheed_anasheed', ['id', 'title', 'frame', 'mytime'], 'group_id', $groupId, 'mytime', 7));
+        return $this->withAnasheedThumb($this->anasheedDepartmentQuery(['id', 'title', 'frame', 'mytime'], $groupIds, 'mytime'));
+    }
+
+    /**
+     * @param  list<string>  $columns
+     * @param  list<int>  $groupIds
+     */
+    private function anasheedDepartmentQuery(array $columns, array $groupIds, string $orderColumn): Collection
+    {
+        $query = DB::connection('main')->table('nuke_anasheed_anasheed')->select($columns);
+
+        if ($groupIds !== []) {
+            $query->whereIn('group_id', $groupIds);
+        }
+
+        return $query->orderByDesc($orderColumn)->limit(6)->get();
     }
 
     /**
@@ -229,13 +257,29 @@ class ContentSidebarWidget
 
     public function liveStreamMostViewed(int $channelId = 0): Collection
     {
-        return $this->query('nuke_islamic_khotab', ['id', 'title'], 'channel_id', $channelId ?: null, 'hits', 10);
+        return $this->liveStreamKhotab($channelId, 'hits');
     }
 
     /** Orders by `id DESC`, not a time column — khotab's table has none available to this query, matching legacy exactly. */
     public function liveStreamMostRecent(int $channelId = 0): Collection
     {
-        return $this->query('nuke_islamic_khotab', ['id', 'title'], 'channel_id', $channelId ?: null, 'id', 10);
+        return $this->liveStreamKhotab($channelId, 'id');
+    }
+
+    /**
+     * The live-stream pair's query — what the shared `query()` helper ran (`id, title`, optional `channel_id`,
+     * `ORDER BY {order} DESC`, 10 rows), plus `hidden = 0`: hidden-content sidebar security fix (owner,
+     * 2026-11-05, decision-log #95). `query()` itself is left alone — Telawah / W2ACD / Anasheed share it.
+     */
+    private function liveStreamKhotab(int $channelId, string $orderColumn): Collection
+    {
+        $query = DB::connection('main')->table('nuke_islamic_khotab')->select(['id', 'title'])->where('hidden', 0);
+
+        if ($channelId) {
+            $query->where('channel_id', $channelId);
+        }
+
+        return $query->orderByDesc($orderColumn)->limit(10)->get();
     }
 
     // ---- Wave 3: live-stream's channel-directory widget + channels/channel.php's topitems()-derived pair ----
@@ -262,11 +306,14 @@ class ContentSidebarWidget
     {
         // E-02 (F-02): cached — legacy reached this through its own
         // `topitems()`, which cached for 300s (`channel.php:110`).
+        // Hidden-content security fix (owner, 2026-11-05, decision-log #95):
+        // `hidden = 0`; the key carries `hidden=0`, so pre-fix entries are never read.
         return $this->rememberRows(
-            $this->cacheKey('channel-khotab', ['channel' => $channelId, 'order' => 'hits', 'limit' => 5]),
+            $this->cacheKey('channel-khotab', ['channel' => $channelId, 'hidden' => 0, 'order' => 'hits', 'limit' => 5]),
             fn () => DB::connection('main')->table('nuke_islamic_khotab')
                 ->where('channel_id', $channelId)
                 ->where('vedio', 1)
+                ->where('hidden', 0)
                 ->select(['id', 'title', 'author', 'frame', 'hits', 'time'])
                 ->orderByDesc('hits')
                 ->limit(5)
@@ -283,10 +330,11 @@ class ContentSidebarWidget
     {
         // E-02 (F-02): cached — see the "most downloaded" counterpart above.
         return $this->rememberRows(
-            $this->cacheKey('channel-khotab', ['channel' => $channelId, 'order' => 'time', 'limit' => 5]),
+            $this->cacheKey('channel-khotab', ['channel' => $channelId, 'hidden' => 0, 'order' => 'time', 'limit' => 5]),
             fn () => DB::connection('main')->table('nuke_islamic_khotab')
                 ->where('channel_id', $channelId)
                 ->where('vedio', 1)
+                ->where('hidden', 0)
                 ->select(['id', 'title', 'author', 'frame', 'hits', 'time'])
                 ->orderByDesc('time')
                 ->limit(5)
@@ -311,13 +359,13 @@ class ContentSidebarWidget
      */
     public function khotabMostDownloadedByAuthor(int $authorId, bool $video): Collection
     {
-        return $this->topitems(['author' => $authorId, 'vedio' => (int) $video], 'hits', 5);
+        return $this->topitems(['author' => $authorId, 'vedio' => (int) $video, 'hidden' => 0], 'hits', 5);
     }
 
     /** `topitems('hits', "author = 'X' AND vedio ='Y'", "time DESC", 5)` — same call sites as above. */
     public function khotabMostRecentByAuthor(int $authorId, bool $video): Collection
     {
-        return $this->topitems(['author' => $authorId, 'vedio' => (int) $video], 'time', 5);
+        return $this->topitems(['author' => $authorId, 'vedio' => (int) $video, 'hidden' => 0], 'time', 5);
     }
 
     /**
@@ -332,13 +380,13 @@ class ContentSidebarWidget
      */
     public function khotabMostDownloadedByVideoFlag(bool $video): Collection
     {
-        return $this->topitems(['vedio' => (int) $video], 'hits', 5);
+        return $this->topitems(['vedio' => (int) $video, 'hidden' => 0], 'hits', 5);
     }
 
     /** `topitems('time', "vedio ='Y'", "time DESC", 5)` — `khotab/day.php:181` and (IF-014 fix) `khotab/item.php:476`. */
     public function khotabMostRecentByVideoFlag(bool $video): Collection
     {
-        return $this->topitems(['vedio' => (int) $video], 'time', 5);
+        return $this->topitems(['vedio' => (int) $video, 'hidden' => 0], 'time', 5);
     }
 
     /**
@@ -410,6 +458,10 @@ class ContentSidebarWidget
      * the exact "PRIMARY KEY range scan instead of ORDER BY RAND()"
      * optimization from prior-session performance work, not the original
      * `ORDER BY RAND()` this function itself replaced.
+     *
+     * Hidden-content security fix (owner, 2026-11-05, decision-log #94): both
+     * scans skip hidden items (`hidden = 0`), so a visitor is never offered a
+     * hidden item's title or link. Not cached; no extra query.
      */
     public function khotabRandomFeatured(int $limit = 1): Collection
     {
@@ -425,6 +477,7 @@ class ContentSidebarWidget
         $forward = DB::connection('main')->table('nuke_islamic_khotab as kh')
             ->leftJoin('nuke_islamic_authors as ath', 'kh.author', '=', 'ath.id')
             ->where('kh.id', '>=', $randomId)
+            ->where('kh.hidden', 0)
             ->where(fn ($q) => $q->where('kh.gif', 1)->orWhere('kh.frame', 1))
             ->orderBy('kh.id')
             ->limit($limit)
@@ -437,6 +490,7 @@ class ContentSidebarWidget
         return DB::connection('main')->table('nuke_islamic_khotab as kh')
             ->leftJoin('nuke_islamic_authors as ath', 'kh.author', '=', 'ath.id')
             ->where('kh.id', '<', $randomId)
+            ->where('kh.hidden', 0)
             ->where(fn ($q) => $q->where('kh.gif', 1)->orWhere('kh.frame', 1))
             ->orderByDesc('kh.id')
             ->limit($limit)
@@ -527,14 +581,11 @@ class ContentSidebarWidget
     }
 
     /**
-     * `categories/series.php:120`'s sidebar variant — confirmed, by direct
-     * reading, to use `topitems('hits', "cat LIKE '%|$cat_id|%' and vedio
-     * ='1'", ...)` with **no `hidden=0` filter**, unlike `category.php`'s
-     * otherwise-identical widget (`khotabMostDownloadedByCategory()`
-     * above, which does filter `hidden`). A real, confirmed difference
-     * between the two pages' sidebars — not reused/collapsed into the
-     * `category.php` version, which would silently drop hidden items this
-     * page's real query includes.
+     * `categories/series.php:120`'s sidebar variant — `topitems('hits', "cat LIKE '%|$cat_id|%' and vedio
+     * ='1'", ...)`. Gen 2 (and OLD `Cat` `Top10()`) carried **no `hidden=0` filter**, so hidden items' titles
+     * and links reached visitors; **hidden-content security fix (owner, 2026-11-05, decision-log #94): hidden
+     * items are excluded**, as `khotabMostDownloadedByCategory()` already did. The cache key gains `hidden=0`,
+     * so entries cached before the fix are never read again (they expire on their own TTL).
      */
     public function khotabMostDownloadedByCategoryForSeries(int $categoryId): Collection
     {
@@ -550,12 +601,13 @@ class ContentSidebarWidget
         // Keyed on `category` alone, deliberately: neither query filters by
         // series, so every series page under one category shares one entry.
         return $this->rememberRowsProbed(
-            $this->cacheKey('category-series-khotab', ['category' => $categoryId, 'order' => 'hits', 'limit' => 5]),
+            $this->cacheKey('category-series-khotab', ['category' => $categoryId, 'hidden' => 0, 'order' => 'hits', 'limit' => 5]),
             fn () => DB::connection('main')->table('nuke_islamic_khotab as kh')
                 ->join('khotab_category_index as kci', function ($join) use ($categoryId) {
                     $join->on('kci.khotab_id', '=', 'kh.id')->where('kci.category_id', $categoryId);
                 })
                 ->where('kh.vedio', 1)
+                ->where('kh.hidden', 0)
                 ->select(['kh.id', 'kh.title', 'kh.author', 'kh.frame', 'kh.hits', 'kh.downcount', 'kh.time'])
                 ->orderByDesc('kh.hits')
                 ->limit(5)
@@ -569,19 +621,20 @@ class ContentSidebarWidget
         });
     }
 
-    /** "Newest" counterpart to `khotabMostDownloadedByCategoryForSeries()` above — same no-`hidden`-filter difference, `categories/series.php:130`. */
+    /** "Newest" counterpart to `khotabMostDownloadedByCategoryForSeries()` above, `categories/series.php:130` — hidden items excluded (security fix, #94). */
     public function khotabMostRecentByCategoryForSeries(int $categoryId): Collection
     {
         // C-1 (parity restoration): cached — see the "most downloaded"
         // counterpart above. Separate `order` part in the key so the two
         // orderings cannot share an entry.
         return $this->rememberRowsProbed(
-            $this->cacheKey('category-series-khotab', ['category' => $categoryId, 'order' => 'time', 'limit' => 5]),
+            $this->cacheKey('category-series-khotab', ['category' => $categoryId, 'hidden' => 0, 'order' => 'time', 'limit' => 5]),
             fn () => DB::connection('main')->table('nuke_islamic_khotab as kh')
                 ->join('khotab_category_index as kci', function ($join) use ($categoryId) {
                     $join->on('kci.khotab_id', '=', 'kh.id')->where('kci.category_id', $categoryId);
                 })
                 ->where('kh.vedio', 1)
+                ->where('kh.hidden', 0)
                 ->select(['kh.id', 'kh.title', 'kh.author', 'kh.frame', 'kh.hits', 'kh.downcount', 'kh.time'])
                 ->orderByDesc('kh.time')
                 ->limit(5)
@@ -608,7 +661,7 @@ class ContentSidebarWidget
      */
     public function radioMostRecentByVideoFlag(bool $video): Collection
     {
-        return $this->topitems(['vedio' => (int) $video], 'time', 10);
+        return $this->topitems(['vedio' => (int) $video, 'hidden' => 0], 'time', 10);
     }
 
     /**
@@ -686,23 +739,25 @@ class ContentSidebarWidget
      * filters `location_id=10, hidden=0`, optional author, LIMIT 10. A
      * seventh module for the P-016 sidebar shape, but location-scoped
      * rather than group/category/channel-scoped like every prior one.
+     * `$locationId` defaults to the chat room's location 10; the location-author page passes its own location
+     * (decision-log #114) so no location-10 lesson leaks onto another location's page.
      */
-    public function chatRoomMostViewedLessons(int $authorId = 0): Collection
+    public function chatRoomMostViewedLessons(int $authorId = 0, int $locationId = 10): Collection
     {
-        return $this->chatRoomLessons('hits', $authorId);
+        return $this->chatRoomLessons('hits', $authorId, $locationId);
     }
 
     /** `chat_room/functions.php`'s `most_chat_lessons("id", $author_id)` — "newest" here orders by `id DESC`, not a time column (same fallback shape as `liveStreamMostRecent()`). */
-    public function chatRoomMostRecentLessons(int $authorId = 0): Collection
+    public function chatRoomMostRecentLessons(int $authorId = 0, int $locationId = 10): Collection
     {
-        return $this->chatRoomLessons('id', $authorId);
+        return $this->chatRoomLessons('id', $authorId, $locationId);
     }
 
-    private function chatRoomLessons(string $orderColumn, int $authorId): Collection
+    private function chatRoomLessons(string $orderColumn, int $authorId, int $locationId): Collection
     {
         $query = DB::connection('main')->table('nuke_islamic_khotab')
             ->select(['id', 'title', 'vedio'])
-            ->where('location_id', 10)
+            ->where('location_id', $locationId)
             ->where('hidden', 0);
 
         if ($authorId > 0) {
@@ -844,6 +899,11 @@ class ContentSidebarWidget
     }
 
     /** Shared query shape behind the 4 `khotabMost*` methods above — `topitems()`'s fixed SELECT list/table, varying only the WHERE filters and ORDER BY column. */
+    /**
+     * Every caller (the five public Khotab lists: by author ×2, by video flag ×2, radio) passes `'hidden' => 0`
+     * (hidden-content security fix, owner 2026-11-05, decision-log #95). The filters are part of the cache key,
+     * so entries cached before the fix are never read again.
+     */
     private function topitems(array $filters, string $orderColumn, int $limit): Collection
     {
         $rows = $this->rememberRows(
@@ -860,8 +920,12 @@ class ContentSidebarWidget
             }
         );
 
-        return $rows->map(function ($item) {
-            $item->thumb = $this->topitemsThumb((int) $item->frame, (int) $item->id);
+        // OLD Top10() (`modules/Khotab/index.php`): on an author's list, an item
+        // with no frame shows THAT author's bucket JPG; elsewhere the placeholder.
+        $authorId = isset($filters['author']) ? (int) $filters['author'] : null;
+
+        return $rows->map(function ($item) use ($authorId) {
+            $item->thumb = $this->topitemsThumb((int) $item->frame, (int) $item->id, $authorId);
 
             return $item;
         });
@@ -999,8 +1063,9 @@ class ContentSidebarWidget
      * `HomeController::bucketedThumb()`'s already-established pattern for
      * the same convention.
      *
-     * **The `else` (non-frame/author-photo) branch is deliberately NOT a
-     * real lookup.** Legacy's own line 1056 is a malformed double-quoted
+     * **Superseded 2026-10-22 (owner decision): the author-photo fallback is
+     * now a real lookup again, as OLD `Top10()` had it — see the method
+     * body.** What follows explains why it used not to be. Legacy's own line 1056 is a malformed double-quoted
      * string — `"..."."media/authors/' . $folder_id . '/' . $item->author
      * . '.jpg"` — where the single-quote-concatenation syntax is written
      * *inside* an already-open double-quoted string, so PHP treats `' . `
@@ -1016,11 +1081,23 @@ class ContentSidebarWidget
      * explicit confirmation G-10-01 required for a comparable case, not a
      * default made here.
      */
-    private function topitemsThumb(int $frame, int $id): string
+    private function topitemsThumb(int $frame, int $id, ?int $authorId = null): string
     {
         if ($frame === 1) {
             $rel = MediaPathResolver::path('khotab_frames', $id, 'jpg');
-            if (file_exists(public_path($rel))) {
+            if (file_exists(MediaPathResolver::absolute($rel))) {
+                return MediaUrl::asset($rel);
+            }
+        }
+
+        // Owner decision (2026-10-22): OLD's working fallback, restored — the
+        // list's author's `media/authors/{id/1000}/{id}.jpg` (what «تعديل
+        // بيانات الداعية» uploads), read from `admin_khotab.media_root`. Only on
+        // an author-scoped list, so another author's image is never used.
+        // (Gen 2's broken string, described above, is no longer reproduced.)
+        if ($authorId !== null && $authorId > 0) {
+            $rel = MediaPathResolver::path('authors', $authorId, 'jpg');
+            if (is_file(rtrim((string) config('admin_khotab.media_root'), '/').'/'.substr($rel, strlen('media/')))) {
                 return MediaUrl::asset($rel);
             }
         }

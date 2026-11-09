@@ -9,6 +9,10 @@
         `images/telawah.gif` as authors.blade.php's own listing, now
         reachable via the real `public/images` symlink (G-13-02).
     --}}
+@contextualAdmin
+    {{-- OLD Group(N): «لوحة تحكم الاقسام الفرعية» (author_cp.htm), above the sub-groups and recitations. Admins only; column-0 directives keep a visitor's HTML byte-identical. --}}
+    <x-admin.contextual-controls title="لوحة تحكم الاقسام الفرعية" :controls="\App\Domain\Admin\Contextual\Controls\TelawahControls::group($groupModel)" />
+@endcontextualAdmin
     @if($subGroups->isNotEmpty())
         <section aria-label="قائمة الأقسام الفرعية">
             <x-content.reciter-directory :groups="$subGroups" subgroups />

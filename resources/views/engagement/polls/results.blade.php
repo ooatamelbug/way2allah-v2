@@ -53,8 +53,21 @@
                         <a href="{{ route('engagement.polls.index') }}" style="color: #64748b; font-weight: 500;">
                             <i class="fa fa-list" style="margin-left: 6px;" aria-hidden="true"></i> تصويتات أخرى
                         </a>
+                        {{-- OLD pollResults(): «تعليقات: N» — now a link to the poll's comment page
+                             (OLD's comment include under the results is commented out). --}}
+                        {{-- Auxiliary: a settings/comment lookup failure must never break the results page. --}}
+                        @php($pollCommentCount = (int) rescue(fn () => \App\Domain\Engagement\Services\PollCommentThread::settings()['enabled'] ? \App\Domain\Engagement\Models\PollComment::query()->where('pollID', $poll->pollID)->count() : 0, 0, false))
+                        @if ($pollCommentCount > 0)
+                            <a href="/survey-comments-{{ $poll->pollID }}.htm" style="color: #64748b; font-weight: 500;">
+                                <i class="fa fa-comments" style="margin-left: 6px;" aria-hidden="true"></i> تعليقات: {{ $pollCommentCount }}
+                            </a>
+                        @endif
                     </div>
                 </div>
+                {{-- Contextual administration (OLD / Gen 2 pollResults(): «Add | Edit»). --}}
+                @contextualAdmin
+                    <x-admin.contextual-controls :controls="\App\Domain\Admin\Contextual\Controls\PublicPageControls::pollResults($poll)" />
+                @endcontextualAdmin
             </x-content.premium-panel>
 
             @if ($latestFive->isNotEmpty())

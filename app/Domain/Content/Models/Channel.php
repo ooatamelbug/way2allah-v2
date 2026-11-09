@@ -4,7 +4,9 @@ namespace App\Domain\Content\Models;
 
 use App\Domain\Content\Models\Concerns\TracksViews;
 use App\Domain\Content\Models\Contracts\Viewable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Single, shared model over `nuke_sat_channels` (Blueprint v1.0 §4/§6),
@@ -35,7 +37,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property int|null $anasheed
  * @property string|null $streamcode
  * @property int $ch_visits
- * @property-read \App\Domain\Content\Models\Satellite|null $satellite
+ * @property-read Satellite|null $satellite
  *
  * Deliberately no hasMany(Series::class)/hasMany(KhotabItem::class) yet —
  * those models don't exist until Wave 4 (Roadmap task 4.1). Adding a
@@ -87,7 +89,7 @@ class Channel extends Model implements Viewable
         ];
     }
 
-    public function satellite(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function satellite(): BelongsTo
     {
         return $this->belongsTo(Satellite::class, 'sat_id');
     }
@@ -102,7 +104,7 @@ class Channel extends Model implements Viewable
      * "directly viewable by URL", preserved as found rather than
      * unified.
      */
-    public function scopeEligibleForLiveStream(\Illuminate\Database\Eloquent\Builder $query): void
+    public function scopeEligibleForLiveStream(Builder $query): void
     {
         $query->where('active', 0)
             ->whereNotNull('streamcode')

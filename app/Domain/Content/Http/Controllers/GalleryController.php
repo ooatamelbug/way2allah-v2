@@ -4,7 +4,12 @@ namespace App\Domain\Content\Http\Controllers;
 
 use App\Domain\Content\Models\Album;
 use App\Domain\Content\Models\AlbumImage;
+use App\Domain\Content\Services\AlbumZipService;
+use App\Domain\Content\Services\AlbumZipUnavailableException;
+use App\Support\Filesystem\PublicFileResolver;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Contracts\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -18,6 +23,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * `.htaccess` rules for it, all equally dead), and the function itself
  * doesn't even create a zip file — it assumes one already exists at a
  * hardcoded path outside the web root and just echoes that path back.
+ * [Superseded 2026-11-06, decision-log #107 (owner): full-album ZIP downloads are restored natively —
+ * `downloadAlbum()` below, `AlbumZipService`; no dependency on OLD's pre-built archives.]
  *
  * IF-027's fixes: `index()` orders albums by `album_id` (the dead
  * `@order`-based sort never had a real effect to preserve); `download()`
@@ -46,13 +53,39 @@ class GalleryController
         return view('gallery.show', compact('albumModel', 'images'));
     }
 
+    /**
+     * `GET /download-album-{id}.htm` (decision-log #107) — the album's ZIP as a download. Only albums flagged
+     * `is_compressed = 1` (the flag that already shows the download buttons) are offered; anything else, and an album
+     * with no valid image left or over the limits, is a plain 404. A build still running elsewhere past the wait is a
+     * 503 with Retry-After. No storage path is disclosed.
+     */
+    public function downloadAlbum(int $album, AlbumZipService $zips): BinaryFileResponse
+    {
+        $albumModel = Album::query()->whereKey($album)->first();
+
+        abort_if($albumModel === null || (int) $albumModel->is_compressed !== 1, 404);
+
+        try {
+            $path = $zips->archiveFor($albumModel);
+        } catch (AlbumZipUnavailableException) {
+            abort(404);
+        } catch (LockTimeoutException) {
+            abort(503, '', ['Retry-After' => '30']);
+        }
+
+        return response()->download($path, 'album-'.$album.'.zip', ['Content-Type' => 'application/zip']);
+    }
+
     public function download(int $image): StreamedResponse
     {
         $albumImage = AlbumImage::findOrFail($image);
 
-        $path = public_path($albumImage->url);
+        // S2 (P0, 2026-11-09): the database path must canonically resolve to a readable file inside the public
+        // root (or its approved `media` target) — no `..` or symlink escape. The download name is unchanged.
+        $path = PublicFileResolver::resolve(public_path(), (string) $albumImage->url);
+        $name = basename(public_path((string) $albumImage->url));
 
-        abort_unless(is_file($path), 404, 'File not found');
+        abort_if($path === null, 404, 'File not found');
 
         return response()->streamDownload(function () use ($path) {
             $handle = fopen($path, 'rb');
@@ -63,6 +96,6 @@ class GalleryController
             }
 
             fclose($handle);
-        }, basename($path));
+        }, $name);
     }
 }

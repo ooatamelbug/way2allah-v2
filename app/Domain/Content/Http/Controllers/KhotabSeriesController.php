@@ -5,6 +5,7 @@ namespace App\Domain\Content\Http\Controllers;
 use App\Domain\Content\Models\Series;
 use App\Domain\Content\Services\ContentListingService;
 use App\Domain\Content\Services\ContentSidebarWidget;
+use App\Support\Http\AdminViewer;
 use Illuminate\Contracts\View\View;
 
 /**
@@ -35,16 +36,29 @@ use Illuminate\Contracts\View\View;
  * `categories/series.blade.php`, the closest sibling with the same
  * `Ser_Cat_Breadcrumb`/`cat` column shape — also skips it). Flagged as a
  * distinct, deferred finding, not silently dropped.
+ *
+ * OLD public admin parity (owner decision, 2026-10-21): a logged-in
+ * administrator sees the page as OLD (and Generation 2) showed it to admins —
+ * a hidden series still renders, and its hidden items are listed, so the
+ * series' admin controls stay reachable. Visitors are unchanged: a hidden
+ * series is a 404 and hidden items are not listed. A response that includes
+ * hidden content is marked private, like every page with admin controls.
  */
 class KhotabSeriesController
 {
-    public function show(int $series, ContentListingService $listing, ContentSidebarWidget $sidebar): View
+    public function show(int $series, ContentListingService $listing, ContentSidebarWidget $sidebar, AdminViewer $contextual): View
     {
-        $seriesModel = Series::where('hidden', 0)->findOrFail($series);
+        $admin = $contextual->active();
+
+        $seriesModel = Series::query()->when(! $admin, fn ($query) => $query->where('hidden', 0))->findOrFail($series);
 
         $video = (bool) $seriesModel->vedio;
 
-        $items = $listing->khotabItemsDefault($seriesModel->author_id, $series, $seriesModel->group_id, $video);
+        $items = $listing->khotabItemsDefault($seriesModel->author_id, $series, $seriesModel->group_id, $video, includeHidden: $admin);
+
+        if ($admin) {
+            $contextual->markRendered();
+        }
         $mostDownloaded = $sidebar->khotabMostDownloadedByAuthor($seriesModel->author_id, $video);
         $mostRecent = $sidebar->khotabMostRecentByAuthor($seriesModel->author_id, $video);
         $randomFeatured = $sidebar->khotabRandomFeatured();

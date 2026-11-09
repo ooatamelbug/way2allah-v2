@@ -2,9 +2,11 @@
 
 namespace App\Domain\Content\Services;
 
-use App\Domain\Admin\Models\SiteOption;
 use App\Domain\Content\Models\AnasheedItem;
 use App\Domain\Content\Models\Author;
+use App\Domain\Content\Support\FatwaPipeIds;
+use App\Support\Settings\SiteOption;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Collection;
@@ -183,6 +185,35 @@ class ContentListingService
         return $query->get();
     }
 
+    /**
+     * The author page's group list as an administrator sees it — OLD public
+     * admin parity (owner, 2026-10-21): OLD `ListGroup()`'s admin branch
+     * listed every group of the author and media type, hidden and empty ones
+     * included. Same columns and order as {@see groupsByAuthor()} plus
+     * `hidden` (for OLD's «++مخفي++» marker); a LEFT JOIN so a group with no
+     * items still appears. Visitors never reach this query.
+     */
+    public function adminGroupsByAuthor(int $authorId, bool $video): Collection
+    {
+        return DB::connection('main')->table('nuke_islamic_groups as grp')
+            ->leftJoin('nuke_islamic_khotab as kh', 'grp.id', '=', 'kh.group_id')
+            ->leftJoin('nuke_sat_channels as ch', 'grp.channel_id', '=', 'ch.id')
+            ->where('grp.author_id', $authorId)
+            ->where('grp.vedio', (int) $video)
+            ->groupBy('grp.id', 'grp.channel_id', 'grp.title', 'ch.title', 'grp.count', 'grp.hidden')
+            ->orderByDesc('grp.title')
+            ->select([
+                'grp.id',
+                'grp.channel_id',
+                'grp.title',
+                'ch.title as channel',
+                DB::raw('COUNT(kh.id) as count'),
+                DB::raw('grp.count as stored_group_count'),
+                'grp.hidden',
+            ])
+            ->get();
+    }
+
     /** categories/functions.php ListGroup() — filter by category (pipe-delimited `cat`), stored count, no hidden override. */
     public function groupsByCategory(int $categoryId, bool $video): Collection
     {
@@ -224,6 +255,24 @@ class ContentListingService
         }
 
         return $query->get();
+    }
+
+    /**
+     * The author page's standalone series as an administrator sees them —
+     * OLD `ListSeries($id, 0, $video)`'s admin branch: every series of the
+     * author with no group, hidden and empty ones included (owner, 2026-10-21).
+     * Same columns and order as {@see seriesByAuthorAndGroup()} plus `hidden`.
+     */
+    public function adminStandaloneSeriesByAuthor(int $authorId, bool $video): Collection
+    {
+        return DB::connection('main')->table('nuke_islamic_series as ser')
+            ->leftJoin('nuke_sat_channels as ch', 'ser.channel_id', '=', 'ch.id')
+            ->where('ser.author_id', $authorId)
+            ->where('ser.group_id', 0)
+            ->where('ser.vedio', (int) $video)
+            ->orderByDesc('ser.lastupdate')
+            ->select(['ser.id', 'ser.channel_id', 'ser.title', 'ser.time', 'ser.lastupdate', 'ser.count', 'ch.title as channel', 'ser.hidden'])
+            ->get();
     }
 
     /** categories/functions.php ListSeries() — filter by category (junction table) + group, includes author, no hidden override. */
@@ -513,12 +562,16 @@ class ContentListingService
      * and — critically — the caller does NOT use `link` for the playlist
      * URL (see `AnasheedGroupController::downloadGetright()`'s own
      * docblock for why `id` is selected instead).
+     *
+     * Visitor parity A8 (2026-11-04): that was Gen 2. OLD `DownSeries()` —
+     * `WHERE group_id = X AND hidden = '0' ORDER BY weight ASC` — governs.
      */
     public function anasheedItemsForGroupDownload(int $groupId): Collection
     {
         return DB::connection('main')->table('nuke_anasheed_anasheed as an')
             ->where('an.group_id', $groupId)
-            ->orderByDesc('an.order_in_group')
+            ->where('an.hidden', 0)
+            ->orderBy('an.weight')
             ->select(['an.id', 'an.title', 'an.link'])
             ->get();
     }
@@ -537,7 +590,7 @@ class ContentListingService
         return DB::connection('main')->table('nuke_anasheed_anasheed as ana')
             ->leftJoin('nuke_anasheed_advanced as ad', 'ana.id', '=', 'ad.id')
             ->leftJoin('nuke_sat_channels as ch', 'ana.channel_id', '=', 'ch.id')
-            ->where('ana.cat_id', 'like', '%|' . $categoryId . '|%')
+            ->where('ana.cat_id', 'like', '%|'.$categoryId.'|%')
             ->where('ana.hidden', '0')
             ->select([
                 'ana.id',
@@ -783,8 +836,12 @@ class ContentListingService
      * `applyAdvancedSearchFilters()`'s own docblock. Defaults to `false`
      * so `KhotabSearchController`'s existing call is unaffected; only
      * `SearchController` (the `advanced-search/index.php` port) opts in.
+     *
+     * `$perPage` / `$pageName` (advanced-search visitor parity, 2026-11-03):
+     * OLD `advanced_search.htm` paged each list by 25, independently.
+     * Defaults keep `SearchController`'s call unchanged.
      */
-    public function khotabSeriesAdvancedSearch(array $filters, bool $validateChannelExists = false): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    public function khotabSeriesAdvancedSearch(array $filters, bool $validateChannelExists = false, int $perPage = 20, string $pageName = 'page'): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
         $query = DB::connection('main')->table('nuke_islamic_series as tb1')
             ->join('nuke_islamic_authors as tb2', 'tb1.author_id', '=', 'tb2.id')
@@ -795,7 +852,7 @@ class ContentListingService
 
         $this->applyAdvancedSearchFilters($query, 'tb1.title', 'tb1.channel_id', 'tb1.author_id', 'tb1.time', $filters, $validateChannelExists);
 
-        return $query->orderByDesc('tb1.id')->paginate(20);
+        return $query->orderByDesc('tb1.id')->paginate($perPage, ['*'], $pageName);
     }
 
     /**
@@ -818,11 +875,32 @@ class ContentListingService
      * above — `KhotabSearchController`'s GET call stays byte-identical:
      * - `$straightJoinResults`: see `khotabAdvancedSearchQuery()`.
      *
+     * Advanced-search visitor parity (2026-11-03): `$perPage` / `$pageName`,
+     * as on `khotabSeriesAdvancedSearch()`; defaults unchanged.
+     *
      * @param  array{title?: string, channel_id?: int, author_id?: int, start?: int, end?: int}  $filters
      */
-    public function khotabAdvancedSearch(array $filters, string $orderBy = 'tb1.time', bool $validateChannelExists = false, bool $straightJoinResults = false): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    public function khotabAdvancedSearch(array $filters, string $orderBy = 'tb1.time', bool $validateChannelExists = false, bool $straightJoinResults = false, int $perPage = 20, string $pageName = 'page'): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
-        return $this->khotabAdvancedSearchQuery($filters, $orderBy, $validateChannelExists, $straightJoinResults)->paginate(20);
+        return $this->khotabAdvancedSearchQuery($filters, $orderBy, $validateChannelExists, $straightJoinResults)->paginate($perPage, ['*'], $pageName);
+    }
+
+    /**
+     * OLD `get_channels_for_author_as_menu()` (`way2allah_functions.php`) —
+     * the channel menu of a sheikh page's «بحث متقدم» form: every channel
+     * one of the sheikh's series is on, by title. Like OLD, no `hidden` /
+     * `vedio` filter (it only scopes the search, whose results keep theirs).
+     *
+     * @return Collection<int, \stdClass>
+     */
+    public function channelsForAuthorSeries(int $authorId): Collection
+    {
+        return DB::connection('main')->table('nuke_sat_channels as ch')
+            ->join('nuke_islamic_series as ser', 'ser.channel_id', '=', 'ch.id')
+            ->where('ser.author_id', $authorId)
+            ->distinct()
+            ->orderBy('ch.title')
+            ->get(['ch.id', 'ch.title']);
     }
 
     /**
@@ -867,7 +945,7 @@ class ContentListingService
      *
      * @param  array{title?: string, channel_id?: int, author_id?: int, start?: int, end?: int}  $filters
      */
-    protected function khotabAdvancedSearchQuery(array $filters, string $orderBy, bool $validateChannelExists, bool $straightJoinResults): \Illuminate\Database\Query\Builder
+    protected function khotabAdvancedSearchQuery(array $filters, string $orderBy, bool $validateChannelExists, bool $straightJoinResults): Builder
     {
         $connection = DB::connection('main');
 
@@ -1027,7 +1105,7 @@ class ContentListingService
     public function fatwaGeneralQuestionCountForTopic(int $topicId): int
     {
         return DB::connection('main')->table('nuke_fatwa_general_questions')
-            ->where('topic_id', 'like', '%|' . $topicId . '|%')
+            ->where('topic_id', 'like', '%|'.$topicId.'|%')
             ->count();
     }
 
@@ -1044,11 +1122,19 @@ class ContentListingService
      *
      * Paginated the same way as `fatwaTopicsByCategory()` above — see
      * that method's docblock.
+     *
+     * **Superseded (2026-10-30, decision-log #69 — Fatwa admin blocker R1):**
+     * the exact match above came from Gen 2. OLD's `questions()`
+     * (`modules/Fatwa/index.php`:498-500) lists and counts by membership,
+     * `topic_id LIKE '%|id|%'`, and the approved Q4 / Q6 controls put a
+     * question in several topics; an exact match hid it from all of them.
+     * Membership (FatwaPipeIds::whereContains, delimiter-aware) is used for
+     * both the rows and the paginator's count — one builder. A single-topic
+     * question is matched exactly as before.
      */
     public function fatwaGeneralQuestionsByTopic(int $topicId, int $page = 1): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
-        return DB::connection('main')->table('nuke_fatwa_general_questions')
-            ->where('topic_id', "|{$topicId}|")
+        return FatwaPipeIds::whereContains(DB::connection('main')->table('nuke_fatwa_general_questions'), 'topic_id', $topicId)
             ->paginate(25, ['*'], 'page', $page);
     }
 
@@ -1070,13 +1156,22 @@ class ContentListingService
      * existing caller (unscoped `fatawa-all-{id}.htm`) is completely
      * unaffected; passing it does not change the unscoped query shape at
      * all, only adds one extra `WHERE`.
+     *
+     * **Superseded (2026-10-30, decision-log #69 — Fatwa admin blocker R2):**
+     * OLD's `all_questions()` (`:566`) and `all_fatawa_for_auther()` (`:1313`)
+     * match `general_question_id LIKE '%|id|%'`; the approved A1 / A3
+     * controls link one fatwa to several questions, which the exact match
+     * hid from every question page. Membership (FatwaPipeIds::whereContains)
+     * is used; a single-question fatwa is matched exactly as before.
      */
     public function fatwaQuestionsForGeneralQuestion(int $generalQuestionId, ?int $autherId = null): Collection
     {
-        return DB::connection('main')->table('nuke_fatwa_questions as q')
-            ->join('nuke_islamic_authors as auth', 'auth.id', '=', 'q.auther_id')
-            ->where('q.general_question_id', "|{$generalQuestionId}|")
-            ->when($autherId !== null, fn($query) => $query->where('q.auther_id', $autherId))
+        return FatwaPipeIds::whereContains(
+            DB::connection('main')->table('nuke_fatwa_questions as q')->join('nuke_islamic_authors as auth', 'auth.id', '=', 'q.auther_id'),
+            'q.general_question_id',
+            $generalQuestionId,
+        )
+            ->when($autherId !== null, fn ($query) => $query->where('q.auther_id', $autherId))
             ->select(['q.*', 'auth.name as author_name', 'auth.prename as author_prename'])
             ->get();
     }
@@ -1093,8 +1188,10 @@ class ContentListingService
      */
     public function fatwaAnswerCountForGeneralQuestion(int $generalQuestionId): int
     {
-        return DB::connection('main')->table('nuke_fatwa_questions')
-            ->where('general_question_id', "|{$generalQuestionId}|")
+        // Same membership as fatwaQuestionsForGeneralQuestion() (blocker R3,
+        // decision-log #69; OLD get_num_of_fatawa_for_question() `:453`), so
+        // the badge always equals the fatwas that question's page shows.
+        return FatwaPipeIds::whereContains(DB::connection('main')->table('nuke_fatwa_questions'), 'general_question_id', $generalQuestionId)
             ->count();
     }
 
@@ -1295,9 +1392,10 @@ class ContentListingService
             ->where('channel_id', $channelId)
             ->paginate(25, ['*'], 'page', $page);
 
+        // Every question each answer belongs to — OLD list_Fatawa_for_channel()
+        // explodes every id (decision-log #69: `|1|3|` is 1 and 3, never 13).
         $generalQuestionIds = $answers->getCollection()
-            ->map(fn($row) => (int) str_replace('|', '', (string) $row->general_question_id))
-            ->filter(fn($id) => $id > 0)
+            ->flatMap(fn ($row) => FatwaPipeIds::ids($row->general_question_id))
             ->unique()
             ->values();
 
@@ -1310,7 +1408,7 @@ class ContentListingService
         $authors = $this->fatwaChannelAuthorsByGeneralQuestion($channelId, $generalQuestions);
 
         $answers->setCollection($generalQuestions->map(function ($question) use ($topics, $authors) {
-            $topicId = (int) str_replace('|', '', (string) $question->topic_id);
+            $topicId = FatwaPipeIds::firstId($question->topic_id);
             $question->topic = $topicId > 0 ? ($topics[$topicId] ?? null) : null;
             $question->author = $authors[(int) $question->id] ?? null;
 
@@ -1331,14 +1429,14 @@ class ContentListingService
      * `null` — `find()` returned null for a miss, and so does a missing
      * key here.
      *
-     * @param  \Illuminate\Support\Collection<int, \stdClass>  $generalQuestions
-     * @return \Illuminate\Support\Collection<int, \stdClass>  keyed by topic id
+     * @param  Collection<int, \stdClass>  $generalQuestions
+     * @return Collection<int, \stdClass> keyed by topic id
      */
-    private function fatwaTopicsKeyedById(\Illuminate\Support\Collection $generalQuestions): \Illuminate\Support\Collection
+    private function fatwaTopicsKeyedById(Collection $generalQuestions): Collection
     {
         $topicIds = $generalQuestions
-            ->map(fn($question) => (int) str_replace('|', '', (string) $question->topic_id))
-            ->filter(fn($id) => $id > 0)
+            ->map(fn ($question) => FatwaPipeIds::firstId($question->topic_id))
+            ->filter(fn ($id) => $id > 0)
             ->unique()
             ->values();
 
@@ -1380,35 +1478,45 @@ class ContentListingService
      * therefore not just equivalent but strictly more predictable: the
      * result no longer depends on the optimiser's choice of plan.
      *
-     * @param  \Illuminate\Support\Collection<int, \stdClass>  $generalQuestions
-     * @return \Illuminate\Support\Collection<int, \stdClass>  keyed by general-question id
+     * @param  Collection<int, \stdClass>  $generalQuestions
+     * @return Collection<int, \stdClass> keyed by general-question id
      */
-    private function fatwaChannelAuthorsByGeneralQuestion(int $channelId, \Illuminate\Support\Collection $generalQuestions): \Illuminate\Support\Collection
+    private function fatwaChannelAuthorsByGeneralQuestion(int $channelId, Collection $generalQuestions): Collection
     {
         if ($generalQuestions->isEmpty()) {
             return collect();
         }
 
         // Legacy matches the pipe-wrapped literal (`'|123|'`), not a LIKE.
-        $pipedIds = $generalQuestions->map(fn($question) => '|' . $question->id . '|')->all();
+        // Decision-log #69: an answer linked to several questions (A1) is a
+        // candidate for each of them — such rows (more than one id) are
+        // fetched too and assigned by membership, never by a concatenated id.
+        $pipedIds = $generalQuestions->map(fn ($question) => '|'.$question->id.'|')->all();
+        $pageIds = $generalQuestions->map(fn ($question) => (int) $question->id)->all();
 
-        return DB::connection('main')->table('nuke_fatwa_questions as q')
+        $rows = DB::connection('main')->table('nuke_fatwa_questions as q')
             ->join('nuke_islamic_authors as a', 'a.id', '=', 'q.auther_id')
             ->where('q.channel_id', $channelId)
-            ->whereIn('q.general_question_id', $pipedIds)
+            ->where(fn ($query) => $query->whereIn('q.general_question_id', $pipedIds)->orWhere('q.general_question_id', 'like', '%|%|%|%'))
             ->orderBy('q.id')
             ->select(['q.general_question_id as fatwa_general_question_id', 'a.*'])
-            ->get()
-            ->groupBy(fn($row) => (int) str_replace('|', '', (string) $row->fatwa_general_question_id))
-            // `orderBy('q.id')` above means the first row of each group is
-            // the lowest-id match — the winner rule proven in the docblock.
-            ->map(function ($rows) {
-                $author = clone $rows->first();
-                // Grouping key only; never part of the author row legacy returned.
-                unset($author->fatwa_general_question_id);
+            ->get();
 
-                return $author;
-            });
+        // `orderBy('q.id')` above means the first row seen for a question is
+        // the lowest-id match — the winner rule proven in the docblock.
+        $authors = [];
+        foreach ($rows as $row) {
+            foreach (FatwaPipeIds::ids($row->fatwa_general_question_id) as $questionId) {
+                if (! isset($authors[$questionId]) && in_array($questionId, $pageIds, true)) {
+                    $author = clone $row;
+                    // Grouping key only; never part of the author row legacy returned.
+                    unset($author->fatwa_general_question_id);
+                    $authors[$questionId] = $author;
+                }
+            }
+        }
+
+        return collect($authors);
     }
 
     /**
@@ -1455,7 +1563,7 @@ class ContentListingService
             ->orderBy('question_text')
             ->paginate(25, ['*'], 'page', $page)
             ->through(function ($question) {
-                $topicId = (int) str_replace('|', '', (string) $question->topic_id);
+                $topicId = FatwaPipeIds::firstId($question->topic_id);
                 $question->topic = $topicId > 0
                     ? DB::connection('main')->table('nuke_fatwa_topics')->find($topicId)
                     : null;
@@ -1485,8 +1593,9 @@ class ContentListingService
         return DB::connection('main')->table('nuke_fatwa_questions')
             ->where('auther_id', $autherId)
             ->pluck('general_question_id')
-            ->map(fn ($id) => (int) str_replace('|', '', (string) $id))
-            ->filter(fn ($id) => $id > 0)
+            // Every question each fatwa belongs to — OLD all_questions_for_auther()
+            // explodes every id (decision-log #69: `|1|3|` is 1 and 3, never 13).
+            ->flatMap(fn ($id) => FatwaPipeIds::ids($id))
             ->unique()
             ->values();
     }
@@ -1536,12 +1645,34 @@ class ContentListingService
      */
     public function fatwaDistinctQuestionCountsByAuthor(): Collection
     {
-        return DB::connection('main')->table('nuke_fatwa_questions')
+        $main = DB::connection('main');
+
+        $counts = $main->table('nuke_fatwa_questions')
             ->selectRaw("auther_id, COUNT(DISTINCT REPLACE(general_question_id, '|', '') + 0) as fatwa_displayable_count")
             ->whereRaw("REPLACE(general_question_id, '|', '') + 0 > 0")
             ->groupBy('auther_id')
             ->pluck('fatwa_displayable_count', 'auther_id')
             ->map(fn ($count) => (int) $count);
+
+        // Decision-log #69: a fatwa linked to several questions (A1, stored
+        // `|1|3|`) would be counted above as the one number 13. The aggregate
+        // stays the fast path; only the authors who have such a row (none
+        // before A1) are recounted from their parsed ids — the same reading
+        // as fatwaGeneralQuestionIdsForAuthor().
+        $multi = $main->table('nuke_fatwa_questions')->where('general_question_id', 'like', '%|%|%|%')->distinct()->pluck('auther_id');
+        foreach ($multi as $autherId) {
+            $ids = $main->table('nuke_fatwa_questions')->where('auther_id', $autherId)->distinct()->pluck('general_question_id')
+                ->flatMap(fn ($raw) => FatwaPipeIds::ids($raw))
+                ->unique()
+                ->count();
+            if ($ids > 0) {
+                $counts->put($autherId, $ids);
+            } else {
+                $counts->forget($autherId);
+            }
+        }
+
+        return $counts;
     }
 
     // ---- Cross-department advanced search (Roadmap task 6.2) ----------
@@ -1582,14 +1713,14 @@ class ContentListingService
      * itself is unchanged by this finding; the new departments below use
      * this new, `advanced-search`-accurate helper instead.
      */
-    private function applyAdvancedSearchDateRange(\Illuminate\Database\Query\Builder $query, string $timeColumn, array $filters): void
+    private function applyAdvancedSearchDateRange(Builder $query, string $timeColumn, array $filters): void
     {
         if (! empty($filters['from'])) {
-            $query->where($timeColumn, '>=', strtotime($filters['from'] . ' 00:00:00'));
+            $query->where($timeColumn, '>=', strtotime($filters['from'].' 00:00:00'));
         }
 
         if (! empty($filters['to'])) {
-            $query->where($timeColumn, '<=', strtotime($filters['to'] . ' 23:59:59'));
+            $query->where($timeColumn, '<=', strtotime($filters['to'].' 23:59:59'));
         }
     }
 
@@ -1627,7 +1758,7 @@ class ContentListingService
             $query->where(function ($sub) use ($channelId) {
                 $sub->whereIn('tb1.channel_id', function ($inner) use ($channelId) {
                     $inner->select('id')->from('nuke_sat_channels')->where('id', $channelId);
-                })->orWhere('tb1.place_of_fatwa', 'like', '%' . $channelId . '%');
+                })->orWhere('tb1.place_of_fatwa', 'like', '%'.$channelId.'%');
             });
         }
 
@@ -1867,19 +1998,19 @@ class ContentListingService
         $threshold = strtotime('2026-02-09 00:00:00');
 
         $conditions = [
-            1447 => fn($q) => $q->where('ser.time', '>=', $threshold),
-            1446 => fn($q) => $q->where('ser.id', '>', 14642)->where('ser.time', '<', $threshold),
-            1444 => fn($q) => $q->where('ser.id', '>', 13228)->where('ser.id', '<', 14643),
-            1443 => fn($q) => $q->where('ser.id', '>', 11223)->where('ser.id', '<', 13228),
-            1442 => fn($q) => $q->where('ser.id', '>', 10943)->where('ser.id', '<', 11223),
-            1441 => fn($q) => $q->where('ser.id', '>', 9621)->where('ser.id', '<=', 10943),
-            1440 => fn($q) => $q->where('ser.id', '>', 9408)->where('ser.id', '<=', 9621),
-            1439 => fn($q) => $q->where('ser.id', '>', 8982)->where('ser.id', '<', 9409),
-            1438 => fn($q) => $q->where('ser.id', '>', 8033)->where('ser.id', '<', 8982),
-            1437 => fn($q) => $q->where('ser.id', '>', 7840)->where('ser.id', '<', 8033),
-            1436 => fn($q) => $q->where('ser.id', '>', 7204)->where('ser.id', '<', 7841),
-            1435 => fn($q) => $q->where('ser.id', '>', 5331)->where('ser.id', '<', 7205),
-            1434 => fn($q) => $q->where('ser.id', '<', 5332),
+            1447 => fn ($q) => $q->where('ser.time', '>=', $threshold),
+            1446 => fn ($q) => $q->where('ser.id', '>', 14642)->where('ser.time', '<', $threshold),
+            1444 => fn ($q) => $q->where('ser.id', '>', 13228)->where('ser.id', '<', 14643),
+            1443 => fn ($q) => $q->where('ser.id', '>', 11223)->where('ser.id', '<', 13228),
+            1442 => fn ($q) => $q->where('ser.id', '>', 10943)->where('ser.id', '<', 11223),
+            1441 => fn ($q) => $q->where('ser.id', '>', 9621)->where('ser.id', '<=', 10943),
+            1440 => fn ($q) => $q->where('ser.id', '>', 9408)->where('ser.id', '<=', 9621),
+            1439 => fn ($q) => $q->where('ser.id', '>', 8982)->where('ser.id', '<', 9409),
+            1438 => fn ($q) => $q->where('ser.id', '>', 8033)->where('ser.id', '<', 8982),
+            1437 => fn ($q) => $q->where('ser.id', '>', 7840)->where('ser.id', '<', 8033),
+            1436 => fn ($q) => $q->where('ser.id', '>', 7204)->where('ser.id', '<', 7841),
+            1435 => fn ($q) => $q->where('ser.id', '>', 5331)->where('ser.id', '<', 7205),
+            1434 => fn ($q) => $q->where('ser.id', '<', 5332),
         ];
 
         $results = [];
@@ -1917,7 +2048,7 @@ class ContentListingService
      * calls opt in.
      */
     private function applyAdvancedSearchFilters(
-        \Illuminate\Database\Query\Builder $query,
+        Builder $query,
         string $titleColumn,
         string $channelColumn,
         string $authorColumn,
@@ -1926,7 +2057,7 @@ class ContentListingService
         bool $validateChannelExists = false,
     ): void {
         if (! empty($filters['title'])) {
-            $query->where($titleColumn, 'like', '%' . $filters['title'] . '%');
+            $query->where($titleColumn, 'like', '%'.$filters['title'].'%');
         }
 
         if (! empty($filters['channel_id'])) {
@@ -1948,6 +2079,20 @@ class ContentListingService
             $query->whereBetween($timeColumn, [$filters['start'], $filters['end']]);
         }
     }
+
+    /**
+     * Homepage Khotab visibility H1 (owner, 2026-11-05; decision-log #98) — the three homepage Khotab widgets
+     * (`homeLatestVideos()`, `homeLatestAudios()`, `homeLatestDumpFiles()`) exclude hidden items (`hidden = 0`
+     * inside the derived table, before its ORDER BY / LIMIT, so each still shows up to 3 visible items). OLD's
+     * `index.php` had no such filter; not reproduced, as visitors get a 404 for a hidden item (#55 / #56).
+     * The cache keys carry a `:hidden0` version so entries written before the fix are never read again
+     * (they expire on their unchanged 300 s TTL; no flush).
+     */
+    private const HOME_LATEST_VIDEOS_KEY = 'home-latest-videos:hidden0';
+
+    private const HOME_LATEST_AUDIOS_KEY = 'home-latest-audios:hidden0';
+
+    private const HOME_LATEST_DUMP_FILES_KEY = 'home-latest-dump-files-%d:hidden0';
 
     // ============================================================================
     // G-02 (Homepage Migration Blueprint) — `index.php`/`new_content.php`/
@@ -1988,12 +2133,13 @@ class ContentListingService
      */
     public function homeLatestVideos(): Collection
     {
-        $rows = Cache::remember('home-latest-videos', 300, function () {
+        $rows = Cache::remember(self::HOME_LATEST_VIDEOS_KEY, 300, function () {
             return DB::connection('main')->query()->fromSub(function ($query) {
                 $query->select(['id', 'time', 'ser_id', 'title', 'frame', 'author', 'lastmirror'])
                     ->from('nuke_islamic_khotab')
                     ->where('vedio', '1')
                     ->where('newslist', '1')
+                    ->where('hidden', 0)
                     ->orderByDesc('lastmirror')
                     ->limit(3);
             }, 'kh')
@@ -2001,11 +2147,11 @@ class ContentListingService
                 ->orderByDesc('kh.lastmirror')
                 ->select(['kh.id', 'kh.time', 'kh.ser_id', 'kh.title', 'kh.frame', 'th.id as thid', 'th.prename', 'th.name'])
                 ->get()
-                ->map(fn($row) => (array) $row)
+                ->map(fn ($row) => (array) $row)
                 ->all();
         });
 
-        return collect($rows)->map(fn(array $row) => (object) $row);
+        return collect($rows)->map(fn (array $row) => (object) $row);
     }
 
     /**
@@ -2017,12 +2163,13 @@ class ContentListingService
      */
     public function homeLatestAudios(): Collection
     {
-        $rows = Cache::remember('home-latest-audios', 300, function () {
+        $rows = Cache::remember(self::HOME_LATEST_AUDIOS_KEY, 300, function () {
             return DB::connection('main')->query()->fromSub(function ($query) {
                 $query->select(['id', 'title', 'time', 'author', 'lastmirror'])
                     ->from('nuke_islamic_khotab')
                     ->where('vedio', '0')
                     ->where('newslist', '1')
+                    ->where('hidden', 0)
                     ->orderByDesc('lastmirror')
                     ->limit(3);
             }, 'kh')
@@ -2030,33 +2177,33 @@ class ContentListingService
                 ->orderByDesc('kh.lastmirror')
                 ->select(['kh.id', 'kh.title', 'kh.time', 'th.prename', 'th.name'])
                 ->get()
-                ->map(fn($row) => (array) $row)
+                ->map(fn ($row) => (array) $row)
                 ->all();
         });
 
-        return collect($rows)->map(fn(array $row) => (object) $row);
+        return collect($rows)->map(fn (array $row) => (object) $row);
     }
 
     /**
      * `home_functions.php:347-400`'s `get_latest_dump_files()`. Deliberately
      * NOT `khotabPdfDump()` above (khotab/dump.php's own "latest 50 PDFs"
-     * listing) — confirmed during the Blueprint's infrastructure inspection
-     * that query additionally filters `hidden = '0'` (this homepage
-     * function has no such filter), doesn't select `frame`, uses limit 50
-     * not 3, isn't cached, and isn't a derived-table query — 4 real
-     * differences, not safely reusable without silently changing homepage
-     * behavior. Cache key includes `$limit` exactly as legacy's own
+     * listing) — that query doesn't select `frame`, uses limit 50 not 3,
+     * isn't cached, and isn't a derived-table query — real differences,
+     * not safely reusable without silently changing homepage behavior.
+     * (The Blueprint also listed its `hidden = '0'` filter as a difference;
+     * since H1 below this method filters hidden too.) Cache key includes `$limit` exactly as legacy's own
      * `SimpleCache` key does. Same `serializable_classes` cache fix
      * applied — see `homeLatestVideos()`'s own docblock for the full
      * investigation.
      */
     public function homeLatestDumpFiles(int $limit = 3): Collection
     {
-        $rows = Cache::remember("home-latest-dump-files-{$limit}", 300, function () use ($limit) {
+        $rows = Cache::remember(sprintf(self::HOME_LATEST_DUMP_FILES_KEY, $limit), 300, function () use ($limit) {
             return DB::connection('main')->query()->fromSub(function ($query) use ($limit) {
                 $query->select(['id', 'title', 'frame', 'author', 'pdf_time'])
                     ->from('nuke_islamic_khotab')
                     ->where('pdf', '>', 0)
+                    ->where('hidden', 0)
                     ->orderByDesc('pdf_time')
                     ->limit($limit);
             }, 'kh')
@@ -2064,11 +2211,11 @@ class ContentListingService
                 ->orderByDesc('kh.pdf_time')
                 ->select(['kh.id', 'kh.title', 'kh.frame', 'th.id as thid', 'th.prename', 'th.name'])
                 ->get()
-                ->map(fn($row) => (array) $row)
+                ->map(fn ($row) => (array) $row)
                 ->all();
         });
 
-        return collect($rows)->map(fn(array $row) => (object) $row);
+        return collect($rows)->map(fn (array $row) => (object) $row);
     }
 
     /**

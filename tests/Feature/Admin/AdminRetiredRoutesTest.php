@@ -1,6 +1,8 @@
 <?php
 
+use App\Domain\Admin\Http\Controllers\ChatRoomAdminController;
 use App\Domain\Admin\Models\AdminUser;
+use App\Domain\Admin\Models\Room;
 use App\Support\Permission\Role;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
@@ -41,8 +43,8 @@ it('GET /admincp/chat 404s for a real authenticated super-admin, not 200/403', f
 });
 
 it('the retired ChatRoomAdminController/Room model classes no longer exist', function () {
-    expect(class_exists(\App\Domain\Admin\Http\Controllers\ChatRoomAdminController::class))->toBeFalse()
-        ->and(class_exists(\App\Domain\Admin\Models\Room::class))->toBeFalse();
+    expect(class_exists(ChatRoomAdminController::class))->toBeFalse()
+        ->and(class_exists(Room::class))->toBeFalse();
 });
 
 it('the super-admin dashboard no longer lists a chat/voice-room module, but every other real module is still present', function () {

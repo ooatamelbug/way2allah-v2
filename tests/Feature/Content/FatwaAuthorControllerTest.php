@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Content\Services\ContentListingService;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\Fixtures\MainSchema;
 use Tests\Support\InMemoryConnection;
@@ -230,11 +231,11 @@ it('show: pagination/count consistency — 30 distinct questions paginate at 25 
             'id' => 200 + $i, 'question_text' => sprintf('Question %02d', $i), 'topic_id' => '0',
         ]);
         $db->table('nuke_fatwa_questions')->insert([
-            'id' => $i, 'auther_id' => 5, 'general_question_id' => '|' . (200 + $i) . '|', 'question_text' => 'A' . $i,
+            'id' => $i, 'auther_id' => 5, 'general_question_id' => '|'.(200 + $i).'|', 'question_text' => 'A'.$i,
         ]);
     }
 
-    $listing = app(App\Domain\Content\Services\ContentListingService::class);
+    $listing = app(ContentListingService::class);
 
     expect($listing->fatwaGeneralQuestionsByAuthor(5, 1)->total())->toBe(30)
         ->and($listing->fatwaGeneralQuestionsByAuthor(5, 1)->count())->toBe(25)
@@ -258,7 +259,7 @@ it('show: an author with exactly 25 questions renders no pagination nav, and one
             'id' => 300 + $i, 'question_text' => sprintf('Q %02d', $i), 'topic_id' => '0',
         ]);
         $db->table('nuke_fatwa_questions')->insert([
-            'id' => $i, 'auther_id' => 5, 'general_question_id' => '|' . (300 + $i) . '|', 'question_text' => 'A' . $i,
+            'id' => $i, 'auther_id' => 5, 'general_question_id' => '|'.(300 + $i).'|', 'question_text' => 'A'.$i,
         ]);
     }
 
@@ -279,6 +280,6 @@ it('show: duplicate mappings are deduplicated in the listing total (132-rows/126
         ['id' => 3, 'auther_id' => 5, 'general_question_id' => '|101|', 'question_text' => 'C'],
     ]);
 
-    expect(app(App\Domain\Content\Services\ContentListingService::class)
+    expect(app(ContentListingService::class)
         ->fatwaGeneralQuestionsByAuthor(5, 1)->total())->toBe(2);
 });

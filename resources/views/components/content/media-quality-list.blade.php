@@ -32,6 +32,12 @@
                     <i class="fa fa-download" aria-hidden="true"></i> تحميل
                 </a>
             </div>
+            {{-- Contextual administration (OLD Mirror(): edit / delete beside each mirror). --}}
+            @contextualAdmin
+                <x-admin.contextual-controls variant="inline" :controls="$isKhotab
+                    ? \App\Domain\Admin\Contextual\Controls\KhotabItemControls::forMirror($mirror)
+                    : \App\Domain\Admin\Contextual\Controls\AnasheedItemControls::forMirror($mirror)" />
+            @endcontextualAdmin
         </article>
     @endforeach
 </div>

@@ -66,7 +66,7 @@
                 <div class="w2a-featured-fatwa-grid">
                     @forelse ($featured as $item)
                         <a class="w2a-featured-fatwa-card"
-                            href="/fatawa-all-{{ str_replace('|', '', $item->general_question_id) }}.htm#{{ $item->id }}">
+                            href="/fatawa-all-{{ \App\Domain\Content\Support\FatwaPipeIds::linkId($item->general_question_id) }}.htm#{{ $item->id }}">
                             <span class="w2a-featured-fatwa-card__icon" aria-hidden="true"><i
                                     class="fa fa-question"></i></span>
                             <strong>{{ $item->question_text }}</strong>
@@ -112,7 +112,7 @@
                         <span class="w2a-fatwa-row__icon" aria-hidden="true"><i class="fa fa-commenting-o"></i></span>
                         <div class="w2a-fatwa-row__main">
                             <a class="w2a-fatwa-row__question"
-                                href="/fatawa-all-{{ str_replace('|', '', $question->general_question_id) }}.htm#{{ $question->id }}">{{ $question->question_text }}</a>
+                                href="/fatawa-all-{{ \App\Domain\Content\Support\FatwaPipeIds::linkId($question->general_question_id) }}.htm#{{ $question->id }}">{{ $question->question_text }}</a>
                             <div class="w2a-fatwa-row__meta">
                                 <span><i class="fa fa-user" aria-hidden="true"></i> الشيخ: <a
                                         href="/auther-questions-{{ $question->auther_id }}.htm">{{ $question->auth_prename }}
@@ -134,7 +134,7 @@
                             </div>
                         </div>
                         <a class="w2a-fatwa-row__action"
-                            href="/fatawa-all-{{ str_replace('|', '', $question->general_question_id) }}.htm#{{ $question->id }}"
+                            href="/fatawa-all-{{ \App\Domain\Content\Support\FatwaPipeIds::linkId($question->general_question_id) }}.htm#{{ $question->id }}"
                             aria-label="قراءة الفتوى">
                             <i class="fa fa-angle-left" aria-hidden="true"></i>
                         </a>

@@ -8,6 +8,8 @@ function useInMemoryMainConnectionForTelawah(): void
 {
     InMemoryConnection::setup('main', [
         'nuke_telawah_groups' => MainSchema::nukeTelawahGroups(),
+        // Final public features (2026-10-15): the item page lists OLD's alternative links.
+        'nuke_telawah_mirror' => MainSchema::nukeTelawahMirror(),
         'nuke_telawah_telawah' => MainSchema::nukeTelawahTelawah(),
     ]);
 }

@@ -45,6 +45,10 @@
                                                 <span>النتائج</span>
                                             </a>
                                         </div>
+                                        {{-- Contextual administration (OLD / Gen 2 pollList(): «Edit» beside each poll). --}}
+                                        @contextualAdmin
+                                            <x-admin.contextual-controls variant="inline" :controls="[\App\Domain\Admin\Contextual\Controls\PublicPageControls::pollRow($poll)]" />
+                                        @endcontextualAdmin
                                     </td>
                                 </tr>
                             @empty

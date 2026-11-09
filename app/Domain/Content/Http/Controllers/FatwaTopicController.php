@@ -6,7 +6,10 @@ use App\Domain\Content\Models\Category;
 use App\Domain\Content\Models\FatwaTopic;
 use App\Domain\Content\Services\ContentListingService;
 use App\Domain\Content\Services\ContentSidebarWidget;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Illuminate\Contracts\View\View;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 /**
  * Replaces `fatawa/fatawa.php` (`showtree()`), `fatawa/tobics.php`
@@ -110,7 +113,10 @@ class FatwaTopicController
             ->orderBy('level')
             ->orderBy('id')
             ->get();
-        $topics = $listing->fatwaTopicsByCategory($category, $page);
+        $topics = $this->withLegacyUrls(
+            $listing->fatwaTopicsByCategory($category, $page),
+            fn (int $page) => route('fatawa.topics.show', ['category' => $category, 'page' => $page]),
+        );
         $mostDownloaded = $sidebar->fatwaMostDownloadedByCategory($category);
         $mostRecent = $sidebar->fatwaMostRecentByCategory($category);
         $ancestorChain = $this->pageBarAncestorChain($categoryModel);
@@ -120,8 +126,39 @@ class FatwaTopicController
         return view('fatawa.topics-show', compact('categoryModel', 'subCategories', 'topics', 'mostDownloaded', 'mostRecent', 'ancestorChain', 'questionCounts'));
     }
 
-    /** @return \Illuminate\Support\Collection<int, Category> */
-    private function pageBarAncestorChain(Category $categoryModel): \Illuminate\Support\Collection
+    /**
+     * OLD `pagination()` (`modules/Fatwa/index.php`:232-285) links to the
+     * route segment — `fatawa-topics-{cat}-{n}.htm`, `fatawa-group-{t}-{c}-{n}.htm`
+     * — which is where `show()` / `questions()` read the page from. The
+     * default `?page=N` links were ignored and reloaded the same page. Rows,
+     * total and current page are the reader's own; only the link URLs change.
+     * (From a `fatawa-group-{t}-{c}-{n}.htm` page OLD's generic fallback
+     * appended a second segment, `-{n}-{i}.htm`, which no rewrite matched;
+     * the `-{i}.htm` form OLD built from the first page is used throughout.)
+     *
+     * @param  LengthAwarePaginatorContract<int, \stdClass>  $rows
+     * @param  \Closure(int): string  $urlFor
+     * @return LengthAwarePaginator<int, \stdClass>
+     */
+    private function withLegacyUrls(LengthAwarePaginatorContract $rows, \Closure $urlFor): LengthAwarePaginator
+    {
+        return new class($urlFor, $rows->items(), $rows->total(), $rows->perPage(), $rows->currentPage(), ['path' => $rows->path()]) extends LengthAwarePaginator
+        {
+            /** @param  array<int, \stdClass>  $items  @param  array<string, string|null>  $options */
+            public function __construct(private \Closure $urlFor, array $items, int $total, int $perPage, int $currentPage, array $options)
+            {
+                parent::__construct($items, $total, $perPage, $currentPage, $options);
+            }
+
+            public function url($page)
+            {
+                return ($this->urlFor)(max(1, (int) $page));
+            }
+        };
+    }
+
+    /** @return Collection<int, Category> */
+    private function pageBarAncestorChain(Category $categoryModel): Collection
     {
         $chain = [$categoryModel];
         $current = $categoryModel;
@@ -185,7 +222,10 @@ class FatwaTopicController
         $categoryModel = Category::findOrFail($category);
         $topicModel = FatwaTopic::findOrFail($topic);
 
-        $generalQuestions = $listing->fatwaGeneralQuestionsByTopic($topic, $page);
+        $generalQuestions = $this->withLegacyUrls(
+            $listing->fatwaGeneralQuestionsByTopic($topic, $page),
+            fn (int $page) => route('fatawa.topics.questions.paged', ['topic' => $topic, 'category' => $category, 'page' => $page]),
+        );
         $answerCounts = collect($generalQuestions->items())
             ->mapWithKeys(fn ($question) => [$question->id => $listing->fatwaAnswerCountForGeneralQuestion($question->id)]);
         $mostDownloaded = $sidebar->fatwaMostDownloadedByCategory($category);

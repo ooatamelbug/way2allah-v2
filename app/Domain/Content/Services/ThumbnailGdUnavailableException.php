@@ -9,6 +9,4 @@ use RuntimeException;
  * ThumbnailRejectedException because this is a server/runtime condition,
  * not a bad request — ThumbnailController maps it to HTTP 503, not 400.
  */
-class ThumbnailGdUnavailableException extends RuntimeException
-{
-}
+class ThumbnailGdUnavailableException extends RuntimeException {}

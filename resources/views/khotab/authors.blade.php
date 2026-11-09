@@ -33,6 +33,13 @@
 </div>
 <h3 class="page-title">قائمة الدعاة ب{{ $sectionTitle }}</h3>
 
+{{-- Contextual administration (OLD Department2(): admincp.htm) — the video and audio directories only. --}}
+@if (in_array($op, ['video', 'audio'], true))
+    @contextualAdmin
+        <x-admin.contextual-controls :controls="\App\Domain\Admin\Contextual\Controls\KhotabMainControls::panel($op, \App\Domain\Admin\Actions\Khotab\KhotabPendingComments::count())" />
+    @endcontextualAdmin
+@endif
+
 <div class="row service-box margin-bottom-40">
     <div class="col-md-12 col-sm-12">
         <div class="portlet box blue">

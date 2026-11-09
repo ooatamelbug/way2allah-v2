@@ -1,4 +1,5 @@
-@props(['comments'])
+@props(['comments', 'commentControls' => null])
+{{-- commentControls: an admin-only callable(comment): list<ContextualControl>, rendered under each comment. --}}
 
 <div class="w2a-comments-wrap">
     <div class="w2a-comments-header-bar">
@@ -48,6 +49,9 @@
                     </time>
                 </header>
                 <p class="w2a-comment-body">{!! nl2br(e((string) $comment->comment)) !!}</p>
+                @if ($commentControls !== null)
+                    <x-admin.contextual-controls variant="inline" :controls="$commentControls($comment)" />
+                @endif
                 <span class="w2a-comment-footer-icon" aria-hidden="true"><i class="fa fa-quote-right"></i></span>
             </article>
         @endforeach

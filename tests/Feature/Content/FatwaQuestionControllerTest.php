@@ -528,3 +528,36 @@ it('sendToFriend: 404s for a nonexistent question', function () {
         'friend_name' => 'Sami', 'friend_email' => 'sami@example.com',
     ])->assertNotFound();
 });
+
+// Fatwa historical URL family — targeted playback defect (owner-approved, 2026-11-07): the single-fatwa play
+// button's onclick nested double quotes (`onclick="w2a_play(50, "fatawa")"`), ending the attribute early.
+// Parsed as HTML, the attribute must be the complete handler.
+it('show: the play button\'s parsed onclick attribute is the complete w2a_play(id, \'fatawa\') handler; download link and media player present', function () {
+    $db = DB::connection('main');
+    $db->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Shaikh', 'prename' => 'Dr.']);
+    $db->table('nuke_fatwa_questions')->insert([
+        'id' => 50, 'topic_id' => 10, 'general_question_id' => '|100|',
+        'question_text' => 'One specific answer', 'auther_id' => 1,
+        'answer_text' => 'The answer text', 'media_type' => 'video', 'media_link' => 'https://archive.org/download/x/x.mp4',
+    ]);
+
+    $content = $this->get('/fatawa-50.htm')->assertOk()->getContent();
+
+    $dom = new DOMDocument;
+    libxml_use_internal_errors(true);
+    $dom->loadHTML('<?xml encoding="utf-8"?>'.$content);
+    libxml_clear_errors();
+    $xpath = new DOMXPath($dom);
+
+    $buttons = $xpath->query('//button[contains(concat(" ", normalize-space(@class), " "), " w2a-action-play ")]');
+    expect($buttons->length)->toBe(1);
+    $button = $buttons->item(0);
+    expect($button)->toBeInstanceOf(DOMElement::class);
+    /** @var DOMElement $button */
+    expect($button->getAttribute('onclick'))->toBe("w2a_play(50, 'fatawa')")
+        ->and($button->hasAttribute('fatawa")'))->toBeFalse();
+
+    expect($xpath->query('//a[@href="/fatawa-download-50.htm"]')->length)->toBe(1)
+        ->and($xpath->query('//*[@id="the_main_player"]')->length)->toBe(1)
+        ->and($content)->toContain('window.w2a_play = function (id, type)');
+});

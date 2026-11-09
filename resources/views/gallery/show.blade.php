@@ -139,10 +139,9 @@
                 $('a.lightbox').lightBox();
             });
 
+            // decision-log #107: the endpoint returns the album ZIP itself — navigate to it directly.
             function downlaod_gellery_images(id) {
-                $.get('download-album-' + id + '.htm', function (downloadUrl) {
-                    window.location.assign(downloadUrl);
-                });
+                window.location.href = '/download-album-' + parseInt(id, 10) + '.htm';
             }
         </script>
     @endpush

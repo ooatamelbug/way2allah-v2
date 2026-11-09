@@ -111,6 +111,8 @@ it('POST /media-player: anasheed type, mp4 renders a native <video> tag, resolvi
 });
 
 it('POST /media-player: anasheed_mirror type, mp3 renders a native <audio> tag, resolving via nuke_anasheed_mirror (var-item-{id}.htm parity)', function () {
+    // OLD PlayMirror() plays a mirror only while its item exists with hidden='0' (visitor parity A6).
+    DB::connection('main')->table('nuke_anasheed_anasheed')->insert(['id' => 1, 'title' => 'Item', 'vedio' => 0, 'hidden' => 0, 'link' => 'https://cdn.example.com/item.mp3']);
     DB::connection('main')->table('nuke_anasheed_mirror')->insert([
         'id' => 1, 'khid' => 1, 'title' => 'A quality', 'vedio' => 0, 'hidden' => 0,
         'link' => 'https://cdn.example.com/a.mp3',
@@ -301,6 +303,8 @@ it('POST /media-player: fatawa type, an unresolvable id returns an empty 200 bod
 });
 
 it('resolves modern YouTube URL variants to a clean video id', function (string $link) {
+    // The mirror's visible parent item (OLD PlayMirror(), visitor parity A6).
+    DB::connection('main')->table('nuke_anasheed_anasheed')->insert(['id' => 17346, 'title' => 'Item', 'vedio' => 1, 'hidden' => 0, 'link' => 'https://cdn.example.com/item.mp4']);
     DB::connection('main')->table('nuke_anasheed_mirror')->insert([
         'id' => 19024, 'khid' => 17346, 'title' => 'YouTube quality',
         'vedio' => 1, 'hidden' => 0, 'link' => $link,
@@ -329,4 +333,58 @@ it('does not render an empty or malformed YouTube embed', function (string $link
     'invalid id' => 'https://youtube.com/shorts/not-valid',
     'array query' => 'https://youtube.com/watch?v[]=q1-HyMYFoGQ',
     'lookalike host' => 'https://youtube.example.com/watch?v=q1-HyMYFoGQ',
+]);
+
+// ---- Telawah mp4 playback (owner-approved targeted gap, 2026-11-07): fromTelawahItem() follows the row's `vedio`
+// flag like Gen 2's get_w2a_mada_player() (audio branch only when vedio = 0), instead of always audio. ----
+
+it('POST /media-player: telawat type, mp4 with vedio=1 renders a native <video> player from the stored link', function () {
+    DB::connection('main')->table('nuke_telawah_telawah')->insert([
+        'id' => 9205, 'title' => 'سورة الفاتحة', 'vedio' => 1,
+        'link' => 'https://archive.org/download/yosef-ma3aty-2023/swra_alfatha_.mp4',
+    ]);
+
+    $response = $this->post('/media-player', ['id' => 9205, 'type' => 'telawat']);
+
+    $response->assertOk();
+    expectModernVideoPlayer($response->getContent(), 'https://archive.org/download/yosef-ma3aty-2023/swra_alfatha_.mp4');
+    expect($response->getContent())->not->toContain('<audio')->not->toBe('');
+});
+
+it('POST /media-player: telawat type, mp3 with vedio=0 keeps the audio player (no video)', function () {
+    DB::connection('main')->table('nuke_telawah_telawah')->insert([
+        'id' => 72, 'title' => 'Audio recitation', 'vedio' => 0, 'link' => 'https://cdn.example.com/recitation-72.mp3',
+    ]);
+
+    $response = $this->post('/media-player', ['id' => 72, 'type' => 'telawat']);
+
+    $response->assertOk();
+    expectModernAudioPlayer($response->getContent(), 'https://cdn.example.com/recitation-72.mp3', 'Audio recitation');
+    expect($response->getContent())->not->toContain('<video');
+});
+
+it('POST /media-player: telawat type, mp3 with vedio=1 still uses the audio player (mp3 is checked before the video flag)', function () {
+    DB::connection('main')->table('nuke_telawah_telawah')->insert([
+        'id' => 73, 'title' => 'Flagged video mp3', 'vedio' => 1, 'link' => 'https://cdn.example.com/recitation-73.mp3',
+    ]);
+
+    $response = $this->post('/media-player', ['id' => 73, 'type' => 'telawat']);
+
+    $response->assertOk();
+    expectModernAudioPlayer($response->getContent(), 'https://cdn.example.com/recitation-73.mp3', 'Flagged video mp3');
+    expect($response->getContent())->not->toContain('<video');
+});
+
+it('POST /media-player: telawat type, obsolete formats (rm / rmvb) still get no player under decision-log #20, whatever the vedio flag', function (string $link, int $vedio) {
+    DB::connection('main')->table('nuke_telawah_telawah')->insert([
+        'id' => 74, 'title' => 'Legacy format', 'vedio' => $vedio, 'link' => $link,
+    ]);
+
+    $response = $this->post('/media-player', ['id' => 74, 'type' => 'telawat']);
+
+    $response->assertOk();
+    expect($response->getContent())->toBe('');
+})->with([
+    'rm, vedio=0' => ['https://cdn.example.com/recitation.rm', 0],
+    'rmvb, vedio=1' => ['https://cdn.example.com/recitation.rmvb', 1],
 ]);

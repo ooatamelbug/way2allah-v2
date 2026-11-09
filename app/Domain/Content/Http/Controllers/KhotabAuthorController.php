@@ -3,9 +3,12 @@
 namespace App\Domain\Content\Http\Controllers;
 
 use App\Domain\Content\Models\Author;
+use App\Domain\Content\Models\KhotabItem;
 use App\Domain\Content\Services\ContentListingService;
 use App\Domain\Content\Services\ContentSidebarWidget;
+use App\Support\Http\AdminViewer;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -91,7 +94,7 @@ class KhotabAuthorController
      * legacy khotab admin (`vedio=vedio+1`, `audio=audio-1`), so they are
      * not the same class of stale data and are out of this batch's scope.
      */
-    public function index(string $op, ContentListingService $listing): View
+    public function index(string $op, ContentListingService $listing, AdminViewer $contextual): View
     {
         $op = in_array($op, ['video', 'audio', 'pdf'], true) ? $op : 'fatwa';
 
@@ -101,10 +104,21 @@ class KhotabAuthorController
 
         $countColumn = self::COUNT_COLUMNS[$op];
 
-        $authors = Author::where('hidden', 0)
-            ->where($countColumn, '>', 0)
+        // OLD public admin parity — Khotab Main (owner, 2026-10-21): on the
+        // video / audio directory an administrator sees every author, as OLD
+        // `Department2()` listed them to admins — hidden ones, and those with
+        // nothing in this media type (so a just-added author is reachable).
+        // The response is then private; visitors keep the filter below.
+        $adminView = $op !== 'pdf' && $contextual->active();
+
+        $authors = Author::query()
+            ->when(! $adminView, fn ($query) => $query->where('hidden', 0)->where($countColumn, '>', 0))
             ->orderByRaw($this->nameOrderClause())
             ->get();
+
+        if ($adminView) {
+            $contextual->markRendered();
+        }
 
         $groupedAuthors = $authors->groupBy(function (Author $author): string {
             $letter = mb_substr((string) $author->name, 0, 1, 'UTF-8');
@@ -201,9 +215,19 @@ class KhotabAuthorController
      * silent bug) — worth remembering for every other multi-segment route
      * in the rest of Wave 4.
      */
-    public function show(string $op, int $author, ContentListingService $listing, ContentSidebarWidget $sidebar): View
+    public function show(string $op, int $author, ContentListingService $listing, ContentSidebarWidget $sidebar, AdminViewer $contextual): View|RedirectResponse
     {
-        $authorModel = Author::findOrFail($author);
+        $authorModel = Author::find($author);
+
+        // `khotab-pdf-{id}.htm` was OLD's ITEM-transcript link (`op=getpdf&khid=`);
+        // Gen 2 and Laravel use the same shape for an author's transcripts. The
+        // author keeps the URL; an id that is no author but an item with a
+        // transcript goes to that transcript's own route (owner, 2026-10-22).
+        if ($authorModel === null && $op === 'pdf'
+            && KhotabItem::query()->whereKey($author)->where('pdf', '>', 0)->exists()) {
+            return redirect('/khotab-item-pdf-'.$author.'.htm', 301);
+        }
+        abort_if($authorModel === null, 404);
         $op = in_array($op, ['video', 'audio'], true) ? $op : 'pdf';
 
         $groups = collect();
@@ -216,9 +240,23 @@ class KhotabAuthorController
             $mostRecent = $sidebar->khotabMostRecentByAuthorForPdf($author);
         } else {
             $video = $op === 'video';
-            $groups = $listing->groupsByAuthor($author, $video);
-            $series = $listing->seriesByAuthorAndGroup($author, 0, $video);
-            $items = $listing->khotabItemsDefault($author, 0, 0, $video);
+
+            // OLD public admin parity (owner, 2026-10-21): an administrator
+            // sees the author's lists as OLD's `Author()` showed them to
+            // admins — hidden and empty groups and standalone series (marked
+            // «++مخفي++»), and hidden standalone items — so a group or series
+            // just created, still empty, stays reachable. The response is
+            // then private. Visitors keep exactly the lists below.
+            if ($contextual->active()) {
+                $groups = $listing->adminGroupsByAuthor($author, $video);
+                $series = $listing->adminStandaloneSeriesByAuthor($author, $video);
+                $items = $listing->khotabItemsDefault($author, 0, 0, $video, includeHidden: true);
+                $contextual->markRendered();
+            } else {
+                $groups = $listing->groupsByAuthor($author, $video);
+                $series = $listing->seriesByAuthorAndGroup($author, 0, $video);
+                $items = $listing->khotabItemsDefault($author, 0, 0, $video);
+            }
             $mostDownloaded = $sidebar->khotabMostDownloadedByAuthor($author, $video);
             $mostRecent = $sidebar->khotabMostRecentByAuthor($author, $video);
         }
@@ -236,6 +274,9 @@ class KhotabAuthorController
             'randomFeatured' => $randomFeatured,
             'opTitle' => self::BREADCRUMB_LABELS[$op],
             'pageTitle' => $this->authorPageTitle($op, $authorModel),
+            // OLD `Author()` → `apply_search("author", $id)`: the «بحث متقدم»
+            // form, for every visitor, on the video and audio pages.
+            'searchChannels' => $op === 'pdf' ? collect() : $listing->channelsForAuthorSeries($author),
         ]);
     }
 

@@ -26,7 +26,6 @@
  * this project's own "test-owned fixture for behavior, not asset
  * availability" convention.
  */
-
 $hasGd = extension_loaded('gd');
 $gdSkipReason = 'RUNTIME_BLOCKED_BY_MISSING_GD: ext-gd is not loaded in this test runtime.';
 
@@ -142,7 +141,7 @@ it('error responses never leak the resolved server filesystem path (base_path)',
     expect($response->getContent())->not->toContain(base_path());
 });
 
-test('the exact tvnoise.gif case matches the confirmed production contract: 72x50, image/gif', function () use ($hasGd) {
+test('the exact tvnoise.gif case matches the confirmed production contract: 72x50, image/gif', function () {
     // Real source is 60x45 (public/images/tvnoise.gif) — the resize math
     // under test doesn't depend on that exact content, only on a real
     // GIF existing at a plausible source size; reproduced at the same
@@ -163,7 +162,7 @@ test('the exact tvnoise.gif case matches the confirmed production contract: 72x5
     }
 })->skip(! $hasGd, $gdSkipReason);
 
-test('a JPEG source is resized to the requested box and stays image/jpeg (gallery grid-thumb shape)', function () use ($hasGd) {
+test('a JPEG source is resized to the requested box and stays image/jpeg (gallery grid-thumb shape)', function () {
     // Real source is 1338973161.jpg, 400x300 — same dimensions reproduced here.
     $fixture = makeFixtureImage('jpg', 400, 300, 'cds_image2');
 
@@ -180,7 +179,7 @@ test('a JPEG source is resized to the requested box and stays image/jpeg (galler
     }
 })->skip(! $hasGd, $gdSkipReason);
 
-test('a PNG source is resized to the requested box and stays image/png (w2acd list-thumb shape)', function () use ($hasGd) {
+test('a PNG source is resized to the requested box and stays image/png (w2acd list-thumb shape)', function () {
     // Real source is 31369589356.png, 800x600 — same dimensions reproduced here.
     $fixture = makeFixtureImage('png', 800, 600, 'cds_image2');
 
@@ -197,7 +196,7 @@ test('a PNG source is resized to the requested box and stays image/png (w2acd li
     }
 })->skip(! $hasGd, $gdSkipReason);
 
-test('zc=0 (the real w2acd/show.blade.php caller shape) stretches the source into the exact box, no cropping', function () use ($hasGd) {
+test('zc=0 (the real w2acd/show.blade.php caller shape) stretches the source into the exact box, no cropping', function () {
     // Confirmed real caller: w2acd/show.blade.php:30 — h=400&w=400&zc=0&q=100&src=/images/cds_image2/{file}
     // (leading slash included, exactly as the real caller emits it) — preserved unchanged below.
     $fixture = makeFixtureImage('jpg', 400, 300, 'cds_image2');
@@ -215,7 +214,7 @@ test('zc=0 (the real w2acd/show.blade.php caller shape) stretches the source int
     }
 })->skip(! $hasGd, $gdSkipReason);
 
-test('a single provided dimension (gallery lightbox shape, w only) computes height proportionally from the source', function () use ($hasGd) {
+test('a single provided dimension (gallery lightbox shape, w only) computes height proportionally from the source', function () {
     // gallery/show.blade.php:29 — w=500&src=... with no h. Source is 400x300 (4:3) so h should come out to 375.
     $fixture = makeFixtureImage('jpg', 400, 300, 'cds_image2');
 
@@ -230,7 +229,7 @@ test('a single provided dimension (gallery lightbox shape, w only) computes heig
     }
 })->skip(! $hasGd, $gdSkipReason);
 
-test('oversized dimensions are clamped to TimThumb\'s 1500 maximum, not rejected', function () use ($hasGd) {
+test('oversized dimensions are clamped to TimThumb\'s 1500 maximum, not rejected', function () {
     // Real source is 31369589356.png, 800x600 — same dimensions reproduced here.
     $fixture = makeFixtureImage('png', 800, 600, 'cds_image2');
 

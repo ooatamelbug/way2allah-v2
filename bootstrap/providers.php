@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Admin\Contextual\ContextualAdminServiceProvider;
 use App\Domain\Admin\Providers\AdminServiceProvider;
 use App\Domain\Content\Providers\ContentServiceProvider;
 use App\Domain\Engagement\Providers\EngagementServiceProvider;
@@ -13,6 +14,7 @@ return [
     AppServiceProvider::class,
     PerformanceServiceProvider::class,
     AdminServiceProvider::class,
+    ContextualAdminServiceProvider::class,
     ContentServiceProvider::class,
     EngagementServiceProvider::class,
     IdentityServiceProvider::class,

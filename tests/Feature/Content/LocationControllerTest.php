@@ -7,8 +7,8 @@ use Tests\Support\InMemoryConnection;
 /**
  * Wave C ("Public Locations & Da'wah Registration Surfaces"). Covers
  * `location-{id}.htm` / `alhedaya-room.htm` (LocationController) and the
- * "location param is ignored" quirk for `location-{id}-author-{id2}.htm`
- * (ChatRoomLessonController::author reused directly) and
+ * location-scoped `location-{id}-author-{id2}.htm` (decision-log #114; formerly the "location param is ignored" quirk)
+ * (ChatRoomLessonController::authorAtGivenLocation) and
  * `location-{id}-item-{id2}.htm` (KhotabItemController::show reused
  * directly).
  */
@@ -98,24 +98,26 @@ it('alhedaya-room.htm renders location 10 specifically, without a location segme
     $response->assertOk()->assertSee('الغرفة الدعوية')->assertDontSee('Other Location');
 });
 
-it('location-{id}-author-{id2}.htm ignores the location segment entirely — reuses chat_author_{id}.htm behavior verbatim, matching verified chat_room/author.php (which never reads $_GET[location])', function () {
+// Decision-log #114 (owner-approved fix) supersedes the earlier "location segment ignored" behaviour (IF-048): the
+// OLD rule routes location-{l}-author-{a}.htm to Locations `Author($id, $location)`, which scopes to `$location`.
+it('location-{id}-author-{id2}.htm is scoped to the requested location: an author registered only at location 10 is a 404 at location 1, and still opens at location 10 and via chat_author_{id}.htm', function () {
+    DB::connection('main')->table('nuke_islamic_locations')->insert(['id' => 1, 'title' => 'Masjid One', 'hidden' => 0, 'type' => 1]); // location must exist (owner decision 2026-11-07)
     DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 626, 'name' => 'Farhat', 'prename' => 'Dr', 'hidden' => 0]);
     DB::connection('main')->table('nuke_islamic_authors_location')->insert(['author_id' => 626, 'location_id' => 10, 'count' => 3]);
 
-    // The URL claims "location 1," but the real legacy handler
-    // (chat_room/author.php) is hardcoded to location 10 and never reads
-    // the location segment — so this must behave identically to
-    // /chat_author_626.htm, not scope to location 1.
-    $this->get('/location-1-author-626.htm')->assertOk()->assertSee('Farhat');
+    $this->get('/location-1-author-626.htm')->assertNotFound();
+    $this->get('/location-10-author-626.htm')->assertOk()->assertSee('Farhat');
     $this->get('/chat_author_626.htm')->assertOk()->assertSee('Farhat');
 });
 
-it('location-{id}-author-{id2}.htm 404s for an author only registered at a DIFFERENT location, even though the URL names that location — proof the location segment is truly ignored', function () {
+it('location-{id}-author-{id2}.htm opens for an author registered only at that (non-10) location', function () {
+    DB::connection('main')->table('nuke_islamic_locations')->insert(['id' => 1, 'title' => 'Masjid One', 'hidden' => 0, 'type' => 1]); // location must exist (owner decision 2026-11-07)
     DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 154, 'name' => 'Khudairi', 'prename' => 'Sheikh', 'hidden' => 0]);
     DB::connection('main')->table('nuke_islamic_authors_location')->insert(['author_id' => 154, 'location_id' => 1, 'count' => 7]);
     // Author 154 is registered at location 1, NOT location 10.
 
-    $this->get('/location-1-author-154.htm')->assertNotFound();
+    $this->get('/location-1-author-154.htm')->assertOk()->assertSee('Khudairi');
+    $this->get('/chat_author_154.htm')->assertNotFound();
 });
 
 it('location-{id}-item-{id2}.htm produces the exact same response as khotab-item-{id}.htm — khotab/item.php never reads $_GET[location]', function () {

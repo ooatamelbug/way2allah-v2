@@ -1,13 +1,12 @@
 <?php
 
 use App\Domain\Admin\Models\AdminUser;
-use App\Domain\Content\Models\Channel;
 use App\Domain\Admin\Models\Survey;
+use App\Domain\Content\Models\Channel;
 use App\Support\Permission\Permission;
 use App\Support\Permission\Role;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\Fixtures\MainSchema;
-use Tests\Support\Fixtures\VbulletinSchema;
 use Tests\Support\InMemoryConnection;
 
 uses(RefreshDatabase::class);

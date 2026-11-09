@@ -277,3 +277,30 @@ it('index: intentionally omits the retired live-room and today\'s-lesson section
 it('index: does not register the retired live-room routes', function () {
     $this->get('/chat_1.htm')->assertNotFound();
 });
+
+// Owner-approved targeted UI correction (2026-11-07): lesson page chrome, panels and Khotab author card.
+it('show: page heading and breadcrumb (chat room → author → lesson), titled panels, and the constrained author avatar link', function () {
+    seedChatRoomLessonFixture();
+    DB::connection('main')->table('nuke_islamic_mirror')->insert(['id' => 1, 'khid' => 1, 'comment' => 'HD Quality']);
+
+    $content = $this->get('/chat_lesson_1.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('<title>The Lesson - غرفة الهداية الدعوية - ')
+        ->toContain('<h3 class="page-title">غرفة الهداية - The Lesson</h3>')
+        ->toMatch('#'.preg_quote('<li><a href="/chat_room.htm">غرفة الهداية</a><i class="fa fa-angle-right"></i></li>', '#').'\s*'.preg_quote('<li><a href="/chat_author_1.htm">Dr Sheikh</a><i class="fa fa-angle-right"></i></li>', '#').'\s*'.preg_quote('<li>The Lesson<i class=""></i></li>', '#').'#u')
+        ->toContain('<h2>قائمة الجودات المختلفة للدرس</h2>')->toContain('href="/khotab-mirror-1-1.htm"')
+        ->toContain('<h2>أكثر الدروس مشاهدة</h2>')->toContain('<h2>أجدد التسجيلات</h2>')
+        ->toMatch('#id="author-info">\s*<a href="/chat_author_1.htm"><img class="w2a-author-avatar" #u');
+});
+
+it('show: the player, download link and lesson details are unchanged by the layout correction', function () {
+    seedChatRoomLessonFixture();
+
+    $content = $this->get('/chat_lesson_1.htm')->assertOk()->getContent();
+
+    expect($content)
+        ->toContain('id="the_main_player"')->toContain('class="w2a-player-panel"')
+        ->toContain('href="/khotab-download-1.htm"')
+        ->toContain('class="portlet box blue" aria-label="تفاصيل المادة"');
+});

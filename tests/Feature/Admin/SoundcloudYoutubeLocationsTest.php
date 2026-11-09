@@ -1,7 +1,7 @@
 <?php
 
 use App\Domain\Admin\Models\AdminUser;
-use App\Domain\Admin\Models\Location;
+use App\Domain\Content\Models\Location;
 use App\Support\Permission\Permission;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;

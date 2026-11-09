@@ -1,7 +1,10 @@
 <?php
 
+use App\Domain\Admin\Models\AdminUser;
+use App\Http\Controllers\DeploymentInstallerController;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\Fixtures\MainSchema;
 use Tests\Support\InMemoryConnection;
@@ -14,9 +17,10 @@ use Tests\Support\InMemoryConnection;
  * reported "ok", and the lock file created).
  *
  * The controller's own real behavior (a real `migrate --force` +
- * `RoleSeeder` + `AdminPermissionSeeder` + `admin:sync-permissions` +
- * cache-command run against real MySQL, synchronizing real admin
- * accounts) was already independently, directly verified end-to-end
+ * `RoleSeeder` + `AdminPermissionSeeder` + cache-command run against real
+ * MySQL — at the time also `admin:sync-permissions`, removed from the
+ * installer on 2026-10-14, see the last tests below) was already
+ * independently, directly verified end-to-end
  * during this package's cPanel smoke test (extracted the built ZIP into
  * a clean directory, ran the equivalent CLI sequence for real against
  * the real local database, confirmed "Synchronized 48 admin accounts.").
@@ -147,6 +151,85 @@ it('the full sequence is safe to re-run from scratch after being run once alread
 
     $second = $this->post('/deploy/install', ['token' => 'the-real-secret']);
     $second->assertOk()->assertSee('اكتمل التثبيت بنجاح')->assertDontSee('❌');
+
+    cleanupInstallerTest($tempDb);
+});
+
+/*
+| 2026-10-14 (plan §27) — the installer no longer runs
+| `admin:sync-permissions`. That command replaces every admin's Spatie
+| grants with the legacy `nuke_authors` state; run on every install, it
+| imported legacy assignments and erased grants made in Laravel's
+| permission editor. Laravel/Spatie is the authorization authority; the
+| command remains for deliberate, manual legacy bootstrap only.
+*/
+
+it('runs exactly the deployment steps — migrations, both seeders, the cache commands — and no permission sync', function () {
+    $steps = (new ReflectionClassConstant(DeploymentInstallerController::class, 'STEPS'))->getValue();
+
+    expect(array_column($steps, 'key'))->toBe(['db', 'migrate', 'roles', 'permissions', 'optimize_clear', 'config_cache', 'route_cache', 'view_cache'])
+        ->and(json_encode($steps, JSON_UNESCAPED_UNICODE))->not->toContain('sync');
+});
+
+it('never invokes admin:sync-permissions, while every other step is still called, in order', function () {
+    config(['deploy.installer_enabled' => true, 'deploy.installer_token' => 'the-real-secret']);
+    useInMemoryMainConnectionForInstaller();
+    // Spy on the facade the installer calls: records every Artisan::call()
+    // without executing it, so the exact invocations can be asserted.
+    $calls = [];
+    Artisan::shouldReceive('call')->andReturnUsing(function (string $command, array $parameters = []) use (&$calls) {
+        $calls[] = $command.(isset($parameters['--class']) ? ':'.$parameters['--class'] : '');
+
+        return 0;
+    });
+
+    $this->post('/deploy/install', ['token' => 'the-real-secret'])->assertOk()->assertSee('اكتمل التثبيت بنجاح');
+
+    expect($calls)->toBe([
+        'migrate',
+        'db:seed:Database\\Seeders\\RoleSeeder',
+        'db:seed:Database\\Seeders\\AdminPermissionSeeder',
+        'optimize:clear',
+        'config:cache',
+        'route:cache',
+        'view:cache',
+    ])->and($calls)->not->toContain('admin:sync-permissions');
+});
+
+it('a rerun cannot change existing Laravel grants or super-admin memberships through legacy data', function () {
+    $tempDb = useTempFileSqliteForInstallerTest();
+    config(['deploy.installer_enabled' => true, 'deploy.installer_token' => 'the-real-secret']);
+    useInMemoryMainConnectionForInstaller();
+    Schema::connection('main')->table('nuke_authors', fn ($table) => $table->text('permissions')->nullable());
+
+    // An environment already installed once: schema, roles, permission definitions.
+    Artisan::call('migrate', ['--force' => true]);
+    Artisan::call('db:seed', ['--force' => true, '--class' => 'Database\\Seeders\\RoleSeeder']);
+    Artisan::call('db:seed', ['--force' => true, '--class' => 'Database\\Seeders\\AdminPermissionSeeder']);
+
+    // A grant made in Laravel's editor that legacy data does not contain.
+    $editorGranted = AdminUser::on('main')->create(['aid' => 'editor-granted', 'password' => 'x']);
+    $editorGranted->givePermissionTo(['polls.managepolls', 'mobile.managedownloads']);
+    // Legacy data that WOULD map to Laravel grants and roles if synced.
+    $legacyOnly = AdminUser::on('main')->create(['aid' => 'legacy-only', 'password' => 'x', 'radminsuper' => 1]);
+    $blob = serialize(['khotab' => ['addmirror' => 'on', 'addcat' => 'on', 'addadv' => 'on']]);
+    DB::connection('main')->table('nuke_authors')->whereIn('aid', ['editor-granted', 'legacy-only'])->update(['permissions' => $blob]);
+
+    $snapshot = fn () => [
+        'model_has_permissions' => DB::connection('sqlite')->table('model_has_permissions')->orderBy('model_id')->orderBy('permission_id')->get()->map(fn ($r) => (array) $r)->all(),
+        'model_has_roles' => DB::connection('sqlite')->table('model_has_roles')->orderBy('model_id')->orderBy('role_id')->get()->map(fn ($r) => (array) $r)->all(),
+    ];
+    $before = $snapshot();
+    expect($before['model_has_permissions'])->toHaveCount(2)->and($before['model_has_roles'])->toBe([]);
+
+    $this->post('/deploy/install', ['token' => 'the-real-secret'])->assertOk()->assertSee('اكتمل التثبيت بنجاح');
+
+    // config:cache swapped the container mid-request (see the idempotency
+    // test above): point the default connection back at this test's DB.
+    config(['database.connections.sqlite.database' => $tempDb]);
+    DB::purge('sqlite');
+
+    expect($snapshot())->toBe($before);
 
     cleanupInstallerTest($tempDb);
 });

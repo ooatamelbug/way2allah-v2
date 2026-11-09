@@ -5,13 +5,19 @@ namespace App\Domain\Content\Http\Controllers;
 use App\Domain\Content\Events\CommentPosted;
 use App\Domain\Content\Mail\AnasheedFriendMail;
 use App\Domain\Content\Models\AnasheedComment;
+use App\Domain\Content\Models\AnasheedGroup;
 use App\Domain\Content\Models\AnasheedItem;
 use App\Domain\Content\Models\AnasheedMirror;
 use App\Domain\Content\Services\ContentSidebarWidget;
 use App\Domain\Content\Services\GeoIpLookup;
+use App\Domain\Content\Services\SendToFriend\SendToFriendInput;
+use App\Domain\Content\Services\SendToFriend\SendToFriendMailer;
+use App\Domain\Content\Services\SendToFriend\SendToFriendRateLimiter;
+use App\Support\Media\ArchiveOrgLink;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Replaces `anasheed/item.php` — Roadmap task 4.7. Public-only, same
@@ -41,6 +47,15 @@ use Illuminate\Support\Facades\Mail;
  */
 class AnasheedItemController
 {
+    /** OLD `Top10()`'s `$blocktitle` switch on the department id; anything else → «جديد الأناشيد». */
+    private const DEPARTMENT_RECENT_TITLES = [
+        98 => 'جديد الأناشيد',
+        16 => 'جديد المقاطع المؤثرة',
+        12 => 'جديد الأفلام الوثائقية',
+        57 => 'جديد الكرتون',
+        158 => 'جديد إصدارات الموقع',
+    ];
+
     /**
      * G-12-01 (G-12 investigation): `var-item-{id}-page-{page}.htm` is a
      * real, live `.htaccess` rule (`.htaccess:104`) with real
@@ -83,35 +98,56 @@ class AnasheedItemController
 
         $breadcrumbTrail = $anasheedItem->group?->breadcrumbTrail() ?? collect();
 
+        // OLD Detailes(): `if ($Anasheed['hidden']=='0')` gates the details, mirrors and comments —
+        // for everyone, admins included; the chrome, the admin panel, the sidebar and the hit counter
+        // stay (visitor parity A6, 2026-11-04).
+        $isHidden = (int) $anasheedItem->hidden !== 0;
+
         $comments = null;
-        if ($anasheedItem->comments > 0) {
-            $comments = $anasheedItem->comments()->where('view', 1)->orderByDesc('id')->paginate(20, ['*'], 'page', $page);
+        if (! $isHidden && $anasheedItem->comments > 0) {
+            // OLD Comments(): `$perpage = 24` (visitor parity A7).
+            $comments = $anasheedItem->comments()->where('view', 1)->orderByDesc('id')->paginate(24, ['*'], 'page', $page);
         }
 
-        $mostDownloaded = $sidebar->anasheedMostDownloaded($anasheedItem->group_id);
-        $mostRecent = $sidebar->anasheedMostRecent($anasheedItem->group_id);
+        // OLD Top10(true, '', get_group_main_parent()) (visitor parity A12, 2026-11-04): both lists cover the
+        // department — the root of the item's group chain — through its direct sub-groups, six rows each;
+        // the «new» list is titled per department. No group at all: OLD fell back to 98.
+        $departmentId = (int) ($breadcrumbTrail->first()->id ?? ($anasheedItem->group_id ?: 98));
+        $departmentGroupIds = AnasheedGroup::where('parent_id', $departmentId)->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $mostDownloaded = $sidebar->anasheedMostDownloaded($departmentGroupIds);
+        $mostRecent = $sidebar->anasheedMostRecent($departmentGroupIds);
+        $mostRecentTitle = self::DEPARTMENT_RECENT_TITLES[$departmentId] ?? self::DEPARTMENT_RECENT_TITLES[98];
 
         $anasheedItem->recordView();
 
-        return view('anasheed.item', compact('anasheedItem', 'pageTitle', 'breadcrumbTrail', 'comments', 'mostDownloaded', 'mostRecent'));
+        return view('anasheed.item', compact('anasheedItem', 'pageTitle', 'breadcrumbTrail', 'comments', 'mostDownloaded', 'mostRecent', 'mostRecentTitle', 'isHidden'));
     }
 
-    public function download(int $anasheed): \Illuminate\Http\RedirectResponse
+    /**
+     * Visitor parity (2026-11-04): A2 — OLD `getit()` ran `fix_archive_links()` before redirecting;
+     * the stored link is normalised on the way out (`ArchiveOrgLink`), never rewritten in the table.
+     * A6 — a hidden item is not served: OLD hid its details (the only page linking here), and its
+     * playlist, mirror player and embed codes all refuse hidden items; `getit()` alone lacked the check.
+     */
+    public function download(int $anasheed): RedirectResponse
     {
-        $anasheedItem = AnasheedItem::select(['id', 'link'])->findOrFail($anasheed);
+        $anasheedItem = AnasheedItem::select(['id', 'link'])->where('hidden', 0)->findOrFail($anasheed);
 
         $anasheedItem->incrementDownloadCount();
 
-        return redirect(str_replace('http:', 'https:', $anasheedItem->link));
+        return redirect(str_replace('http:', 'https:', ArchiveOrgLink::normalize((string) $anasheedItem->link)));
     }
 
-    public function downloadMirror(int $anasheed, int $mirror): \Illuminate\Http\RedirectResponse
+    /** As `download()`, for OLD `getmirror()`: normalised link; a hidden item's mirrors are not served (A6). */
+    public function downloadMirror(int $anasheed, int $mirror): RedirectResponse
     {
+        abort_unless(AnasheedItem::whereKey($anasheed)->where('hidden', 0)->exists(), 404);
+
         $mirrorModel = AnasheedMirror::where('khid', $anasheed)->findOrFail($mirror);
 
         $mirrorModel->incrementDownloadCount();
 
-        return redirect(str_replace('http:', 'https:', (string) $mirrorModel->link));
+        return redirect(str_replace('http:', 'https:', ArchiveOrgLink::normalize((string) $mirrorModel->link)));
     }
 
     /**
@@ -137,7 +173,10 @@ class AnasheedItemController
             'khid' => $anasheed,
             'uid' => 0,
             'uname' => $nickname,
-            'ip' => $request->ip() ?? '',
+            // D2 (2026-11-09): the legacy column is varchar(15) and `main` runs in strict mode, so an IPv6 address
+            // (up to 45 characters) failed the insert. Stored the same way as the AdminCP comment path (first 15
+            // characters); the column is write-only attribution. The country code still uses the full address.
+            'ip' => substr((string) ($request->ip() ?? ''), 0, 15),
             'code' => $geoIp->codeForIp($request->ip() ?? ''),
             'mytime' => now()->timestamp,
             'comment' => $body,
@@ -179,26 +218,30 @@ class AnasheedItemController
      * throws instead. A technology-shape difference, not a behavior
      * invention.
      */
-    public function sendToFriend(int $anasheed, Request $request): string
+    /**
+     * #106 hardening (owner-approved 2026-11-08) — see KhotabItemController::sendToFriend():
+     * length limits ('2'), shared rate limits (429), site From + visitor Reply-To, '-1' on
+     * a mail-transport failure.
+     */
+    public function sendToFriend(int $anasheed, Request $request, SendToFriendRateLimiter $limiter, SendToFriendMailer $mailer): string|Response
     {
         $yourName = trim((string) $request->input('your_name'));
         $yourEmail = trim((string) $request->input('your_email'));
         $friendName = trim((string) $request->input('friend_name'));
         $friendEmail = trim((string) $request->input('friend_email'));
 
-        if ($yourName === '' || $friendName === ''
-            || ! filter_var($yourEmail, FILTER_VALIDATE_EMAIL)
-            || ! filter_var($friendEmail, FILTER_VALIDATE_EMAIL)
-        ) {
+        if (! SendToFriendInput::legacyFieldsValid($yourName, $yourEmail, $friendName, $friendEmail)) {
             return '2';
         }
 
         $anasheedItem = AnasheedItem::with('group')->findOrFail($anasheed);
 
-        Mail::to($friendEmail)->send(
-            new AnasheedFriendMail($anasheedItem, $friendName, $yourName, $yourEmail)
-        );
+        if (! $limiter->attempt((string) $request->ip(), $friendEmail)) {
+            return response(SendToFriendRateLimiter::REFUSED_MESSAGE, 429);
+        }
 
-        return '1';
+        $sent = $mailer->send($friendEmail, new AnasheedFriendMail($anasheedItem, $friendName, $yourName, $yourEmail), 'anasheed', (int) $anasheedItem->id);
+
+        return $sent ? '1' : '-1';
     }
 }

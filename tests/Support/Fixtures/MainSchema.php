@@ -110,6 +110,44 @@ class MainSchema
             $table->unsignedInteger('fatwa')->default(0);
             $table->unsignedInteger('pdf')->default(0);
             $table->unsignedTinyInteger('hidden')->default(0);
+            // OLD Admin Migration Phase 5 addition — the real `advfile`
+            // column (int NOT NULL DEFAULT 0, `information_schema`). Defaulted,
+            // so no existing insert is affected.
+            $table->integer('advfile')->default(0);
+            // OLD public admin parity (Khotab item page) — the real `docx`
+            // counter (int(11) DEFAULT 0). Defaulted.
+            $table->integer('docx')->default(0);
+            // OLD public admin parity (Khotab author page) — the real columns
+            // «تعديل بيانات الداعية» writes: block / meta_keywords /
+            // meta_description (text NULL), meta_index / meta_follow
+            // (tinyint(1) DEFAULT 1). Nullable / defaulted.
+            $table->text('block')->nullable();
+            $table->text('meta_keywords')->nullable();
+            $table->text('meta_description')->nullable();
+            $table->unsignedTinyInteger('meta_index')->default(1);
+            $table->unsignedTinyInteger('meta_follow')->default(1);
+            // OLD public admin parity (Khotab Main) — the real `time` column
+            // (int(11) DEFAULT 0) «أضـــف شـــيـــخ» stamps. Defaulted.
+            $table->integer('time')->default(0);
+        };
+    }
+
+    /** `nuke_brokenlinks` — the visitors' broken-link reports (real columns, local `SHOW COLUMNS`). */
+    public static function nukeBrokenlinks(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->increments('id');
+            $table->integer('khid')->default(0);
+            $table->tinyInteger('divid')->default(0);
+            $table->string('title')->nullable();
+            $table->text('link')->nullable();
+            $table->integer('size')->default(0);
+            $table->text('emails')->nullable();
+            $table->unsignedInteger('count')->nullable()->default(0);
+            $table->integer('time')->nullable();
+            $table->string('cd')->default('');
+            $table->tinyInteger('backupme')->default(1);
+            $table->integer('confirmed')->default(0);
         };
     }
 
@@ -154,6 +192,19 @@ class MainSchema
             $table->unsignedInteger('count')->default(0);
             $table->unsignedTinyInteger('vedio')->default(0);
             $table->unsignedTinyInteger('hidden')->default(0);
+            // OLD Admin Migration Phase 5 addition — the real `advfile`
+            // column (int NOT NULL DEFAULT 0, `information_schema`). Defaulted,
+            // so no existing insert is affected.
+            $table->integer('advfile')->default(0);
+            // OLD public admin parity (Khotab group page) additions — the real
+            // columns OLD ConfirmEditGroup writes. Nullable / defaulted, so no
+            // existing insert is affected.
+            $table->text('meta_keywords')->nullable();
+            $table->text('meta_description')->nullable();
+            $table->unsignedTinyInteger('meta_index')->default(1);
+            $table->unsignedTinyInteger('meta_follow')->default(1);
+            $table->text('des')->nullable();
+            $table->unsignedInteger('lastupdate')->nullable();
         };
     }
 
@@ -176,6 +227,34 @@ class MainSchema
             // (IF-039), a real, already-documented column (Series model's own
             // @property list) not previously needed by any fixture-consuming test.
             $table->string('cat')->nullable();
+            // OLD Admin Migration Phase 5 addition — the real `advfile`
+            // column (int NOT NULL DEFAULT 0, `information_schema`). Defaulted,
+            // so no existing insert is affected.
+            $table->integer('advfile')->default(0);
+            // OLD public admin parity (Khotab group page) additions — the real
+            // columns OLD ConfirmInsertSeries writes. Nullable / defaulted.
+            $table->text('description')->nullable();
+            $table->text('meta_keywords')->nullable();
+            $table->text('meta_description')->nullable();
+            $table->unsignedTinyInteger('meta_index')->default(1);
+            $table->unsignedTinyInteger('meta_follow')->default(1);
+            $table->text('des')->nullable();
+        };
+    }
+
+    /**
+     * OLD Admin Migration Phase 5 — `nuke_islamic_advfile`, per `SHOW CREATE
+     * TABLE`: `id` is the Khotab item's id (1:1, unique, nullable, no FK).
+     */
+    public static function nukeIslamicAdvfile(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->integer('id')->nullable()->unique();
+            $table->text('code')->nullable();
+            $table->integer('credit')->nullable()->default(0);
+            $table->text('audio_url')->nullable();
+            $table->boolean('small_thumb')->default(false);
+            $table->boolean('large_thumb')->default(false);
         };
     }
 
@@ -281,6 +360,11 @@ class MainSchema
             $table->unsignedInteger('channel_id')->nullable();
             $table->unsignedInteger('ser_id')->default(0);
             $table->unsignedInteger('group_id')->default(0);
+            // OLD Admin Migration Phase 3 addition — the real pipe-delimited
+            // category list (`cat`), written by category assignment and read
+            // by the `khotab_category_index` triggers. Nullable, so no
+            // existing insert is affected.
+            $table->string('cat')->nullable();
             $table->string('title')->nullable();
             $table->unsignedInteger('comments')->default(0);
             $table->unsignedInteger('time')->nullable();
@@ -320,6 +404,25 @@ class MainSchema
             // real, documented KhotabItem column (its own @property list)
             // not previously needed by any fixture-consuming test.
             $table->unsignedTinyInteger('newslist')->default(0);
+            // OLD Admin Migration Phase 5 addition — the real `advfile`
+            // column (int NOT NULL DEFAULT 0, `information_schema`). Defaulted,
+            // so no existing insert is affected.
+            $table->integer('advfile')->default(0);
+            // OLD public admin parity (Khotab group page) additions — the real
+            // SEO columns OLD ConfirmInsertKhotab writes. Nullable / defaulted.
+            $table->text('meta_keywords')->nullable();
+            $table->text('meta_description')->nullable();
+            $table->unsignedTinyInteger('meta_index')->default(1);
+            $table->unsignedTinyInteger('meta_follow')->default(1);
+            // OLD public admin parity (Khotab item page) additions — the real
+            // columns its panel reads and writes (local `SHOW COLUMNS`):
+            // banner tinyint(1), docx / docx_time int(11), leeched tinyint(4),
+            // cd varchar(255). Defaulted, so no existing insert is affected.
+            $table->tinyInteger('banner')->default(0);
+            $table->integer('docx')->default(0);
+            $table->integer('docx_time')->default(0);
+            $table->tinyInteger('leeched')->default(0);
+            $table->string('cd')->default('');
         };
     }
 
@@ -401,6 +504,10 @@ class MainSchema
             $table->unsignedInteger('linksize')->nullable();
             $table->unsignedInteger('comments')->default(0);
             $table->unsignedTinyInteger('mirror')->default(0);
+            // OLD Admin Migration Phase 1. Real column, production-confirmed
+            // (Pass 3E.1 Check A3: `lastmirror` DEFAULT 0) and already a
+            // documented AnasheedItem property; mirror insert writes it.
+            $table->unsignedInteger('lastmirror')->default(0);
             $table->unsignedInteger('order_in_group')->default(0);
             $table->unsignedTinyInteger('hidden')->default(0);
             $table->unsignedInteger('lastvisit')->nullable();
@@ -424,6 +531,20 @@ class MainSchema
             // (AnasheedItem model's own @property list) not previously
             // needed by any fixture-consuming test.
             $table->string('cat_id')->nullable();
+            // OLD public admin parity (Anasheed group page, «إضافة مادة») —
+            // the real columns OLD ConfirmInsertAnasheed writes that no
+            // fixture-consuming test had needed: notes (varchar(255) NOT NULL
+            // DEFAULT ''), meta_keywords / meta_description (text NULL),
+            // meta_index / meta_follow (tinyint(1) DEFAULT 1). Defaulted.
+            $table->string('notes', 255)->default('');
+            $table->text('meta_keywords')->nullable();
+            $table->text('meta_description')->nullable();
+            $table->unsignedTinyInteger('meta_index')->default(1);
+            $table->unsignedTinyInteger('meta_follow')->default(1);
+            // Production column (owner-verified information_schema, 2026-10-23):
+            // `is_published` NOT NULL DEFAULT 0 — absent from the local olddb
+            // copy and the 2025 dump, present in production.
+            $table->unsignedTinyInteger('is_published')->default(0);
         };
     }
 
@@ -449,6 +570,34 @@ class MainSchema
             $table->unsignedInteger('anasheed')->default(0);
             $table->text('des')->nullable();
             $table->unsignedTinyInteger('icon')->default(0);
+            // OLD public admin parity (Anasheed group page, «تعديل القسم» /
+            // «إضافة قسم فرعي») — real columns those handlers write:
+            // meta_keywords / meta_description (text NULL), meta_index /
+            // meta_follow (tinyint(1) DEFAULT 1). Defaulted.
+            $table->text('meta_keywords')->nullable();
+            $table->text('meta_description')->nullable();
+            $table->unsignedTinyInteger('meta_index')->default(1);
+            $table->unsignedTinyInteger('meta_follow')->default(1);
+        };
+    }
+
+    /**
+     * `nuke_telawah_mirror` — the production shape (Pass 3E.1 §0.2.1), as the
+     * local `olddb` copy shows it: no `khid`, no backup-queue or link-quality
+     * columns; `video` and `backupme` are CHAR(1).
+     */
+    public static function nukeTelawahMirror(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->increments('id');
+            $table->integer('telawa_id')->nullable();
+            $table->string('comment', 255)->default('');
+            $table->string('link', 255)->nullable();
+            $table->string('extension', 100)->nullable();
+            $table->integer('size')->nullable();
+            $table->char('video', 1)->nullable()->default('');
+            $table->char('backupme', 1)->default('');
+            $table->timestamp('creation_date')->nullable()->useCurrent();
         };
     }
 
@@ -461,6 +610,9 @@ class MainSchema
             $table->string('link')->nullable();
             $table->unsignedInteger('hits')->default(0);
             $table->unsignedInteger('linksize')->nullable();
+            // OLD Admin Migration Phase 1. Real column (AnasheedMirror's own
+            // confirmed column list; OLD's insert writes `time`).
+            $table->unsignedInteger('time')->nullable();
             // Task 6.8 (KhotabUpdateBackup) addition.
             $table->unsignedTinyInteger('down')->default(0);
             $table->unsignedInteger('booking')->default(0);
@@ -555,6 +707,12 @@ class MainSchema
             $table->unsignedInteger('downcount')->default(0);
             $table->unsignedTinyInteger('hidden')->default(0);
             $table->unsignedInteger('lastvisit')->nullable();
+            // OLD Admin Migration Phase 6 additions — real columns
+            // (`information_schema`) written by CD administration. All
+            // defaulted, so no existing insert is affected.
+            $table->unsignedInteger('parent_id')->default(0);
+            $table->string('notes')->nullable();
+            $table->string('downloader')->default('');
         };
     }
 
@@ -567,6 +725,32 @@ class MainSchema
             $table->unsignedInteger('parent_id')->default(0);
             $table->text('des')->default('');
             $table->string('module_type')->default('w2acd');
+            // OLD Admin Migration Phase 6 addition — the real per-group
+            // release counter OLD moved by ±1 on create / delete.
+            $table->integer('w2acd')->default(0);
+            // W2ACD public admin parity, Phase 2 — the rest of the real
+            // columns the group page and its controls read or write.
+            $table->integer('time')->nullable();
+            $table->integer('child')->default(0);
+            $table->integer('size')->default(0);
+            $table->integer('dur')->default(0);
+            $table->integer('author_id')->default(0)->nullable();
+            $table->integer('channel_id')->nullable();
+            $table->tinyInteger('icon')->default(0);
+        };
+    }
+
+    /**
+     * OLD Admin Migration Phase 6 — the normalized `nuke_w2acd_mirror`
+     * table, which is empty and never used (3E.1 §0.4.1). Modelled only so
+     * tests can prove CD administration never writes to it.
+     */
+    public static function nukeW2acdMirror(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->increments('id');
+            $table->unsignedInteger('khid')->default(0);
+            $table->text('link')->nullable();
         };
     }
 
@@ -590,6 +774,34 @@ class MainSchema
             $table->unsignedInteger('booking')->default(0);
             $table->unsignedInteger('trial')->default(0);
             $table->unsignedInteger('downloader')->nullable();
+            // OLD public admin parity — Telawah (2026-10-29): the production
+            // columns the admin insert / edit / move write, with production's defaults.
+            $table->string('notes', 255)->default('');
+            $table->unsignedTinyInteger('vedio')->default(0);
+            $table->integer('parent_id')->default(0);
+            $table->integer('comments')->default(0);
+        };
+    }
+
+    /** OLD public admin parity — Telawah (2026-10-29): `nuke_telawah_comments`, the production shape. */
+    public static function nukeTelawahComments(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->increments('id');
+            $table->integer('khid')->nullable()->default(0);
+            $table->integer('uid')->nullable()->default(0);
+            $table->integer('date')->default(0);
+            $table->text('comment');
+            $table->unsignedTinyInteger('view')->default(0);
+        };
+    }
+
+    /** OLD public admin parity — Telawah (2026-10-29): `nuke_telawah_sorahlist` (production: ids 1–114). */
+    public static function nukeTelawahSorahlist(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->increments('id');
+            $table->string('name', 100)->nullable();
         };
     }
 
@@ -782,6 +994,12 @@ class MainSchema
             $table->unsignedInteger('timeStamp')->nullable();
             $table->unsignedInteger('voters')->default(0);
             $table->unsignedTinyInteger('artid')->default(0);
+            // OLD Admin Migration Phase 4 additions — the real `planguage`
+            // and `comments` columns (`SHOW CREATE TABLE nuke_poll_desc`),
+            // written by poll administration. Both defaulted, so no
+            // existing insert is affected.
+            $table->string('planguage', 30)->default('');
+            $table->integer('comments')->nullable()->default(0);
         };
     }
 
@@ -799,9 +1017,153 @@ class MainSchema
     public static function nukePollcomments(): \Closure
     {
         return function (Blueprint $table) {
-            $table->increments('id');
+            // OLD Admin Migration Phase 4: the key is the real `tid` (was
+            // `id`, which no reader referenced) plus the real `pid` thread
+            // parent and display columns (`SHOW CREATE TABLE
+            // nuke_pollcomments`). Every existing insert supplies only
+            // pollID/comment, so none is affected.
+            $table->increments('tid');
+            $table->unsignedInteger('pid')->default(0);
             $table->unsignedInteger('pollID');
-            $table->string('comment')->nullable();
+            $table->dateTime('date')->nullable();
+            $table->string('name', 60)->default('');
+            $table->string('subject', 60)->default('');
+            $table->text('comment')->nullable();
+            // Final public features (2026-10-15) — the rest of the production
+            // shape, needed by the public comment pages; defaults keep every
+            // earlier insert valid.
+            $table->string('email', 60)->default('');
+            $table->string('url', 60)->default('');
+            $table->string('host_name', 60)->default('');
+            $table->tinyInteger('score')->default(0);
+            $table->tinyInteger('reason')->default(0);
+            $table->string('last_moderation_ip', 15)->default('');
+        };
+    }
+
+    /**
+     * OLD Admin Migration Phase 4 — the two `nuke_config` columns poll
+     * administration reads (`language`, `multilingual`). The real table
+     * is a single wide settings row; only these columns are modelled.
+     */
+    public static function nukeConfig(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->string('language', 100)->default('');
+            $table->unsignedTinyInteger('multilingual')->default(0);
+            // OLD Admin Migration Phase 7 addition — the anonymous-visitor
+            // name PHP-Nuke modules record (`$anonymous`, mainfile.php:278).
+            $table->string('anonymous', 40)->default('');
+            // Final public features (2026-10-15) — PHP-Nuke's comment
+            // settings, defaulted to the local production values.
+            $table->integer('anonpost')->default(0);
+            $table->integer('pollcomm')->default(1);
+            $table->integer('commentlimit')->default(4096);
+            // Khotab public parity (2026-10-22) — PHP-Nuke's `$sitename`, which the
+            // banner embed codes quote. Defaulted.
+            $table->string('sitename')->default('');
+        };
+    }
+
+    /*
+    |------------------------------------------------------------------
+    | OLD Admin Migration Phase 7 — Mobile Downloads (`modules/Mobile`,
+    | PHP-Nuke Downloads tables). Columns and defaults per the real
+    | `information_schema` of olddb.
+    |------------------------------------------------------------------
+    */
+    public static function nukeDownloadsCategories(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->increments('cid');
+            $table->string('title', 50)->default('');
+            $table->text('cdescription')->default('');
+            $table->integer('parentid')->default(0);
+        };
+    }
+
+    public static function nukeDownloadsDownloads(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->increments('lid');
+            $table->integer('cid')->default(0);
+            $table->integer('sid')->default(0);
+            $table->string('title', 100)->default('');
+            $table->string('url', 100)->default('');
+            $table->text('description')->default('');
+            $table->dateTime('date')->nullable();
+            $table->string('name', 100)->default('');
+            $table->string('email', 100)->default('');
+            $table->integer('hits')->default(0);
+            $table->string('submitter', 60)->default('');
+            $table->double('downloadratingsummary')->default(0);
+            $table->integer('totalvotes')->default(0);
+            $table->integer('totalcomments')->default(0);
+            $table->integer('filesize')->default(0);
+            $table->string('version', 10)->default('');
+            $table->string('homepage', 200)->default('');
+        };
+    }
+
+    public static function nukeDownloadsNewdownload(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->increments('lid');
+            $table->integer('cid')->default(0);
+            $table->integer('sid')->default(0);
+            $table->string('title', 100)->default('');
+            $table->string('url', 100)->default('');
+            $table->text('description')->default('');
+            $table->string('name', 100)->default('');
+            $table->string('email', 100)->default('');
+            $table->string('submitter', 60)->default('');
+            $table->integer('filesize')->default(0);
+            $table->string('version', 10)->default('');
+            $table->string('homepage', 200)->default('');
+        };
+    }
+
+    public static function nukeDownloadsModrequest(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->increments('requestid');
+            $table->integer('lid')->default(0);
+            $table->integer('cid')->default(0);
+            $table->integer('sid')->default(0);
+            $table->string('title', 100)->default('');
+            $table->string('url', 100)->default('');
+            $table->text('description')->default('');
+            $table->string('modifysubmitter', 60)->default('');
+            $table->integer('brokendownload')->default(0);
+            $table->string('name', 100)->default('');
+            $table->string('email', 100)->default('');
+            $table->integer('filesize')->default(0);
+            $table->string('version', 10)->default('');
+            $table->string('homepage', 200)->default('');
+        };
+    }
+
+    public static function nukeDownloadsVotedata(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->increments('ratingdbid');
+            $table->integer('ratinglid')->default(0);
+            $table->string('ratinguser', 60)->default('');
+            $table->integer('rating')->default(0);
+            $table->string('ratinghostname', 60)->default('');
+            $table->text('ratingcomments')->default('');
+            $table->dateTime('ratingtimestamp')->nullable();
+        };
+    }
+
+    public static function nukeDownloadsEditorials(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->integer('downloadid')->default(0)->primary();
+            $table->string('adminid', 60)->default('');
+            $table->dateTime('editorialtimestamp')->nullable();
+            $table->text('editorialtext')->default('');
+            $table->string('editorialtitle', 100)->default('');
         };
     }
 
@@ -877,6 +1239,11 @@ class MainSchema
             $table->increments('id');
             $table->string('topic_name')->nullable();
             $table->text('description')->nullable();
+            // Fatwa admin parity (2026-10-30): production's SEO columns.
+            $table->text('meta_keywords')->nullable();
+            $table->text('meta_description')->nullable();
+            $table->boolean('meta_index')->default(1);
+            $table->boolean('meta_follow')->default(1);
             $table->unsignedInteger('parent_id')->default(0);
             $table->unsignedInteger('db_insertion_date')->nullable();
             $table->unsignedInteger('author_id')->nullable();
@@ -890,6 +1257,11 @@ class MainSchema
             $table->increments('id');
             $table->text('question_text')->nullable();
             $table->text('description')->nullable();
+            // Fatwa admin parity (2026-10-30): production's SEO columns.
+            $table->text('meta_keywords')->nullable();
+            $table->text('meta_description')->nullable();
+            $table->boolean('meta_index')->default(1);
+            $table->boolean('meta_follow')->default(1);
             $table->string('topic_id')->nullable();
             $table->unsignedInteger('num_view')->default(0);
             $table->unsignedInteger('author_id')->nullable();
@@ -909,7 +1281,8 @@ class MainSchema
             $table->text('answer_text')->nullable();
             $table->string('media_type')->nullable();
             $table->string('media_link')->nullable();
-            $table->unsignedInteger('media_size')->nullable();
+            // Production: DOUBLE (MB) — Fatwa admin parity keeps decimals.
+            $table->double('media_size')->nullable()->default(0);
             $table->string('place_of_fatwa')->nullable();
             $table->string('date_of_fatwa')->nullable();
             $table->unsignedInteger('db_insertion_date')->nullable();
@@ -971,6 +1344,85 @@ class MainSchema
             $table->unsignedInteger('itemid')->nullable();
             $table->unsignedInteger('sessionid')->nullable();
             $table->string('ip')->nullable();
+        };
+    }
+
+    /**
+     * OLD Admin Migration Phase 0 — the authoritative Laravel audit trail.
+     * Mirrors `2026_10_12_100000_create_admin_audit_log_table.php` exactly;
+     * `json` is portable to SQLite (stored as text), so no divergence.
+     */
+    public static function adminAuditLog(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->bigIncrements('id');
+            $table->unsignedInteger('actor_admin_id');
+            $table->string('actor_aid', 150);
+            $table->string('action', 64);
+            $table->string('module', 64);
+            $table->string('entity_type', 64);
+            $table->unsignedBigInteger('entity_id');
+            $table->json('metadata')->nullable();
+            $table->string('ip', 45)->nullable();
+            $table->unsignedInteger('created_at');
+        };
+    }
+
+    /**
+     * Global download capacity telemetry (2026-10-22) — the test stand-in for
+     * `create_download_rejections_table` (skipped under tests, like the audit
+     * log); `DownloadRejectionSchemaDriftTest` keeps the two in column
+     * agreement.
+     */
+    public static function downloadRejections(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->bigIncrements('id');
+            $table->unsignedInteger('created_at');
+            $table->string('reason', 32);
+            $table->string('pool', 32);
+            $table->string('module', 32);
+            $table->string('resource_type', 64);
+            $table->unsignedBigInteger('resource_id');
+            $table->string('variant', 32);
+            $table->unsignedBigInteger('variant_id')->nullable();
+            $table->string('requested_url', 2048);
+            $table->string('resolved_download_url', 2048)->nullable();
+            $table->unsignedBigInteger('file_size')->nullable();
+            $table->string('file_size_source', 16);
+            $table->string('client_ip', 45);
+            $table->string('forwarded_for', 255)->nullable();
+            $table->string('user_agent', 512)->nullable();
+            $table->string('referer', 1024)->nullable();
+            $table->unsignedInteger('user_id')->nullable();
+            $table->unsignedInteger('admin_id')->nullable();
+            $table->boolean('is_contextual_admin')->default(false);
+            $table->unsignedInteger('active_downloads');
+            $table->unsignedInteger('download_limit');
+            $table->unsignedSmallInteger('retry_after_seconds');
+            $table->string('request_id', 36)->nullable();
+        };
+    }
+
+    /**
+     * The legacy audit log, for the Phase 0 compatibility-adapter tests
+     * only. Columns per `includes/logs.php:226`'s own INSERT and the
+     * per-module `RecordLogs()` copies — `aid`, `module`, `type`,
+     * `target_id`, `action`, `extrainfo`, `mytime`, `ip`, `hidden`.
+     */
+    public static function nukeIslamicLogs(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->increments('id');
+            $table->string('aid', 150)->nullable();
+            $table->string('module')->nullable();
+            $table->string('type')->nullable();
+            $table->unsignedBigInteger('target_id')->nullable();
+            $table->string('action')->nullable();
+            $table->text('extrainfo')->nullable();
+            $table->unsignedInteger('mytime')->nullable();
+            $table->string('ip')->nullable();
+            $table->string('hidden', 4)->nullable();
         };
     }
 }

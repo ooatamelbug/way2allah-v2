@@ -37,11 +37,21 @@ use Illuminate\Support\Facades\Cache;
  * two independently-loading page fragments) isn't reproduced either: both
  * result sets render together in one request, matching the "mode not
  * set" full-page branch of the legacy file.
+ *
+ * Advanced-search visitor parity (owner, 2026-11-03): this is also OLD's
+ * `advanced_search.htm` (`modules/advanced_search` `Main_search()`), served
+ * at both URLs with identical behaviour. As OLD did, each list pages on its
+ * own (series `series_page`, items `page`) and keeps the criteria (OLD
+ * re-posted them from hidden fields), 25 per page, items by `weight DESC`.
+ * The broader title-less search (IF-024) and GET stay (owner decisions).
  */
 class KhotabSearchController
 {
     /** Legacy's own hardcoded "1980" fallback (`search.php`'s `$first_start`) for an open-ended "to" date with no "from". */
     private const FIRST_START = 315525600;
+
+    /** OLD `advanced_search` `ListSeries()` / `ListKhotab()`: `$perpage = 25`. */
+    private const PER_PAGE = 25;
 
     public function index(Request $request, ContentListingService $listing): View
     {
@@ -64,8 +74,10 @@ class KhotabSearchController
                 'author_id' => $authorId,
             ], $this->dateRange($from, $to));
 
-            $series = $listing->khotabSeriesAdvancedSearch($filters);
-            $items = $listing->khotabAdvancedSearch($filters);
+            $series = $listing->khotabSeriesAdvancedSearch($filters, perPage: self::PER_PAGE, pageName: 'series_page')->withQueryString();
+            // OLD `ListKhotab()`: `ORDER BY tb1.weight DESC` — the same order
+            // and STRAIGHT_JOIN plan as search.htm's video department.
+            $items = $listing->khotabAdvancedSearch($filters, 'tb1.weight', straightJoinResults: true, perPage: self::PER_PAGE, pageName: 'page')->withQueryString();
         }
 
         $authors = $this->rememberSafely('khotab-search-authors-menu', 3600, fn () => Author::orderBy('name')->get(['id', 'name']));

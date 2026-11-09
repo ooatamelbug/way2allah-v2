@@ -35,6 +35,9 @@ class VbulletinSchema
             $table->string('sessionhash')->primary();
             $table->unsignedBigInteger('userid');
             $table->string('idhash');
+            // vBulletin's session.host (= IPADDRESS at session creation, session.php:770), read by the second IP
+            // check (session.php:347) — D1, 2026-11-09.
+            $table->string('host')->default('');
             $table->unsignedInteger('lastactivity');
         };
     }

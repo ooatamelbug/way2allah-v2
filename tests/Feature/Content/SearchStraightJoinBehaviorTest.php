@@ -204,11 +204,11 @@ function searchListingSpy(): ContentListingService
         /** @var array<int, array{string, bool, bool}> */
         public array $khotabAdvancedSearchCalls = [];
 
-        public function khotabAdvancedSearch(array $filters, string $orderBy = 'tb1.time', bool $validateChannelExists = false, bool $straightJoinResults = false): LengthAwarePaginator
+        public function khotabAdvancedSearch(array $filters, string $orderBy = 'tb1.time', bool $validateChannelExists = false, bool $straightJoinResults = false, int $perPage = 20, string $pageName = 'page'): LengthAwarePaginator
         {
             $this->khotabAdvancedSearchCalls[] = [$orderBy, $validateChannelExists, $straightJoinResults];
 
-            return parent::khotabAdvancedSearch($filters, $orderBy, $validateChannelExists, $straightJoinResults);
+            return parent::khotabAdvancedSearch($filters, $orderBy, $validateChannelExists, $straightJoinResults, $perPage, $pageName);
         }
     };
 }
@@ -225,7 +225,7 @@ it('the POST video search caller opts into the results-only STRAIGHT_JOIN hint',
     expect($spy->khotabAdvancedSearchCalls)->toBe([['tb1.weight', true, true]]);
 });
 
-it('the GET khotab search caller does NOT opt in, keeping its query byte-identical', function () {
+it('the GET advanced search orders by OLD weight and opts into the same STRAIGHT_JOIN hint (advanced-search parity, 2026-11-03)', function () {
     seedAuthor();
     seedKhotab([['id' => 1, 'title' => 'Lesson one', 'author' => 1, 'vedio' => 1, 'hidden' => 0, 'weight' => 1]]);
 
@@ -234,10 +234,14 @@ it('the GET khotab search caller does NOT opt in, keeping its query byte-identic
 
     $this->get('/khotab/search?title=Lesson')->assertOk();
 
-    expect($spy->khotabAdvancedSearchCalls)->toBe([['tb1.time', false, false]]);
+    // Previously ['tb1.time', false, false]. OLD advanced_search ListKhotab()
+    // orders by weight DESC (owner-approved G5) — the same query shape as the
+    // POST video search, so it takes the same results-only hint; no channel
+    // existence check (KhotabSearchController never validated it).
+    expect($spy->khotabAdvancedSearchCalls)->toBe([['tb1.weight', false, true]]);
 });
 
-it('the GET khotab search endpoint is unaffected — it never opts in and still returns its own results', function () {
+it('the GET khotab search endpoint still returns its own results', function () {
     seedAuthor();
     seedKhotab([['id' => 7, 'title' => 'Lesson unaffected', 'author' => 1, 'vedio' => 1, 'hidden' => 0, 'weight' => 1]]);
 

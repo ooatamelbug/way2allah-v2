@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Content\Services\ContentListingService;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\Fixtures\MainSchema;
 use Tests\Support\InMemoryConnection;
@@ -399,9 +400,9 @@ it('homeLatestVideos/homeLatestAudios/homeLatestDumpFiles: survive a real file-c
     // be read as a false cache HIT before this test ever writes its own.
     // Clearing up front (not just in `finally`) guarantees the first calls
     // below are genuine cache MISSes against this test's own fixture data.
-    Illuminate\Support\Facades\Cache::store('file')->forget('home-latest-videos');
-    Illuminate\Support\Facades\Cache::store('file')->forget('home-latest-audios');
-    Illuminate\Support\Facades\Cache::store('file')->forget('home-latest-dump-files-3');
+    Cache::store('file')->forget('home-latest-videos:hidden0');
+    Cache::store('file')->forget('home-latest-audios:hidden0');
+    Cache::store('file')->forget('home-latest-dump-files-3:hidden0');
 
     $db = DB::connection('main');
     $db->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'A', 'prename' => 'Dr.']);
@@ -429,9 +430,9 @@ it('homeLatestVideos/homeLatestAudios/homeLatestDumpFiles: survive a real file-c
             ->and(get_class($dumps->first()))->toBe('stdClass')
             ->and($dumps->first()->title)->toBe('File-cache item');
     } finally {
-        Illuminate\Support\Facades\Cache::store('file')->forget('home-latest-videos');
-        Illuminate\Support\Facades\Cache::store('file')->forget('home-latest-audios');
-        Illuminate\Support\Facades\Cache::store('file')->forget('home-latest-dump-files-3');
+        Cache::store('file')->forget('home-latest-videos:hidden0');
+        Cache::store('file')->forget('home-latest-audios:hidden0');
+        Cache::store('file')->forget('home-latest-dump-files-3:hidden0');
     }
 });
 
@@ -462,12 +463,15 @@ it('homeLatestDumpFiles: pdf>0 rows only, newest pdf_time first, respects $limit
         ->and($this->service->homeLatestDumpFiles(3)->pluck('title')->all())->toBe(['PDF-newest', 'PDF-mid']);
 });
 
-it('homeLatestDumpFiles: is NOT khotabPdfDump() — no hidden filter, confirmed by a hidden=1 row still appearing (the two are deliberately separate methods, see the service\'s own docblock)', function () {
+it('homeLatestDumpFiles: excludes a hidden=1 row (homepage Khotab visibility H1, decision-log #98 — previously listed, as OLD did)', function () {
     $db = DB::connection('main');
     $db->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'A', 'prename' => 'Dr.']);
-    $db->table('nuke_islamic_khotab')->insert(['id' => 1, 'author' => 1, 'pdf' => 1, 'pdf_time' => 100, 'hidden' => 1, 'title' => 'Hidden but pdf>0']);
+    $db->table('nuke_islamic_khotab')->insert([
+        ['id' => 1, 'author' => 1, 'pdf' => 1, 'pdf_time' => 100, 'hidden' => 1, 'title' => 'Hidden but pdf>0'],
+        ['id' => 2, 'author' => 1, 'pdf' => 1, 'pdf_time' => 50, 'hidden' => 0, 'title' => 'Visible pdf'],
+    ]);
 
-    expect($this->service->homeLatestDumpFiles()->pluck('title')->all())->toBe(['Hidden but pdf>0']);
+    expect($this->service->homeLatestDumpFiles()->pluck('title')->all())->toBe(['Visible pdf']);
 });
 
 it('homeLatestFatawas: newest id first, respects $limit', function () {

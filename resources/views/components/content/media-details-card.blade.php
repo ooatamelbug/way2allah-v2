@@ -7,6 +7,7 @@
     'pdfUrl' => null,
     'pdfCount' => null,
     'notes' => null,
+    'notesLabel' => 'تعليق الدرس',
     'isVideo' => null,
     'badge' => null,
     'speaker' => null,
@@ -63,7 +64,7 @@
         @if ($notes !== null && $notes !== '' && $notes !== 0 && $notes !== '0')
             <div class="w2a-meta-pill">
                 <span class="w2a-meta-icon"><i class="fa fa-comment-o" aria-hidden="true"></i></span>
-                <span class="w2a-meta-info"><span class="w2a-meta-label">تعليق الدرس</span><span class="w2a-meta-value">{{ is_numeric($notes) ? number_format((float) $notes).' مرة' : $notes }}</span></span>
+                <span class="w2a-meta-info"><span class="w2a-meta-label">{{ $notesLabel }}</span><span class="w2a-meta-value">{{ is_numeric($notes) ? number_format((float) $notes).' مرة' : $notes }}</span></span>
             </div>
         @endif
     </div>

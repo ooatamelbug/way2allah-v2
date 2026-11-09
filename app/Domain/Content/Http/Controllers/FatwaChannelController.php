@@ -49,15 +49,27 @@ class FatwaChannelController
      */
     public function show(int $channel, int $page, ContentListingService $listing, ContentSidebarWidget $sidebar): View
     {
-        $channelModel = Channel::findOrFail($channel)->load('satellite');
+        // OLD list_Fatawa_for_channel() (Fatwa visitor parity F6, 2026-11-04): channel 0 is «بدون قناة» —
+        // no nuke_sat_channels row exists for it; OLD built `array('id' => 0, 'title' => 'بدون قناة')`, listed
+        // the questions of the `channel_id = 0` fatawa, skipped the channel details block, and its
+        // Top10(0, 0) sidebar had no channel filter (sitewide). An unsaved model stands in for the row; it is
+        // never saved and no relation is loaded from it. Any other unknown id still answers 404.
+        $isNoChannel = $channel === 0;
+
+        if ($isNoChannel) {
+            $channelModel = (new Channel)->forceFill(['id' => 0, 'title' => 'بدون قناة']);
+            $channelModel->setRelation('satellite', null);
+        } else {
+            $channelModel = Channel::findOrFail($channel)->load('satellite');
+        }
 
         $generalQuestions = $listing->fatwaQuestionsForChannel($channel, $page);
-        $mostDownloaded = $sidebar->fatwaMostDownloadedByChannel($channel);
-        $mostRecent = $sidebar->fatwaMostRecentByChannel($channel);
+        $mostDownloaded = $isNoChannel ? $sidebar->fatwaMostDownloadedSitewide() : $sidebar->fatwaMostDownloadedByChannel($channel);
+        $mostRecent = $isNoChannel ? $sidebar->fatwaMostRecentSitewide() : $sidebar->fatwaMostRecentByChannel($channel);
 
         $title = $channelModel->title ?: 'بدون قناه';
         $position = str_replace(['W', 'E'], [' غرباً', ' شرقاً'], (string) $channelModel->satellite?->pos);
 
-        return view('fatawa.channel-show', compact('channelModel', 'generalQuestions', 'mostDownloaded', 'mostRecent', 'title', 'position'));
+        return view('fatawa.channel-show', compact('channelModel', 'generalQuestions', 'mostDownloaded', 'mostRecent', 'title', 'position', 'isNoChannel'));
     }
 }

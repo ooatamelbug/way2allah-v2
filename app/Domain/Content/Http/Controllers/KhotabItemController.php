@@ -12,14 +12,21 @@ use App\Domain\Content\Models\Mirror;
 use App\Domain\Content\Models\Series;
 use App\Domain\Content\Services\ContentSidebarWidget;
 use App\Domain\Content\Services\GeoIpLookup;
+use App\Domain\Content\Services\SendToFriend\SendToFriendInput;
+use App\Domain\Content\Services\SendToFriend\SendToFriendMailer;
+use App\Domain\Content\Services\SendToFriend\SendToFriendRateLimiter;
+use App\Domain\Content\Support\KhotabBanner;
 use App\Domain\Content\Support\MediaUrl;
+use App\Support\Downloads\DownloadCapacityGuard;
+use App\Support\Downloads\DownloadRejectionContext;
+use App\Support\Downloads\ProxiedDownloadStreamer;
+use App\Support\Http\AdminViewer;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Replaces `khotab/item.php` (Roadmap task 4.1) — the single richest legacy
@@ -70,6 +77,11 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * is deliberately untouched — a hidden series' own `/khotab-series-{id}.htm`
  * page still 404s; these 2 semantics are kept separate on purpose, per
  * explicit instruction.
+ *
+ * **Superseded for administrators only (owner, 2026-10-21, OLD public admin
+ * parity):** `show()` lets a logged-in administrator open a hidden item, an
+ * item of a hidden group, and see a hidden series' crumb, as OLD did. All of
+ * the above still holds for visitors.
  */
 class KhotabItemController
 {
@@ -82,9 +94,17 @@ class KhotabItemController
      * `view = 1` inline (see `Comment`'s own docblock for the
      * moderation-gate business rule this preserves).
      */
-    public function show(int $khotab, ContentSidebarWidget $sidebar): View
+    public function show(int $khotab, ContentSidebarWidget $sidebar, AdminViewer $contextual): View
     {
-        $khotabItem = KhotabItem::where('hidden', 0)
+        // OLD public admin parity (owner decision, 2026-10-21): a logged-in
+        // administrator opens the item as OLD showed it to admins — a hidden
+        // item, or one in a hidden group or series, still renders, with its
+        // full breadcrumb and the admin controls; the response is then
+        // private. Visitors are unchanged: everything below still applies
+        // decision-log #55/#56 and the `hidden = 0` rule to them.
+        $admin = $contextual->active();
+
+        $khotabItem = KhotabItem::query()->when(! $admin, fn ($query) => $query->where('hidden', 0))
             ->with(['authorModel', 'mirrors.advanced', 'categories'])
             ->findOrFail($khotab);
 
@@ -102,15 +122,19 @@ class KhotabItemController
             // the hidden series' own `/khotab-series-{id}.htm` page stays
             // 404, per explicit instruction to keep these 2 semantics
             // separate.
-            if ($seriesRow !== null && (int) $seriesRow->hidden === 0) {
+            if ($seriesRow !== null && ((int) $seriesRow->hidden === 0 || $admin)) {
                 $series = $seriesRow;
             }
         }
 
         $group = null;
         if ($khotabItem->group_id > 0) {
-            $group = KhotabGroup::where('id', $khotabItem->group_id)->where('hidden', 0)->first();
+            $group = KhotabGroup::where('id', $khotabItem->group_id)->when(! $admin, fn ($query) => $query->where('hidden', 0))->first();
             abort_if($group === null, 404);
+        }
+
+        if ($admin) {
+            $contextual->markRendered();
         }
 
         $comments = null;
@@ -131,7 +155,10 @@ class KhotabItemController
         // return before this line for a successfully-loaded item).
         $khotabItem->recordView();
 
-        return view('khotab.item', compact('khotabItem', 'series', 'group', 'comments', 'randomFeatured', 'mostDownloaded', 'mostRecent', 'categoryChains'));
+        // OLD Detailes(): an admin sees « مخفي » after a hidden item's title.
+        $hiddenForAdmin = $admin && (int) $khotabItem->hidden === 1;
+
+        return view('khotab.item', compact('khotabItem', 'series', 'group', 'comments', 'randomFeatured', 'mostDownloaded', 'mostRecent', 'categoryChains', 'hiddenForAdmin'));
     }
 
     /**
@@ -167,27 +194,64 @@ class KhotabItemController
      * branch — deliberately NO `hidden` filter (legacy's own query has
      * none either: direct-download-by-id works even for a hidden item,
      * preserved as found rather than "fixed").
+     *
+     * Hidden items (owner, 2026-10-22): OLD's `getit()` refused a hidden item
+     * to visitors (`hidden = 1 AND !is_w2a_admin()` — that helper reads the
+     * admin cookie itself, so admins passed). Here a visitor gets the same 404
+     * a hidden item's page gives them, before anything is counted, any slot
+     * taken or any file opened; a contextual admin keeps access.
      */
-    public function download(int $khotab): StreamedResponse
+    public function download(int $khotab, Request $request, DownloadCapacityGuard $guard, ProxiedDownloadStreamer $streamer, AdminViewer $contextual): Response
     {
-        $khotabItem = KhotabItem::select(['id', 'link', 'linksize'])->findOrFail($khotab);
+        $khotabItem = KhotabItem::select(['id', 'link', 'linksize', 'hidden'])->findOrFail($khotab);
+        abort_if((int) $khotabItem->hidden === 1 && ! $contextual->active(), 404);
+
+        // Global download-capacity pool (DownloadCapacityGuard): no free slot →
+        // immediate 503, before the counter and before any file or network
+        // work, so a refused download is not counted and costs nothing more.
+        // The refusal is recorded from what was already loaded above.
+        $slot = $guard->tryAcquire();
+        if ($slot === null) {
+            return $guard->refuse($request, new DownloadRejectionContext(
+                module: 'khotab',
+                resourceType: 'khotab_item',
+                resourceId: (int) $khotabItem->id,
+                variant: 'primary',
+                resolvedDownloadUrl: $khotabItem->link,
+                storedSize: (int) $khotabItem->linksize,
+            ));
+        }
 
         $khotabItem->incrementDownloadCount();
 
-        // Plain locals only from here on — see streamFile()'s docblock. The
+        // Plain locals only from here on — see ProxiedDownloadStreamer. The
         // connection name is read off the model rather than hardcoded, so it
         // stays correct if the model's connection ever changes.
-        return $this->streamFile($khotabItem->link, $khotabItem->getConnectionName());
+        return $streamer->stream($slot, $khotabItem->link, $khotabItem->getConnectionName());
     }
 
     /** `khotab/functions.php:957-991`'s `download_khotab()`, mirror branch — increments the mirror's own `hits`, not the item's `downcount`. */
-    public function downloadMirror(int $khotab, int $mirror): StreamedResponse
+    public function downloadMirror(int $khotab, int $mirror, Request $request, DownloadCapacityGuard $guard, ProxiedDownloadStreamer $streamer): Response
     {
         $mirrorModel = Mirror::where('khid', $khotab)->findOrFail($mirror);
 
+        // Same global pool as download() and every other proxied download.
+        $slot = $guard->tryAcquire();
+        if ($slot === null) {
+            return $guard->refuse($request, new DownloadRejectionContext(
+                module: 'khotab',
+                resourceType: 'khotab_item',
+                resourceId: $khotab,
+                variant: 'mirror',
+                variantId: (int) $mirrorModel->id,
+                resolvedDownloadUrl: $mirrorModel->link,
+                storedSize: (int) $mirrorModel->linksize,
+            ));
+        }
+
         $mirrorModel->incrementDownloadCount();
 
-        return $this->streamFile($mirrorModel->link, $mirrorModel->getConnectionName());
+        return $streamer->stream($slot, $mirrorModel->link, $mirrorModel->getConnectionName());
     }
 
     /**
@@ -203,6 +267,10 @@ class KhotabItemController
         $khotabItem = KhotabItem::select(['id', 'pdf'])->findOrFail($khotab);
 
         if ($khotabItem->pdf > 0) {
+            // OLD getpdf(): `pdf` is also the transcript's download count —
+            // `pdf = pdf + 1` on each successful request (owner, 2026-10-22).
+            KhotabItem::query()->whereKey($khotabItem->id)->where('pdf', '>', 0)->increment('pdf');
+
             return redirect(MediaUrl::asset($khotabItem->pdfPath()));
         }
 
@@ -240,7 +308,10 @@ class KhotabItemController
             'khid' => $khotab,
             'uid' => 0,
             'uname' => $nickname,
-            'ip' => $request->ip() ?? '',
+            // D2 (2026-11-09): the legacy column is varchar(15) and `main` runs in strict mode, so an IPv6 address
+            // (up to 45 characters) failed the insert. Stored the same way as the AdminCP comment path (first 15
+            // characters); the column is write-only attribution. The country code still uses the full address.
+            'ip' => substr((string) ($request->ip() ?? ''), 0, 15),
             'code' => $geoIp->codeForIp($request->ip() ?? ''),
             'mytime' => now()->timestamp,
             'comment' => $body,
@@ -251,6 +322,30 @@ class KhotabItemController
         CommentPosted::dispatch($comment);
 
         return '1';
+    }
+
+    /**
+     * `khotab-code-{id}-{type}.htm` — OLD `Codes()` (`modules/Khotab/index.php`):
+     * the banner's embed code for an HTML page (1), a VBulletin forum (2) or a
+     * phpBB forum (3), shown in the banner's popup. Only for an item whose
+     * banner is public ({@see KhotabBanner}); anything else — a hidden item,
+     * no banner, a missing file, another type — is a 404. Served as UTF-8 (OLD
+     * declared windows-1256 over UTF-8 text) and escaped.
+     */
+    public function bannerCode(int $khotab, int $type): View
+    {
+        abort_unless(in_array($type, [1, 2, 3], true), 404);
+
+        $item = KhotabItem::with('authorModel')->findOrFail($khotab);
+        $banner = KhotabBanner::for((int) $item->id, (int) $item->getAttribute('banner'), (int) $item->hidden);
+        abort_if($banner === null, 404);
+
+        return view('khotab.banner-code', [
+            'item' => $item,
+            'banner' => $banner,
+            'type' => $type,
+            'siteName' => (string) DB::connection('main')->table('nuke_config')->value('sitename'),
+        ]);
     }
 
     /**
@@ -272,115 +367,32 @@ class KhotabItemController
      * but that's this controller's already-established convention, not a
      * new decision made here. See `KhotabFriendMail`'s own docblock for
      * the one deliberate deviation from legacy (the item link).
+     *
+     * #106 hardening (owner-approved 2026-11-08): names <= 100 / emails <= 254
+     * characters (still '2'); the shared send-to-friend rate limits (429 with a
+     * neutral message, checked after validation and before any mail); fixed site
+     * From with the visitor as Reply-To (KhotabFriendMail); a mail-transport
+     * failure answers legacy's '-1' instead of a 500.
      */
-    public function sendToFriend(int $khotab, Request $request): string
+    public function sendToFriend(int $khotab, Request $request, SendToFriendRateLimiter $limiter, SendToFriendMailer $mailer): string|Response
     {
         $yourName = trim((string) $request->input('your_name'));
         $yourEmail = trim((string) $request->input('your_email'));
         $friendName = trim((string) $request->input('friend_name'));
         $friendEmail = trim((string) $request->input('friend_email'));
 
-        if ($yourName === '' || $friendName === ''
-            || ! filter_var($yourEmail, FILTER_VALIDATE_EMAIL)
-            || ! filter_var($friendEmail, FILTER_VALIDATE_EMAIL)
-        ) {
+        if (! SendToFriendInput::legacyFieldsValid($yourName, $yourEmail, $friendName, $friendEmail)) {
             return '2';
         }
 
         $khotabItem = KhotabItem::where('hidden', 0)->findOrFail($khotab);
 
-        Mail::to($friendEmail)->send(
-            new KhotabFriendMail($khotabItem, $friendName, $yourName, $yourEmail)
-        );
+        if (! $limiter->attempt((string) $request->ip(), $friendEmail)) {
+            return response(SendToFriendRateLimiter::REFUSED_MESSAGE, 429);
+        }
 
-        return '1';
-    }
+        $sent = $mailer->send($friendEmail, new KhotabFriendMail($khotabItem, $friendName, $yourName, $yourEmail), 'khotab', (int) $khotabItem->id);
 
-    /**
-     * G-01 fix (Migration Gap Register): legacy `download_khotab()`
-     * (`khotab/functions.php:993-1032`) never checks the link exists
-     * before opening it — it calls `@fopen($_link, 'rb')` unconditionally
-     * for any non-empty link, local or remote (PHP's `fopen()` supports
-     * the `http(s)://` stream wrapper natively). This method's own prior
-     * `is_file()` pre-check has no legacy counterpart and rejects every
-     * `http(s)://` link before `fopen()` is ever attempted — confirmed
-     * against real data to affect 99.9% of khotab items and mirrors.
-     *
-     * Fixed narrowly: `is_file()` is skipped only for `http://`/`https://`
-     * links, matching legacy's own effective behavior for the case that
-     * was actually broken. It is still applied for every other non-empty
-     * link (local paths, garbled/placeholder strings) — that class of
-     * link already 404s today via `is_file()` returning false, and this
-     * fix does not change that outcome; only the http(s) case changes.
-     *
-     * ------------------------------------------------------------------
-     * MariaDB connection-exhaustion fix (production incident, 2026-09-27)
-     * ------------------------------------------------------------------
-     * This method proxies the whole remote file through PHP, 8 KiB at a
-     * time, and the loop advances **at the client's download speed**. A real
-     * production example — `/khotab-mirror-117269-178962.htm`, a 1.26 GiB
-     * archive.org file — is ~165,700 iterations and measured 20-60+ minutes
-     * per request.
-     *
-     * The damage was not the streaming itself but what it *held* while it
-     * streamed: Laravel keeps the request's PDO handle open for the whole
-     * request, so every in-flight download pinned one MariaDB connection,
-     * idle, in `Sleep`. With 287 concurrent downloads that is 287
-     * connections against `max_connections = 300` — observed
-     * `Threads_connected ~293`, `Max_used_connections 301` — which starved
-     * every other application on the same server, vBulletin included.
-     *
-     * So the connection is released **before** the loop starts: the record
-     * is already loaded, the counter already incremented, and `$link` is a
-     * plain string captured by the closure. Nothing inside the callback
-     * touches the database, so nothing reconnects (Laravel would silently
-     * reconnect on the next query — the tests assert none happens).
-     *
-     * Why inside the callback rather than in the controller: a
-     * `StreamedResponse` runs its callback during `send()`, not while the
-     * controller builds the response (`Application::handleRequest()`:
-     * `$kernel->handle($request)->send()` and only then `terminate()`).
-     * Disconnecting here is therefore provably the last moment before
-     * `fopen()`, and is immune to anything the middleware pipeline does
-     * between the controller returning and the response being sent.
-     *
-     * `$connectionToRelease` is read from the model
-     * (`Model::getConnectionName()`), never hardcoded, so it follows the
-     * model if its connection changes. Session and cache are both `file`
-     * drivers here, so no other connection participates in this request.
-     *
-     * **This does NOT fix the Apache worker exhaustion.** PHP still proxies
-     * the complete file, so one worker remains occupied for the whole
-     * transfer and `MaxRequestWorkers` can still be reached. That is a
-     * separate architectural problem (offload/redirect/`X-Sendfile`),
-     * deliberately out of scope here — this change addresses the database
-     * half only, and the download behaviour is unchanged on purpose
-     * (Behaviour First: the browser must keep downloading through
-     * way2allah.com without archive.org appearing in the address bar).
-     */
-    private function streamFile(?string $link, ?string $connectionToRelease = null): StreamedResponse
-    {
-        abort_if($link === null || $link === '', 404, 'File not found');
-
-        $isRemote = str_starts_with($link, 'http://') || str_starts_with($link, 'https://');
-
-        abort_if(! $isRemote && ! is_file($link), 404, 'File not found');
-
-        return response()->streamDownload(function () use ($link, $connectionToRelease) {
-            // Release the database BEFORE the long transfer. Everything
-            // needed below is already a plain local.
-            if ($connectionToRelease !== null) {
-                DB::disconnect($connectionToRelease);
-            }
-
-            $handle = fopen($link, 'rb');
-            abort_if($handle === false, 500, 'Error reading file');
-
-            while (! feof($handle)) {
-                echo fread($handle, 8192);
-            }
-
-            fclose($handle);
-        }, basename($link));
+        return $sent ? '1' : '-1';
     }
 }

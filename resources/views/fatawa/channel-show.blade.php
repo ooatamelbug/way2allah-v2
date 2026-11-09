@@ -21,7 +21,8 @@
     confirmed genuine double-suffix pattern already reproduced for
     var-item-{id}.htm (not a mistake to "fix" here either).
 --}}
-@section('title', 'قناة ' . $title . ' (' . ($channelModel->satellite->title ?? '') . ') - الفتاوى المرئية - ' .
+{{-- Channel 0 «بدون قناة» (Fatwa visitor parity F6): OLD's own title, `"$Channel[title]  - الفتاوى المرئية - $sitename"` — no «قناة» prefix, no satellite. --}}
+@section('title', ($isNoChannel ? $title : 'قناة ' . $title . ' (' . ($channelModel->satellite->title ?? '') . ')') . ' - الفتاوى المرئية - ' .
     config('app.name'))
 
     {{--
@@ -74,10 +75,10 @@
                 channel_fatawa.php:39-104's "بيانات قناة" info portlet —
                 previously entirely missing (the prior view had only 2
                 bare <img> tags, no portlet, no metadata). Legacy wraps
-                this in `if($channel){...}` (channel_fatawa.php:35) — since
-                the controller already 404s via findOrFail() for a missing
-                channel, this box is unconditional here (the guard is
-                already satisfied by the time this view renders).
+                this in `if($channel){...}` (channel_fatawa.php:35) — the
+                controller 404s via findOrFail() for a missing channel, and
+                skips this box for channel 0 «بدون قناة» (OLD
+                `if(!empty($id))`, Fatwa visitor parity F6).
                 Satellite icon + satellite-name link both point at
                 /fatawa-channels.htm (channel_fatawa.php:48,53 — the SAME
                 target for both, not a typo, reproduced as found). Channel
@@ -93,6 +94,8 @@
                 (channel_fatawa.php:69) — PROTECTED, already-established,
                 NOT `$channel->beam`-driven, unchanged here.
             --}}
+            {{-- Channel 0: OLD printed this block only `if(!empty($id))` (Fatwa visitor parity F6). --}}
+            @unless ($isNoChannel)
             <div class="col-md-12 col-sm-12">
                 <div class="portlet box blue">
                     <div class="portlet-title">
@@ -125,6 +128,7 @@
                     </div>
                 </div>
             </div>
+            @endunless
 
             {{--
                 channel_fatawa.php:106-140's questions-list portlet, real
@@ -141,40 +145,41 @@
 
                 Pagination uses the shared public-site premium view. Query,
                 page size, and generated route URLs remain unchanged.
+
+                UI refinement (owner, 2026-11-04, Fatwa visitor parity F6): each
+                row is a compact right-aligned card — the question title, then
+                the topic and scholar grouped beneath it — styled only under
+                `.w2a-fatwa-channel-list` (content-refresh.css), which also keeps
+                the pager on one row. Links, text, table#sample_5 and the query
+                are unchanged.
             --}}
             <div class="col-md-12 col-sm-12">
                 <div class="portlet box blue">
                     <div class="portlet-title">
                         <div class="caption"><i class="fa fa-plus"></i>الفتاوى المضافة على قناة {{ $title }}</div>
                     </div>
-                    <div class="portlet-body series-overflow">
+                    <div class="portlet-body series-overflow w2a-fatwa-channel-list">
                         {{ $generalQuestions->onEachSide(1)->links('components.content.premium-pagination') }}
                         <table class="table table-striped table-hover" id="sample_5">
                             <tbody>
                                 @foreach ($generalQuestions as $question)
                                     <tr>
-                                        <td class="">
-                                            <div class="row">
-                                                <div class="col-lg-12">
-                                                    <h5>
-                                                        <a href="/fatawa-all-{{ $question->id }}.htm">{{ $question->question_text }}</a>
-                                                    </h5>
-                                                    <div class="row page-header color_00a">
-                                                        <div class="col-sm-6 col-xs-12">
-                                                            الموضوع:
-                                                            <span class="text-blue">
-                                                                <a href="/fatawa-group-{{ $question->topic->id ?? 0 }}-{{ $question->topic->parent_id ?? 0 }}.htm">{{ $question->topic->topic_name ?? '' }}</a>
-                                                            </span>
-                                                        </div>
-                                                        <div class="col-sm-6 col-xs-12">
-                                                            الشيخ:
-                                                            <span class="text-blue">
-                                                                <a href="/auther-questions-{{ $question->author->id ?? 0 }}.htm">{{ $question->author->prename ?? '' }} {{ $question->author->name ?? '' }}</a>
-                                                            </span>
-                                                        </div>
-                                                    </div>
+                                        <td class="w2a-fatwa-q">
+                                            <article class="w2a-fatwa-q__card">
+                                                <h5 class="w2a-fatwa-q__title">
+                                                    <a href="/fatawa-all-{{ $question->id }}.htm">{{ $question->question_text }}</a>
+                                                </h5>
+                                                <div class="w2a-fatwa-q__meta">
+                                                    <span class="w2a-fatwa-q__meta-item">
+                                                        <span class="w2a-fatwa-q__label"><i class="fa fa-folder-open-o" aria-hidden="true"></i> الموضوع:</span>
+                                                        <a href="/fatawa-group-{{ $question->topic->id ?? 0 }}-{{ $question->topic->parent_id ?? 0 }}.htm">{{ $question->topic->topic_name ?? '' }}</a>
+                                                    </span>
+                                                    <span class="w2a-fatwa-q__meta-item">
+                                                        <span class="w2a-fatwa-q__label"><i class="fa fa-user" aria-hidden="true"></i> الشيخ:</span>
+                                                        <a href="/auther-questions-{{ $question->author->id ?? 0 }}.htm">{{ $question->author->prename ?? '' }} {{ $question->author->name ?? '' }}</a>
+                                                    </span>
                                                 </div>
-                                            </div>
+                                            </article>
                                         </td>
                                     </tr>
                                 @endforeach
@@ -208,7 +213,7 @@
                     <div class="portlet-body">
                         <ul class="news">
                             @foreach ($mostDownloaded as $item)
-                                <li><a href="/fatawa-all-{{ str_replace('|', '', (string) $item->general_question_id) }}.htm#{{ $item->id }}" class="add">{{ $item->question_text }}</a></li>
+                                <li><a href="/fatawa-all-{{ \App\Domain\Content\Support\FatwaPipeIds::linkId($item->general_question_id) }}.htm#{{ $item->id }}" class="add">{{ $item->question_text }}</a></li>
                             @endforeach
                         </ul>
                     </div>
@@ -223,7 +228,7 @@
                     <div class="portlet-body">
                         <ul class="news">
                             @foreach ($mostRecent as $item)
-                                <li><a href="/fatawa-all-{{ str_replace('|', '', (string) $item->general_question_id) }}.htm#{{ $item->id }}" class="add">{{ $item->question_text }}</a></li>
+                                <li><a href="/fatawa-all-{{ \App\Domain\Content\Support\FatwaPipeIds::linkId($item->general_question_id) }}.htm#{{ $item->id }}" class="add">{{ $item->question_text }}</a></li>
                             @endforeach
                         </ul>
                     </div>

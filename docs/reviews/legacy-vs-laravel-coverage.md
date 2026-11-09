@@ -1,5 +1,10 @@
 # Legacy vs. Laravel Coverage Analysis
 
+> **[Note 2026-11-06, decision-log #103:** this analysis was built against the Gen 2 tree only. Under the owner's visitor-parity baseline
+> (#102: PRIMARY Gen 2, SUPPLEMENTARY OLD) and the #13 clarification (#103), "dead" / "source unrecoverable" conclusions
+> that rest on Gen 2's missing `new_modules.php` are local Gen 2 evidence, not proof for OLD. Current route counts and
+> classes: decision-log #103. The analysis below is kept as written.**]**
+
 Analysis document only. No code changed, no Blueprint changed, no implementation-findings/decision-log entries added (this document is the deliverable itself).
 
 **Method:** every module's coverage row below is built from four independently-checkable sources, cross-referenced against each other rather than trusted individually: (1) the legacy file tree and `.htaccess` (`grep`/`ls`, this session), (2) the current Laravel `routes/*.php` (`php artisan route:list`, 60 routes), (3) `app/Domain/*` (models/controllers actually present), (4) `tests/Feature/*`/`tests/Unit/*` (27 test files). Where the pre-implementation audit's own module docs (`legacy-project/docs/migration/modules/*.md`) and Roadmap (`00-implementation-roadmap.md`) add information not otherwise derivable from code, they're cited explicitly and distinguished from this session's own direct findings.
@@ -86,6 +91,8 @@ Analysis document only. No code changed, no Blueprint changed, no implementation
 
 ### 1.6 `gallery` — fully migrated
 
+> **[Update 2026-11-08, #133: bulk album ZIP restored and owner verified (#107). Rows below kept as written.]**
+
 | | |
 |---|---|
 | **Legacy features discovered** | Album listing, album detail (image grid), per-image download, bulk album zip-download (`op=download-album`) |
@@ -98,6 +105,8 @@ Analysis document only. No code changed, no Blueprint changed, no implementation
 | **Test coverage** | `GalleryControllerTest` |
 
 ### 1.7 `anasheed` — fully migrated
+
+> **[Update 2026-11-08, #133: send-to-friend implemented and owner verified for the form workflow (#106); visitor parity owner closed (#88). Rows below kept as written.]**
 
 | | |
 |---|---|
@@ -112,6 +121,8 @@ Analysis document only. No code changed, no Blueprint changed, no implementation
 | **Missing, not yet flagged elsewhere (see §3.1)** | `AnasheedGroup.icon`/`AnasheedItem.frame` bucketed thumbnails — already documented as a gap in `post-wave-4-cross-wave-architecture-review.md` §2; the ancestor-breadcrumb trail — same source. Repeated here for completeness, not re-discovered. |
 
 ### 1.8 `telawah` — fully migrated
+
+> **[Update 2026-11-08, #133: `recite-news.htm` implemented (#52); MP4 playback fixed (#117). Rows below kept as written.]**
 
 | | |
 |---|---|
@@ -131,14 +142,16 @@ Analysis document only. No code changed, no Blueprint changed, no implementation
 |---|---|
 | **Legacy features discovered** | Channel directory, browse-by-channel, browse-by-channel-and-author |
 | **Implemented in Laravel** | All 3 |
-| **Intentionally deferred, but the reason is now stale** | "Recommended For You" widget (`randomitems()`) on the author-filtered page — deferred in Wave 3 with the reason "needs a real content-item model, doesn't exist until Wave 4." Checked directly for this document: `KhotabItem` and `ContentSidebarWidget::khotabRandomFeatured()` have both existed since Wave 4, but `ChannelController`/`channels/author.blade.php` were never revisited — the docblock/view comment still reads as if the blocker is current. See §3.2. |
+| **Intentionally deferred, but the reason is now stale** | "Recommended For You" widget (`randomitems()`) on the author-filtered page — deferred in Wave 3 with the reason "needs a real content-item model, doesn't exist until Wave 4." Checked directly for this document: `KhotabItem` and `ContentSidebarWidget::khotabRandomFeatured()` have both existed since Wave 4, but `ChannelController`/`channels/author.blade.php` were never revisited — the docblock/view comment still reads as if the blocker is current. See §3.2. **[Update 2026-11-08: restored — «اخترنا لك هذه المادة» now rendered on `channel-{id}-{author}.htm` via `khotabRandomFeatured()`; implemented and tested locally, awaiting owner verification (IF-012 note). Original text kept.]** |
 | **Confirmed dead/unreachable** | `channels/item.php`, `authors.php`, `channe___l.php`, `old.php` — no `.htaccess` rule, not included by any other file (per Wave 3's own findings) |
-| **Business confirmations still required** | IF-012 (should the author-filtered page show recommendations, matching the unfiltered page) |
+| **Business confirmations still required** | IF-012 (should the author-filtered page show recommendations, matching the unfiltered page) **[Note 2026-11-08: the author page's layout, Gen 2 heading / breadcrumb and Gen 2 group / series author links were restored (IF-012 notes); the IF-012 boxes stay empty by owner decision. Original text kept.]** |
 | **Implementation Findings** | IF-011, IF-012, IF-013 |
 | **Blueprint tasks** | 3.1, 3.2, 3.3 |
 | **Test coverage** | `ChannelControllerTest`, `ChannelTest` |
 
 ### 1.10 `live-stream` — fully migrated (Wave 3)
+
+> **[Update 2026-11-08, #133: `live.php` reproduced at `/live-stream/featured` (redirect from `/live-stream/live.php`); its "purpose" question is a non-blocking historical note; Live Stream owner verified (#133). Rows below kept as written.]**
 
 | | |
 |---|---|

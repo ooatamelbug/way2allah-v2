@@ -2,9 +2,10 @@
 
 namespace App\Domain\Content\Http\Controllers;
 
-use App\Domain\Admin\Models\Location;
+use App\Domain\Content\Models\Location;
 use App\Domain\Content\Services\ContentListingService;
 use App\Domain\Content\Services\ContentSidebarWidget;
+use App\Support\Http\AdminViewer;
 use Illuminate\Contracts\View\View;
 
 /**
@@ -36,22 +37,25 @@ use Illuminate\Contracts\View\View;
  * `no_location_image.png` fallback instead (see that model's own
  * docblock).
  *
- * `locationAuthor()`/`locationItem()` below are NOT new query logic —
- * `location-{id}-author-{id2}.htm` and `location-{id}-item-{id2}.htm` were
- * re-verified (IF-048/IF-049) to reuse `chat_room/author.php`/
- * `khotab/item.php` exactly, both of which ignore the `location` URL
- * segment entirely. These two methods exist only because of a Laravel
- * routing mechanic, not a legacy-behavior difference: when a route
- * declares more segments than the target method's parameters, Laravel
- * binds the extra segment(s) positionally rather than by name, which
- * silently fed `{location}`'s value into `ChatRoomLessonController::
- * author()`'s/`KhotabItemController::show()`'s single int parameter
- * instead of the real `{author}`/`{khotab}` value (caught during this
- * round's own verification, confirmed via `Route::parameters()` and a
- * position-swap test). Declaring both route parameters explicitly by name
- * here, then delegating to the real, unmodified, already-tested
- * controllers, fixes the binding without touching either of them or
- * duplicating their queries.
+ * `locationAuthor()` (decision-log #114) serves `location-{id}-author-{id2}.htm`
+ * for the REQUESTED location, as OLD `modules/Locations` `Author($id,
+ * $location)` does, via `ChatRoomLessonController::authorAtGivenLocation()`:
+ * a nonexistent location is a 404, the author must be registered at that
+ * location (else 404), and groups, series, items and both sidebars are
+ * scoped to it. `chat_author_{id2}.htm` stays fixed to location 10. History:
+ * IF-048 originally made this a pass-through to the location-10 chat-room
+ * author page (Gen 2 `chat_room/author.php` hardcodes `$location_id = 10`);
+ * #114 superseded that.
+ *
+ * `locationItem()` is unchanged (IF-049): `location-{id}-item-{id2}.htm`
+ * reuses `khotab/item.php` exactly, which ignores the `location` segment, so
+ * it delegates to the unmodified `KhotabItemController::show()`.
+ *
+ * Both methods declare `{location}` and the second id by name because, when
+ * a route declares more segments than the target method's parameters,
+ * Laravel binds the extra segment(s) positionally rather than by name
+ * (caught during Wave C verification via `Route::parameters()` and a
+ * position-swap test).
  */
 class LocationController
 {
@@ -82,7 +86,8 @@ class LocationController
         ContentListingService $listing,
         ContentSidebarWidget $sidebar,
     ): View {
-        return $chatRoomLessonController->author($author, $listing, $sidebar);
+        // decision-log #114: scope to the REQUESTED location (OLD Locations `Author($id, $location)`), not location 10.
+        return $chatRoomLessonController->authorAtGivenLocation($location, $author, $listing, $sidebar);
     }
 
     public function locationItem(
@@ -90,7 +95,8 @@ class LocationController
         int $khotab,
         KhotabItemController $khotabItemController,
         ContentSidebarWidget $sidebar,
+        AdminViewer $contextual,
     ): View {
-        return $khotabItemController->show($khotab, $sidebar);
+        return $khotabItemController->show($khotab, $sidebar, $contextual);
     }
 }

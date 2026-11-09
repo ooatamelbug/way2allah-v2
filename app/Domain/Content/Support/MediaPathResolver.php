@@ -35,6 +35,24 @@ class MediaPathResolver
         return intdiv($id, self::BUCKET_SIZE);
     }
 
+    /**
+     * The absolute file for a `media/…` relative path, under the configured media root
+     * (`admin_khotab.media_root`, `KHOTAB_MEDIA_ROOT`) — the directory the AdminCP writers use, so a
+     * visitor-side existence check and the matching writer always agree, also in a split application /
+     * web-root layout where `public_path()` differs between HTTP and CLI and is not re-applied by
+     * `config:cache` (P0 split layout, 2026-11-09). Only the filesystem location changes; public URLs are
+     * still built from the relative path.
+     */
+    public static function absolute(string $relative): string
+    {
+        $relative = ltrim($relative, '/');
+        if (str_starts_with($relative, 'media/')) {
+            $relative = substr($relative, strlen('media/'));
+        }
+
+        return rtrim((string) config('admin_khotab.media_root'), '/').'/'.$relative;
+    }
+
     public static function path(string $baseFolder, int $id, string $extension): string
     {
         return sprintf(

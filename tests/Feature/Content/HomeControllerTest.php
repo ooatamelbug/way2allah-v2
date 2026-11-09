@@ -101,7 +101,7 @@ it('/: loads the premium UI globally and renders the lightweight media rail with
 });
 
 it('/: caps homepage media widgets at three items even when a stale audio cache contains more', function () {
-    Cache::put('home-latest-audios', collect(range(1, 7))->map(fn ($id) => [
+    Cache::put('home-latest-audios:hidden0', collect(range(1, 7))->map(fn ($id) => [
         'id' => $id,
         'title' => "Cached audio {$id}",
         'time' => 1_788_356_760,
@@ -121,7 +121,7 @@ it('/: caps homepage media widgets at three items even when a stale audio cache 
             ->assertDontSee('Cached audio 4')
             ->assertDontSee('Cached audio 7');
     } finally {
-        Cache::forget('home-latest-audios');
+        Cache::forget('home-latest-audios:hidden0');
     }
 });
 

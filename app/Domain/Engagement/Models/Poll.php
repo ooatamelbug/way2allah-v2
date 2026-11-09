@@ -2,6 +2,7 @@
 
 namespace App\Domain\Engagement\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -24,6 +25,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $timeStamp
  * @property int $voters
  * @property int $artid
+ * @property string $planguage
+ * @property int|null $comments
  */
 class Poll extends Model
 {
@@ -42,7 +45,7 @@ class Poll extends Model
         return $this->hasMany(PollOption::class, 'pollID')->orderBy('voteID');
     }
 
-    public function scopeStandalone(\Illuminate\Database\Eloquent\Builder $query): void
+    public function scopeStandalone(Builder $query): void
     {
         $query->where('artid', 0);
     }

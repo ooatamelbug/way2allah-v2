@@ -6,6 +6,18 @@
 @section('content')
     <x-page-chrome :heading="$pageHeading" :breadcrumb="$breadcrumbTrail" />
 
+    {{-- Contextual administration (OLD ListCats() / Gen 2 breadcrumb(): «اضف للكل / امسح من الكل» beside each of the series' categories;
+         then OLD Series()'s «لوحة تحكم السلسلة», series_cp.htm). --}}
+    @contextualAdmin
+        @include('admin.contextual._category-rows', [
+            'heading' => 'تصنيفات السلسلة',
+            'rows' => \App\Domain\Admin\Contextual\Controls\KhotabContainerControls::categories('series', (int) $seriesModel->id, $seriesModel->getAttribute('cat')),
+        ])
+        <x-admin.contextual-controls title="لوحة تحكم السلسلة" :controls="\App\Domain\Admin\Contextual\Controls\KhotabSeriesControls::panel($seriesModel)" />
+    @endcontextualAdmin
+
+    @php($contextualRows = app(\App\Domain\Admin\Contextual\ContextualAdmin::class)->active())
+
     <div class="row service-box margin-bottom-40">
         <div class="col-lg-9 col-md-8 col-sm-7 nopadding flex flex-column gap-5">
             {{--
@@ -24,7 +36,9 @@
                         <div class="caption"><i class="fa fa-child"></i> قائمة المواد</div>
                     </div>
                     <div class="portlet-body">
-                        <x-content.khotab-item-list :items="$items" :video="(bool) $seriesModel->vedio" />
+                        {{-- OLD ListKhotab(): an admin's icon beside each item (KhotabUpKhotab — out of the series). --}}
+                        <x-content.khotab-item-list :items="$items" :video="(bool) $seriesModel->vedio"
+                            :row-controls="$contextualRows ? fn ($row) => [\App\Domain\Admin\Contextual\Controls\KhotabSeriesControls::forItem((int) $row->id)] : null" />
                     </div>
                 </div>
             </div>

@@ -1,8 +1,7 @@
 <?php
 
 use App\Domain\Admin\Models\AdminUser;
-use App\Domain\Content\Models\BackupSession;
-use App\Domain\Content\Support\BackupApiAuthenticator;
+use App\Domain\Admin\Support\BackupApiAuthenticator;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;

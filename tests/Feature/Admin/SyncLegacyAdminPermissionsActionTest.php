@@ -4,6 +4,7 @@ use App\Domain\Admin\Actions\SyncLegacyAdminPermissionsAction;
 use App\Domain\Admin\Models\AdminUser;
 use App\Domain\Admin\Support\AdminDashboardModules;
 use App\Support\Permission\Permission;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\Fixtures\MainSchema;
 use Tests\Support\InMemoryConnection;
@@ -28,7 +29,7 @@ uses(RefreshDatabase::class);
 function useInMemoryMainConnectionWithRealPermissionsColumnForSync(): void
 {
     InMemoryConnection::setup('main', [
-        'nuke_authors' => function (\Illuminate\Database\Schema\Blueprint $table) {
+        'nuke_authors' => function (Blueprint $table) {
             (MainSchema::nukeAuthors())($table);
             $table->text('permissions')->nullable();
         },

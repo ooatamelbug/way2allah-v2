@@ -2,6 +2,7 @@
 
 namespace App\Domain\Content\Models;
 
+use App\Domain\Content\Support\MediaPathResolver;
 use App\Domain\Content\Support\MediaUrl;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -93,7 +94,7 @@ class Author extends Model
      */
     public function fallbackImageUrl(): string
     {
-        $path = public_path("media/authors/sq/{$this->id}.png");
+        $path = MediaPathResolver::absolute("media/authors/sq/{$this->id}.png");
 
         return file_exists($path)
             ? MediaUrl::asset("authors/sq/{$this->id}.png")

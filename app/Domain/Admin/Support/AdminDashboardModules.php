@@ -130,6 +130,26 @@ class AdminDashboardModules
                 ['label' => 'جودة الروابط - المرئيات والصوتيات', 'route' => 'admin.link-quality.khotab.index', 'permissions' => ['khotab.repair']],
                 ['label' => 'الملفات كبيرة الحجم', 'route' => 'admin.link-quality.khotab.large-files', 'permissions' => ['khotab.repair']],
                 ['label' => 'جودة الروابط - المرايا', 'route' => 'admin.link-quality.mirror.index', 'permissions' => ['khotab.repair']],
+                // OLD Admin Migration Phase 1. Same any-of-three permission
+                // set as the route group's own view gate.
+                ['label' => 'الوصلات البديلة', 'route' => 'admin.mirrors.khotab.index', 'permissions' => ['khotab.addmirror', 'khotab.editmirror', 'khotab.delmirror']],
+                // OLD Admin Migration Phase 2.
+                ['label' => 'الوصلات التي لا تعمل', 'route' => 'admin.link-quality.khotab.lost', 'permissions' => ['khotab.repair']],
+                // OLD Admin Migration Phase 3.
+                ['label' => 'تصنيفات المواد', 'route' => 'admin.categories.khotab.index', 'permissions' => ['khotab.addcat']],
+                // OLD Admin Migration Phase 5 — OLD's menu label for AdvfilesMain.
+                ['label' => 'ملفات الرئيسية', 'route' => 'admin.advfiles.queue', 'permissions' => ['khotab.addadv']],
+            ],
+        ],
+        [
+            // OLD Admin Migration Phase 1. A new module entry: `admincp/`
+            // had no anasheed section at all (PermissionLabels documents
+            // the label/icon provenance).
+            'label' => 'الأناشيد', 'icon' => 'icon-social-youtube',
+            'children' => [
+                ['label' => 'الوصلات البديلة', 'route' => 'admin.mirrors.anasheed.index', 'permissions' => ['anasheed.addmirror', 'anasheed.editmirror', 'anasheed.delmirror']],
+                // OLD Admin Migration Phase 3.
+                ['label' => 'تصنيفات المواد', 'route' => 'admin.categories.anasheed.index', 'permissions' => ['anasheed.addcat']],
             ],
         ],
         [
@@ -142,13 +162,30 @@ class AdminDashboardModules
         ['label' => 'استبيان الدعاة', 'route' => 'admin.questionnaire.index', 'permissions' => ['questionnaire.listallquest', 'questionnaire.listquest'], 'icon' => 'icon-calculator'],
         ['label' => 'ساوند كلاود', 'route' => 'admin.soundcloud.edit', 'permissions' => ['soundcloud.update_soundcloud'], 'icon' => 'icon-earphones-alt'],
         ['label' => 'الاستطلاعات', 'route' => 'admin.survey.index', 'permissions' => ['survey.modsurvey'], 'icon' => 'icon-calculator'],
+        // OLD Admin Migration Phase 4 — PHP-Nuke polls, separate from the
+        // custom-survey engine above. A flat entry: no new parent menu.
+        ['label' => 'الإستفتاءات', 'route' => 'admin.polls.index', 'permissions' => ['polls.managepolls'], 'icon' => 'icon-calculator'],
+        // OLD Admin Migration Phase 6 — CD / Album Downloads; OLD's own menu label.
+        ['label' => 'الاسطوانات الدعوية', 'route' => 'admin.cds.index', 'permissions' => ['w2acd.managecds'], 'icon' => 'icon-disc'],
+        // OLD Admin Migration Phase 7 — Mobile Downloads.
+        ['label' => 'قسم الموبايل', 'route' => 'admin.mobile.dashboard', 'permissions' => ['mobile.managedownloads'], 'icon' => 'icon-screen-smartphone'],
         [
             'label' => 'التلاوات', 'icon' => 'icon-book-open',
             'children' => [
                 ['label' => 'جودة الروابط - التلاوات', 'route' => 'admin.link-quality.telawah.index', 'permissions' => ['telawah.repair']],
+                // Closure correction (2026-10-15) — Telawah mirrors (edit / delete).
+                ['label' => 'الوصلات البديلة', 'route' => 'admin.mirrors.telawah.index', 'permissions' => ['telawah.editmirror', 'telawah.delmirror']],
             ],
         ],
         ['label' => 'يوتيوب', 'route' => 'admin.youtube.edit', 'permissions' => ['youtube.update_youtube'], 'icon' => 'icon-earphones-alt'],
+        // OLD Admin Migration Phase 2. The route is gated by the super-admin
+        // ROLE, which this class's permission filter cannot express — so
+        // `permissions` is deliberately empty: visibleFor() then shows the
+        // entry only through its existing super-admin branch
+        // (`hasAnyPermission([])` is false for everyone else). No
+        // permission key is invented, which is why the permission editor
+        // was left out of this list; this entry needs none.
+        ['label' => 'سجل الإدارة', 'route' => 'admin.audit.index', 'permissions' => [], 'icon' => 'icon-list'],
     ];
 
     /**

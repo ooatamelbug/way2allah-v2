@@ -4,10 +4,14 @@ namespace App\Domain\Admin\Http\Controllers;
 
 use App\Domain\Admin\Models\AdminUser;
 use App\Domain\Admin\Support\AdminDashboardModules;
+use App\Domain\Admin\Support\AdminLoginThrottle;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\MessageBag;
+use Illuminate\Support\ViewErrorBag;
 
 /**
  * `/admincp/` Login + Dashboard Completion — owner decision (2026-08-22)
@@ -66,19 +70,44 @@ class AdminAuthController
      * redundant, not merely harmless, second regenerate in the same
      * request). Does not reveal whether a given `aid` exists — same
      * generic error for "unknown admin" and "wrong password".
+     *
+     * N2 (owner-approved 2026-11-08): brute-force throttling around the
+     * unchanged attempt — see AdminLoginThrottle. After validation, an
+     * exceeded counter answers 429 + Retry-After with the login page and a
+     * generic message, WITHOUT calling the guard (a correct password is not
+     * even checked); a failed attempt records one failure on both counters; a
+     * success clears only the username + IP counter.
      */
-    public function login(Request $request): RedirectResponse
+    public function login(Request $request, AdminLoginThrottle $throttle): RedirectResponse|Response
     {
         $credentials = $request->validate([
             'aid' => ['required', 'string'],
             'password' => ['required', 'string'],
         ]);
 
+        $clientIp = (string) $request->ip();
+        $username = (string) $credentials['aid'];
+
+        if ($throttle->tooManyAttempts($clientIp, $username)) {
+            $throttle->logThrottled($clientIp, $username);
+            $request->session()->flashInput(['aid' => $username]);
+
+            return response()
+                ->view('admin.auth.login', [
+                    'errors' => (new ViewErrorBag)->put('default', new MessageBag(['aid' => AdminLoginThrottle::MESSAGE])),
+                ], 429)
+                ->header('Retry-After', (string) $throttle->availableIn($clientIp, $username));
+        }
+
         if (! Auth::guard('admin')->attempt($credentials)) {
+            $throttle->recordFailure($clientIp, $username);
+
             return back()
                 ->withInput($request->only('aid'))
                 ->withErrors(['aid' => 'بيانات الدخول غير صحيحة.']);
         }
+
+        $throttle->clearUsername($clientIp, $username);
 
         return redirect()->route('admin.entry');
     }

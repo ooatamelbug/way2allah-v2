@@ -13,16 +13,16 @@
 <p align="right"><b>صديقك {{ $yourName }} قام بإختيار الفتوى التالية من موقع الطريق إلى الله</b></p>
 <p align="right"><b>عنوان الفتوى : <font color="#FF0000"><span lang="en-us">{{ $fatwaQuestion->question_text }}</span></font></b></p>
 <p align="right"><b>رابط الفتوى :<span lang="en-us"> <font color="#FF0000">
-<a href="{{ url('/fatawa-'.$fatwaQuestion->id.'.htm') }}">{{ $fatwaQuestion->question_text }}</a></font></span></b></p>
+<a href="{{ $siteUrl.'/fatawa-'.$fatwaQuestion->id.'.htm' }}">{{ $fatwaQuestion->question_text }}</a></font></span></b></p>
 <p align="right"><b>و تتشرف إدارة الموقع بإهدائها إليك عبر بريدك الإلكتروني كما تدعوك إلي زيارة أقسام الموقع المختلفة</b></p>
 <p align="right"><b>&nbsp;(
-<a href="{{ url('/khotab-audio.htm') }}">الصوتيات</a> -
-<a href="{{ url('/khotab-video.htm') }}">المرئيات</a> -
-<a href="{{ url('/live-stream.htm') }}">البث المباشر</a> -
-<a href="{{ url('/var-group-98.htm') }}">الأناشيد و المقاطع المؤثرة</a> -
-<a href="{{ url('/var-group-12.htm') }}">الأفلام الوثائقية</a> -
-<a href="{{ url('/var-group-57.htm') }}">الكارتون الإسلامي</a> -
-<a href="{{ url('/chat') }}">الغرفة الصوتية</a>)</b></p>
+<a href="{{ $siteUrl.'/khotab-audio.htm' }}">الصوتيات</a> -
+<a href="{{ $siteUrl.'/khotab-video.htm' }}">المرئيات</a> -
+<a href="{{ $siteUrl.'/live-stream.htm' }}">البث المباشر</a> -
+<a href="{{ $siteUrl.'/var-group-98.htm' }}">الأناشيد و المقاطع المؤثرة</a> -
+<a href="{{ $siteUrl.'/var-group-12.htm' }}">الأفلام الوثائقية</a> -
+<a href="{{ $siteUrl.'/var-group-57.htm' }}">الكارتون الإسلامي</a> -
+<a href="{{ $siteUrl.'/chat' }}">الغرفة الصوتية</a>)</b></p>
 <p align="right"><b>و يمكنك أيضاً الإشتراك معنا مجاناً بالمنتدى الدعوي الخاص بالموقع لتشاركنا المشاريع الدعوية و للتعرف على صحبة صالحة على الرابط التالي</b></p>
 <p align="center" dir="ltr"><span lang="en-us"><b>
 <a href="http://forums.way2allah.com/">منتدى الطريق الى الله</a></b></span></p>

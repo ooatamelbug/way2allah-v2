@@ -5,6 +5,7 @@ namespace App\Domain\Content\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 /**
  * One row per CD group/category (`nuke_w2acd_groups`, `w2acd` module —
@@ -63,5 +64,33 @@ class W2acdGroup extends Model
     public function items(): HasMany
     {
         return $this->hasMany(W2acdItem::class, 'group_id');
+    }
+
+    /**
+     * W2ACD public admin parity, Phase 2 — OLD `Logo()` (`modules/w2acd/index.php`)
+     * walks `parent_id` up to the root and prints the chain, this group last.
+     * Same shape as `AnasheedGroup::breadcrumbTrail()`; a missing parent ends
+     * the walk, and a row seen twice ends it too (OLD looped forever on a cycle).
+     *
+     * @return Collection<int, self>
+     */
+    public function breadcrumbTrail(): Collection
+    {
+        $trail = [$this];
+        $seen = [(int) $this->id => true];
+        $current = $this;
+
+        while ((int) $current->parent_id > 0 && ! isset($seen[(int) $current->parent_id])) {
+            $next = self::find((int) $current->parent_id);
+            if ($next === null) {
+                break;
+            }
+
+            $trail[] = $next;
+            $seen[(int) $next->id] = true;
+            $current = $next;
+        }
+
+        return collect(array_reverse($trail));
     }
 }

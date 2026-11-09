@@ -39,7 +39,7 @@
         @endforeach
     </div>
 @else
-    <div class="w2a-tree-empty" role="status">
+    <div class="w2a-tree-empty w2a-empty-state" role="status">
         <i class="fa fa-info-circle" aria-hidden="true"></i>
         <h5>{{ $emptyMessage }}</h5>
     </div>

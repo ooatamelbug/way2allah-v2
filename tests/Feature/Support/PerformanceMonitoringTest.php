@@ -4,6 +4,7 @@ use App\Http\Middleware\MonitorsRequestPerformance;
 use App\Support\Performance\PerformanceThresholds;
 use App\Support\Performance\RequestMetrics;
 use App\Support\Performance\SlowQueryListener;
+use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Facades\Log;
 
@@ -277,7 +278,7 @@ it('resolves RequestMetrics as a scoped instance, so it is shared within a reque
 });
 
 it('registers the monitoring middleware globally', function () {
-    $kernel = app(Illuminate\Contracts\Http\Kernel::class);
+    $kernel = app(Kernel::class);
 
     expect($kernel->hasMiddleware(MonitorsRequestPerformance::class))->toBeTrue();
 });

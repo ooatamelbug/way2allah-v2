@@ -6,14 +6,16 @@
 @section('title', $khotabItem->title.' - غرفة الهداية الدعوية')
 
 @section('content')
-    <nav aria-label="غرفة الهداية">
-        <a href="/chat_room.htm">غرفة الهداية</a> /
-        <a href="/chat_author_{{ $authorModel->id }}.htm">{{ $authorModel->prename }} {{ $authorModel->name }}</a> /
-        {{ $khotabItem->title }}
-    </nav>
+    {{-- Gen 2 chat_room/lesson.php: title('غرفة الهداية - {lesson}') + breadcrumb(غرفة الهداية → chat_room.htm,
+         {author} → chat_author_{id}.htm, {lesson}). Shared title()/breadcrumb() chrome. --}}
+    <x-page-chrome :heading="'غرفة الهداية - '.$khotabItem->title" :breadcrumb="[
+        ['title' => 'غرفة الهداية', 'url' => '/chat_room.htm'],
+        ['title' => $authorModel->prename.' '.$authorModel->name, 'url' => '/chat_author_'.$authorModel->id.'.htm'],
+        ['title' => $khotabItem->title],
+    ]" />
 
-    <div class="row service-box sh-w2a-block">
-        <div class="col-xs-12 col-sm-12 col-md-9 telawah-item-content">
+    <div class="row service-box margin-bottom-40 w2a-media-layout">
+        <div class="col-lg-9 col-md-8 col-sm-7 nopadding flex flex-column gap-5">
             <section class="portlet box blue" aria-label="تفاصيل المادة">
                 <div class="portlet-title">
                     <div class="caption"><i class="fa {{ $khotabItem->vedio ? 'fa-video-camera' : 'fa-microphone' }}"></i> {{ $khotabItem->title }}</div>
@@ -49,33 +51,34 @@
                 @endif
             </nav>
 
-            <section aria-label="قائمة الجودات المختلفة للدرس">
-                <h3>قائمة الجودات المختلفة للدرس</h3>
+            <x-content.premium-panel title="قائمة الجودات المختلفة للدرس" icon="fa-files-o">
                 <ul>
                     @foreach ($mirrors as $mirror)
                         <li><a href="/khotab-mirror-{{ $khotabItem->id }}-{{ $mirror->id }}.htm">{{ $mirror->comment }}</a></li>
                     @endforeach
                 </ul>
-            </section>
+            </x-content.premium-panel>
 
             @if ($relatedLessons->isNotEmpty())
-                <section aria-label="روابط ذات صلة">
-                    <h3>روابط ذات صلة</h3>
+                <x-content.premium-panel title="روابط ذات صلة" icon="fa-link">
                     <x-content.chat-item-list :items="$relatedLessons" related />
-                </section>
+                </x-content.premium-panel>
             @endif
         </div>
 
-        <aside class="col-xs-12 col-sm-12 col-md-3" aria-label="الشريط الجانبي">
-            <div id="author-info">
-                <a href="/chat_author_{{ $authorModel->id }}.htm"><img src="{{ $authorModel->displayImageUrl() }}" alt="{{ $authorModel->prename }} {{ $authorModel->name }}"></a>
-            </div>
+        <aside class="col-lg-3 col-md-4 col-sm-5 nopadding flex flex-column gap-5" aria-label="الشريط الجانبي">
+            <section class="w2a-refresh-panel w2a-author-profile-card" id="author-info">
+                <a href="/chat_author_{{ $authorModel->id }}.htm"><img class="w2a-author-avatar" src="{{ $authorModel->displayImageUrl() }}" alt="{{ $authorModel->prename }} {{ $authorModel->name }}"></a>
+                <h3 class="w2a-author-name"><a href="/chat_author_{{ $authorModel->id }}.htm">{{ $authorModel->prename }} {{ $authorModel->name }}</a></h3>
+            </section>
 
-            <h3>أكثر الدروس مشاهدة</h3>
-            <x-content.chat-lesson-list :items="$mostViewed" />
+            <x-content.premium-panel title="أكثر الدروس مشاهدة" icon="fa-eye">
+                <x-content.chat-lesson-list :items="$mostViewed" />
+            </x-content.premium-panel>
 
-            <h3>أجدد التسجيلات</h3>
-            <x-content.chat-lesson-list :items="$mostRecent" />
+            <x-content.premium-panel title="أجدد التسجيلات" icon="fa-clock-o">
+                <x-content.chat-lesson-list :items="$mostRecent" />
+            </x-content.premium-panel>
         </aside>
     </div>
 

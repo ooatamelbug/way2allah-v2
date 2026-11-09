@@ -170,43 +170,37 @@
                                 <tr>
                                     <td class="table_order">{{ $loop->iteration + ($series->currentPage() - 1) * $series->perPage() }}</td>
                                     <td>
-                                        <div class="row"><div class="col-lg-12">
-                                            <h5>
-                                                <div class="row">
-                                                    <div class="col-sm-12 col-lg-8">
-                                                        <a href="/khotab-series-{{ $item->id }}.htm">{!! \App\Domain\Content\Support\LegacySearchRendering::highlight(trim((string) $item->title), $title) !!}</a>
-                                                    </div>
-                                                    <div class="col-sm-12 col-lg-4">
-                                                        الداعية:
-                                                        <a href="/khotab-video-{{ $item->author_id }}.htm">{{ $item->prename }} {{ $item->name }}</a>
-                                                    </div>
-                                                </div>
-                                            </h5>
-                                            <div class="row page-header color_00a">
+                                        {{-- Compact result (owner UI refinement, 2026-11-03): title, then one line of sheikh / channel / count. --}}
+                                        <div class="w2a-result">
+                                            <h3 class="w2a-result__title">
+                                                <a href="/khotab-series-{{ $item->id }}.htm">{!! \App\Domain\Content\Support\LegacySearchRendering::highlight(trim((string) $item->title), $title) !!}</a>
+                                            </h3>
+                                            <div class="w2a-result__meta">
+                                                <span class="w2a-result__author">
+                                                    <i class="fa fa-user" aria-hidden="true"></i>
+                                                    الداعية:
+                                                    <a href="/khotab-video-{{ $item->author_id }}.htm">{{ $item->prename }} {{ $item->name }}</a>
+                                                </span>
                                                 @if($item->channel_id > 0)
-                                                    <div class="col-md-3 col-xs-6 text-blue">
-                                                        <span>
-                                                            <i class="fa fa-television"></i>
-                                                            القناة:
-                                                            <a href="/channel-{{ $item->channel_id }}-{{ $item->author_id }}.htm"><img width="24" height="24" border="0" src="/images/channels/{{ $item->channel_id }}.png"></a>
-                                                        </span>
-                                                    </div>
-                                                @endif
-                                                <div class="col-md-3 col-xs-6 text-blue">
-                                                    <span>
-                                                        <i class="fa fa-play-circle-o"></i>
-                                                        المواد:
-                                                        {{ $item->count }}
+                                                    <span class="w2a-result__channel">
+                                                        <i class="fa fa-television" aria-hidden="true"></i>
+                                                        القناة:
+                                                        <a href="/channel-{{ $item->channel_id }}-{{ $item->author_id }}.htm"><img width="24" height="24" border="0" alt="القناة" src="/images/channels/{{ $item->channel_id }}.png"></a>
                                                     </span>
-                                                </div>
+                                                @endif
+                                                <span class="w2a-result__badge">
+                                                    <i class="fa fa-play-circle-o" aria-hidden="true"></i>
+                                                    المواد:
+                                                    {{ $item->count }}
+                                                </span>
                                             </div>
-                                        </div></div>
+                                        </div>
                                     </td>
                                 </tr>
                             @empty
                             @endforelse
                             @if($series->total() > 0)
-                                <tr><th scope="row">الكل</th><td colspan="2">{{ $series->total() }} مادة</td></tr>
+                                <tr><th scope="row">الكل</th><td colspan="2">{{ $series->total() }} سلسلة</td></tr>
                             @endif
                         </tbody>
                     </table>
@@ -244,37 +238,30 @@
                                 <tr>
                                     <td class="table_order">{{ $loop->iteration + ($items->currentPage() - 1) * $items->perPage() }}</td>
                                     <td>
-                                        <div class="row"><div class="col-lg-12">
-                                            <h5>
-                                                <div class="row">
-                                                    <div class="col-sm-12 col-lg-8">
-                                                        <a href="/khotab-item-{{ $item->id }}.htm">{!! \App\Domain\Content\Support\LegacySearchRendering::highlight(trim((string) $item->title), $title) !!}</a>
-                                                    </div>
-                                                    <div class="col-sm-12 col-lg-4">
-                                                        الداعية:
-                                                        <a href="/khotab-video-{{ $item->author }}.htm">{{ $item->prename }} {{ $item->name }}</a>
-                                                    </div>
-                                                </div>
-                                            </h5>
-                                            <div class="row page-header color_00a">
+                                        <div class="w2a-result">
+                                            <h3 class="w2a-result__title">
+                                                <a href="/khotab-item-{{ $item->id }}.htm">{!! \App\Domain\Content\Support\LegacySearchRendering::highlight(trim((string) $item->title), $title) !!}</a>
+                                            </h3>
+                                            <div class="w2a-result__meta">
+                                                <span class="w2a-result__author">
+                                                    <i class="fa fa-user" aria-hidden="true"></i>
+                                                    الداعية:
+                                                    <a href="/khotab-video-{{ $item->author }}.htm">{{ $item->prename }} {{ $item->name }}</a>
+                                                </span>
                                                 @if($item->channel_id > 0)
-                                                    <div class="col-md-3 col-xs-6 text-blue">
-                                                        <span>
-                                                            <i class="fa fa-television"></i>
-                                                            القناة:
-                                                            <a href="/channel-{{ $item->channel_id }}-{{ $item->author }}.htm"><img width="24" height="24" border="0" src="/images/channels/{{ $item->channel_id }}.png"></a>
-                                                        </span>
-                                                    </div>
-                                                @endif
-                                                <div class="col-md-3 col-xs-6 text-blue">
-                                                    <span>
-                                                        <i class="fa fa-eye"></i>
-                                                        الزيارات:
-                                                        {{ $item->hits }}
+                                                    <span class="w2a-result__channel">
+                                                        <i class="fa fa-television" aria-hidden="true"></i>
+                                                        القناة:
+                                                        <a href="/channel-{{ $item->channel_id }}-{{ $item->author }}.htm"><img width="24" height="24" border="0" alt="القناة" src="/images/channels/{{ $item->channel_id }}.png"></a>
                                                     </span>
-                                                </div>
+                                                @endif
+                                                <span class="w2a-result__badge">
+                                                    <i class="fa fa-eye" aria-hidden="true"></i>
+                                                    الزيارات:
+                                                    {{ $item->hits }}
+                                                </span>
                                             </div>
-                                        </div></div>
+                                        </div>
                                     </td>
                                 </tr>
                             @empty

@@ -286,8 +286,8 @@ it('C-1: stores raw rows only — the thumb decoration is never persisted in the
     $rows = $widget->khotabMostDownloadedByCategoryForSeries(11);
     expect($rows->first())->toHaveProperty('thumb');
 
-    // cacheKey() ksorts its parts: category, limit, order.
-    $cached = Cache::get('sidebar:category-series-khotab:category=11:limit=5:order=hits');
+    // cacheKey() ksorts its parts: category, hidden (security fix #94), limit, order.
+    $cached = Cache::get('sidebar:category-series-khotab:category=11:hidden=0:limit=5:order=hits');
 
     expect($cached)->toBeArray()
         ->and($cached)->not->toBeEmpty()
@@ -456,21 +456,26 @@ it('C-2: does not collide between different categories', function () {
         ->and($widget->khotabMostDownloadedByCategory(999)->pluck('id')->all())->toBe([]);
 });
 
-it('C-2: does not collide with the C-1 categories.series cache, which includes hidden rows', function () {
+it('C-2: does not collide with the C-1 categories.series cache (both now exclude hidden rows — security fix #94)', function () {
     seedCategorySeriesMappings();
     seedHiddenCategoryRow();
     $widget = app(ContentSidebarWidget::class);
 
-    // Fill the categories.show entry first; if the namespaces collided, the
-    // series call below would be served this hidden-excluded result.
-    $show = $widget->khotabMostDownloadedByCategory(11);
-    $series = $widget->khotabMostDownloadedByCategoryForSeries(11);
+    // Both lists now exclude hidden id 4, so the results alone cannot tell the namespaces apart: plant a
+    // sentinel in each widget's entry and check the other widget never serves it.
+    $sentinel = [['id' => 777, 'title' => 'sentinel', 'author' => 1, 'frame' => 0, 'hits' => 1, 'downcount' => 0, 'time' => 1]];
+    Cache::put('sidebar:category-khotab:category=11:limit=5:order=hits', $sentinel, 300);
+    Cache::put('sidebar:category-khotab:category=11:limit=5:order=time', $sentinel, 300);
 
-    expect($show->pluck('id')->all())->toBe([2, 1])          // hidden id 4 excluded
-        ->and($series->pluck('id')->all())->toBe([4, 2, 1])  // hidden id 4 INCLUDED, hits 99999
-        // and in the other direction too
-        ->and($widget->khotabMostRecentByCategory(11)->pluck('id')->all())->toBe([2, 1])
-        ->and($widget->khotabMostRecentByCategoryForSeries(11)->pluck('id')->all())->toBe([4, 2, 1]);
+    expect($widget->khotabMostDownloadedByCategoryForSeries(11)->pluck('id')->all())->toBe([2, 1])   // hidden id 4 excluded
+        ->and($widget->khotabMostRecentByCategoryForSeries(11)->pluck('id')->all())->toBe([2, 1]);
+
+    Cache::flush();
+    Cache::put('sidebar:category-series-khotab:category=11:hidden=0:limit=5:order=hits', $sentinel, 300);
+    Cache::put('sidebar:category-series-khotab:category=11:hidden=0:limit=5:order=time', $sentinel, 300);
+
+    expect($widget->khotabMostDownloadedByCategory(11)->pluck('id')->all())->toBe([2, 1])
+        ->and($widget->khotabMostRecentByCategory(11)->pluck('id')->all())->toBe([2, 1]);
 });
 
 it('C-2: stores raw rows only — the thumb decoration is never persisted', function () {

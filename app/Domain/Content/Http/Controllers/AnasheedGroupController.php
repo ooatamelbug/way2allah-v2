@@ -32,12 +32,10 @@ use Illuminate\Http\Response;
  *   verbatim, not corrected.
  * - No `hidden` filter on the underlying query at all.
  *
- * Group 98's special case (`AnasheedItem::scopeInGroup()`, extracted from
- * `anasheed/functions.php:312`'s `list_anasheed()`) is no longer a
- * mystery as of IF-029 (Wave 5): group 98 is `anasheed-news.htm`'s themed
- * aggregation target (`vars/more.php?id=98`, one of 4 real routes to an
- * otherwise-dead module — see `AnasheedNewsController`), and
- * `OR group_id='16'` is that theme's own business rule.
+ * Group 98's Gen 2 special case (`list_anasheed()`'s `OR group_id='16'`) is
+ * not reproduced on the group page (visitor parity A4, 2026-11-04): OLD's
+ * `ListAnasheed()` lists only the group's own items; 98 + 16 belongs to the
+ * `anasheed-news.htm` department view (`AnasheedNewsController`).
  *
  * G-12-01 (G-12 investigation): `var-group-{id}-page-{page}.htm` is a real,
  * live `.htaccess` rule (`.htaccess:98`) with real pagination-link
@@ -111,7 +109,8 @@ class AnasheedGroupController
             $title = str_replace(':', '_', $title);
 
             $downloadUrl = url('/var-download-'.$item->id.'.htm');
-            $content .= "URL: {$downloadUrl}\r\nFile: C:\\Way2Allah\\المنوعات\\{$groupModel->title}\\{$title}.{$extension}.GetRight\r\n\r\n";
+            // OLD DownSeries(): the GetRight folder is «الأناشيد» (visitor parity A8, 2026-11-04).
+            $content .= "URL: {$downloadUrl}\r\nFile: C:\\Way2Allah\\الأناشيد\\{$groupModel->title}\\{$title}.{$extension}.GetRight\r\n\r\n";
         }
 
         return response($content, 200, [
@@ -124,14 +123,19 @@ class AnasheedGroupController
         ]);
     }
 
+    /**
+     * OLD ListAnasheed() (visitor parity A3 / A4 / A7, 2026-11-04): this group's own items only — no
+     * 98 / 16 merge, which OLD applies only to the news pages — ordered `order_in_group DESC,
+     * mytime DESC`, 24 per page.
+     */
     private function itemsForGroup(int $groupId, ?int $page = null): LengthAwarePaginator
     {
         return AnasheedItem::query()
             ->leftJoin('nuke_anasheed_advanced as ad', 'nuke_anasheed_anasheed.id', '=', 'ad.id')
             ->select(['nuke_anasheed_anasheed.*', 'ad.adur'])
-            ->inGroup($groupId)
-            ->orderByDesc('nuke_anasheed_anasheed.mytime')
+            ->where('nuke_anasheed_anasheed.group_id', $groupId)
             ->orderByDesc('nuke_anasheed_anasheed.order_in_group')
-            ->paginate(30, ['*'], 'page', $page);
+            ->orderByDesc('nuke_anasheed_anasheed.mytime')
+            ->paginate(24, ['*'], 'page', $page);
     }
 }

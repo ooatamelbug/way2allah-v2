@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Admin\Models\AdminUser;
+use App\Support\Permission\Role;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 use Tests\Support\Fixtures\MainSchema;
@@ -54,7 +55,7 @@ it('rejects an authenticated admin who lacks the required role', function () {
 
 it('allows an authenticated admin who holds the required role', function () {
     $admin = AdminUser::on('main')->create(['aid' => 'boss-admin', 'password' => 'x']);
-    $admin->assignRole(\App\Support\Permission\Role::firstOrCreate(['name' => 'super-admin', 'guard_name' => 'admin']));
+    $admin->assignRole(Role::firstOrCreate(['name' => 'super-admin', 'guard_name' => 'admin']));
     $this->actingAs($admin, 'admin');
 
     $this->get('/test-super-admin-only')->assertOk()->assertSee('super-admin-ok');

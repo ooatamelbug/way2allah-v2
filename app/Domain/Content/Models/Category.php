@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 /**
  * The topic-based category tree (`nuke_w2a_cat`), independent of the
@@ -91,7 +92,7 @@ class Category extends Model
      * that's a view-layer concern for whichever Wave 4 category-browsing
      * controller consumes this, not this model's job.
      */
-    public function breadcrumbTrail(): \Illuminate\Support\Collection
+    public function breadcrumbTrail(): Collection
     {
         /** @var list<self> $trail */
         $trail = [$this];
@@ -144,9 +145,9 @@ class Category extends Model
      * Real data is a tree and reaches neither guard.
      *
      * @param  iterable<array-key, int|string>  $ids  ordered, may contain duplicates
-     * @return \Illuminate\Support\Collection<int, \Illuminate\Support\Collection<int, self>>
+     * @return Collection<int, Collection<int, self>>
      */
-    public static function breadcrumbTrailsForIds(iterable $ids): \Illuminate\Support\Collection
+    public static function breadcrumbTrailsForIds(iterable $ids): Collection
     {
         /** @var list<int> $ordered */
         $ordered = [];
@@ -168,7 +169,7 @@ class Category extends Model
         $pending = array_values(array_unique($ordered));
 
         while ($pending !== []) {
-            /** @var \Illuminate\Support\Collection<int, self> $level */
+            /** @var Collection<int, self> $level */
             $level = static::query()->whereIn('id', $pending)->get();
 
             if ($level->isEmpty()) {
@@ -191,7 +192,7 @@ class Category extends Model
             $pending = array_values($next);
         }
 
-        /** @var list<\Illuminate\Support\Collection<int, self>> $trails */
+        /** @var list<Collection<int, self>> $trails */
         $trails = [];
 
         foreach ($ordered as $id) {

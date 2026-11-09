@@ -167,7 +167,7 @@ it('U+0670 (ARABIC LETTER SUPERSCRIPT ALEF, dagger alif), found in Quranic-diacr
     DB::connection('main')->table('nuke_islamic_series')->insert(['id' => 9, 'title' => 'Series']);
     DB::connection('main')->table('nuke_islamic_khotab')->insert([
         'id' => 1, 'ser_id' => 9, 'hidden' => 0, 'link' => 'https://example.com/a.mp3',
-        'title' => "هَٰذِهِ الْحَيَاةِ الدُّنْيَا",
+        'title' => 'هَٰذِهِ الْحَيَاةِ الدُّنْيَا',
     ]);
 
     $response = $this->get('/khotab-series-9.grx');
@@ -232,7 +232,7 @@ it('removes the 8 owner-approved standalone Quranic annotation marks without dis
     DB::connection('main')->table('nuke_islamic_series')->insert(['id' => 9, 'title' => 'Series']);
     DB::connection('main')->table('nuke_islamic_khotab')->insert([
         'id' => 1, 'ser_id' => 9, 'hidden' => 0, 'link' => 'https://example.com/a.mp3',
-        'title' => "هَٰذِهِ الْحَيَاةِ تۡ نِحْلَةً ۚ قَدْرِهِۦ قَبْضَتُهُۥ عَلَىٰۤ نِسۡوَةࣱ",
+        'title' => 'هَٰذِهِ الْحَيَاةِ تۡ نِحْلَةً ۚ قَدْرِهِۦ قَبْضَتُهُۥ عَلَىٰۤ نِسۡوَةࣱ',
     ]);
 
     $response = $this->get('/khotab-series-9.grx');

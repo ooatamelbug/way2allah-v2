@@ -8,6 +8,7 @@ use App\Domain\Content\Models\FatwaQuestion;
 use App\Domain\Content\Models\KhotabItem;
 use App\Domain\Content\Models\Mirror;
 use App\Domain\Content\Models\TelawahItem;
+use App\Support\Media\ArchiveOrgLink;
 
 /**
  * Replaces `functions.php`'s `get_w2a_mada()` (:856-869) + `w2a_mada_play()`
@@ -158,25 +159,31 @@ class MediaPlayerService
             return null;
         }
 
+        // OLD Play(): `fix_archive_links()` before ShowPlayer (visitor parity A2, 2026-11-04).
         return (object) [
             'title' => (string) $item->title,
-            'link' => (string) $item->link,
+            'link' => ArchiveOrgLink::normalize((string) $item->link),
             'video' => (bool) $item->vedio,
         ];
     }
 
-    /** `get_w2a_mada()`'s own `title AS title` for anasheed mirrors (khotab_mirror uses `comment AS title` instead — a real, distinct column). */
+    /**
+     * `get_w2a_mada()`'s own `title AS title` for anasheed mirrors (khotab_mirror uses `comment AS title` instead — a real, distinct column).
+     *
+     * Visitor parity (2026-11-04): OLD PlayMirror() plays a mirror only while its item is `hidden='0'`
+     * (A6), and normalises archive.org links (A2).
+     */
     private function fromAnasheedMirror(int $id): ?object
     {
         $mirror = AnasheedMirror::where('hidden', 0)->find($id);
 
-        if ($mirror === null) {
+        if ($mirror === null || ! AnasheedItem::whereKey($mirror->khid)->where('hidden', 0)->exists()) {
             return null;
         }
 
         return (object) [
             'title' => (string) $mirror->title,
-            'link' => (string) $mirror->link,
+            'link' => ArchiveOrgLink::normalize((string) $mirror->link),
             'video' => (bool) $mirror->vedio,
         ];
     }
@@ -194,7 +201,8 @@ class MediaPlayerService
         return (object) [
             'title' => (string) $item->title,
             'link' => (string) $item->link,
-            'video' => false,
+            // Gen 2 get_w2a_mada_player(): audio branch only when `vedio` is 0, else video (e.g. vedio=1 .mp4).
+            'video' => (bool) $item->vedio,
         ];
     }
 

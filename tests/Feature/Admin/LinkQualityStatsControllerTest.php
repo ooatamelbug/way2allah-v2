@@ -10,6 +10,8 @@ use App\Domain\Content\Models\Mirror;
 use App\Domain\Content\Models\TelawahItem;
 use App\Support\Permission\Permission;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Tests\Support\Fixtures\MainSchema;
 use Tests\Support\InMemoryConnection;
@@ -165,37 +167,37 @@ it('mirror: auto-repairs a row with 0 recorded linksize but a real online size o
 });
 
 it('RecheckMirrorLinkSizeJob updates checktime/online/percent from the response Content-Length', function () {
-    \Illuminate\Support\Facades\Http::fake(['*' => \Illuminate\Support\Facades\Http::response('', 200, ['Content-Length' => '1000'])]);
+    Http::fake(['*' => Http::response('', 200, ['Content-Length' => '1000'])]);
     $mirror = Mirror::create(['khid' => 1, 'link' => 'https://example.com/a.mp4', 'linksize' => 1000, 'online' => 0, 'percent' => 0, 'checktime' => 0]);
 
-    (new RecheckMirrorLinkSizeJob($mirror->id))->handle(new LinkSizeChecker());
+    (new RecheckMirrorLinkSizeJob($mirror->id))->handle(new LinkSizeChecker);
 
     $fresh = $mirror->fresh();
     expect($fresh->online)->toBe(1000)->and((int) $fresh->percent)->toBe(100)->and($fresh->checktime)->toBeGreaterThan(0);
 });
 
 it('RecheckMirrorLinkSizeJob and RecheckKhotabLinkSizeJob downgrade https to http, matching stats.php:78/stats_khotab.php:74', function () {
-    \Illuminate\Support\Facades\Http::fake(function (\Illuminate\Http\Client\Request $request) {
+    Http::fake(function (Request $request) {
         expect($request->url())->toStartWith('http://');
 
-        return \Illuminate\Support\Facades\Http::response('', 200, ['Content-Length' => '500']);
+        return Http::response('', 200, ['Content-Length' => '500']);
     });
     $mirror = Mirror::create(['khid' => 1, 'link' => 'https://example.com/a.mp4', 'linksize' => 500, 'online' => 0, 'percent' => 0]);
     $khotabItem = KhotabItem::create(['title' => 'X', 'link' => 'https://example.com/b.mp4', 'linksize' => 500, 'online' => 0, 'percent' => 0]);
 
-    (new RecheckMirrorLinkSizeJob($mirror->id))->handle(new LinkSizeChecker());
-    (new RecheckKhotabLinkSizeJob($khotabItem->id))->handle(new LinkSizeChecker());
+    (new RecheckMirrorLinkSizeJob($mirror->id))->handle(new LinkSizeChecker);
+    (new RecheckKhotabLinkSizeJob($khotabItem->id))->handle(new LinkSizeChecker);
 });
 
 it('RecheckTelawahLinkSizeJob does not downgrade https to http, matching the confirmed telawah/stats.php inconsistency', function () {
-    \Illuminate\Support\Facades\Http::fake(function (\Illuminate\Http\Client\Request $request) {
+    Http::fake(function (Request $request) {
         expect($request->url())->toStartWith('https://');
 
-        return \Illuminate\Support\Facades\Http::response('', 200, ['Content-Length' => '500']);
+        return Http::response('', 200, ['Content-Length' => '500']);
     });
     $telawahItem = TelawahItem::create(['title' => 'X', 'link' => 'https://example.com/a.mp3', 'linksize' => 500, 'online' => 0, 'percent' => 0]);
 
-    (new RecheckTelawahLinkSizeJob($telawahItem->id))->handle(new LinkSizeChecker());
+    (new RecheckTelawahLinkSizeJob($telawahItem->id))->handle(new LinkSizeChecker);
 });
 
 /**
@@ -206,12 +208,12 @@ it('RecheckTelawahLinkSizeJob does not downgrade https to http, matching the con
  * exact online/linksize match. Confirmed by direct re-read before fixing.
  */
 it('G-10-02: RecheckTelawahLinkSizeJob updates checktime/online but never touches percent, even on an exact online/linksize match — unlike the mirror/khotab jobs', function () {
-    \Illuminate\Support\Facades\Http::fake(['*' => \Illuminate\Support\Facades\Http::response('', 200, ['Content-Length' => '500'])]);
+    Http::fake(['*' => Http::response('', 200, ['Content-Length' => '500'])]);
     $telawahItem = TelawahItem::create([
         'title' => 'X', 'link' => 'https://example.com/a.mp3', 'linksize' => 500, 'online' => 0, 'percent' => 0, 'checktime' => 0,
     ]);
 
-    (new RecheckTelawahLinkSizeJob($telawahItem->id))->handle(new LinkSizeChecker());
+    (new RecheckTelawahLinkSizeJob($telawahItem->id))->handle(new LinkSizeChecker);
 
     $fresh = $telawahItem->fresh();
     expect($fresh->online)->toBe(500)

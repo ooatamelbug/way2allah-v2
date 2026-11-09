@@ -10,6 +10,4 @@ use RuntimeException;
  * Maps to a generic HTTP 400 in ThumbnailController — the message here is
  * for logs/tests only and must never be echoed back to the response body.
  */
-class ThumbnailRejectedException extends RuntimeException
-{
-}
+class ThumbnailRejectedException extends RuntimeException {}

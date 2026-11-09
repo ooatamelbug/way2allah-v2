@@ -106,16 +106,23 @@ it('IF-039: per-series-category breadcrumb trails link only the leaf category, l
 
 // ---- IF-039 quirk 3: sidebar omits the hidden=0 filter its category.php sibling has ----
 
-it('IF-039: sidebar (most-downloaded/most-recent) includes hidden items, unlike CategoryController::show()\'s own sidebar', function () {
+it('IF-039 superseded (security fix, decision-log #94): the sidebar (most-downloaded/most-recent) no longer offers hidden items — like CategoryController::show()\'s own sidebar', function () {
     DB::connection('main')->table('nuke_w2a_cat')->insert(['id' => 11, 'title' => 'Fiqh', 'main_cat' => 0]);
     DB::connection('main')->table('nuke_islamic_series')->insert(['id' => 9, 'title' => 'A Series']);
     DB::connection('main')->table('nuke_islamic_authors')->insert(['id' => 1, 'name' => 'Author']);
     DB::connection('main')->table('nuke_islamic_khotab')->insert([
-        'id' => 1, 'author' => 1, 'title' => 'Hidden Sidebar Item', 'vedio' => 1, 'hidden' => 1, 'hits' => 999,
+        ['id' => 1, 'author' => 1, 'title' => 'Hidden Sidebar Item', 'vedio' => 1, 'hidden' => 1, 'hits' => 999],
+        ['id' => 2, 'author' => 1, 'title' => 'Visible Sidebar Item', 'vedio' => 1, 'hidden' => 0, 'hits' => 5],
     ]);
-    DB::connection('main')->table('khotab_category_index')->insert(['khotab_id' => 1, 'category_id' => 11]);
+    DB::connection('main')->table('khotab_category_index')->insert([
+        ['khotab_id' => 1, 'category_id' => 11],
+        ['khotab_id' => 2, 'category_id' => 11],
+    ]);
 
-    $this->get('/category-series-9-11.htm')->assertOk()->assertSee('Hidden Sidebar Item');
+    $this->get('/category-series-9-11.htm')->assertOk()
+        ->assertSee('Visible Sidebar Item')
+        ->assertDontSee('Hidden Sidebar Item')
+        ->assertDontSee('/khotab-item-1.htm', false);
 });
 
 it('renders the redesigned series downloads and discovery cards with useful metadata', function () {

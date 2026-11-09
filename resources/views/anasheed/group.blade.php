@@ -25,6 +25,10 @@
 @section('content')
     {{-- Shared Page Chrome Parity Audit: group.php:22-26's heading + ancestor breadcrumb, restored via AnasheedGroup::breadcrumbTrail() (already used by var-item-{id}.htm's own implementation, not modified here). --}}
     <x-page-chrome :heading="$groupModel->title" :breadcrumb="$breadcrumbTrail" />
+@contextualAdmin
+    {{-- OLD Group(): «لوحة تحكم قسم المنوعات» (group_cp.htm), right after the breadcrumb. Admins only; the directives sit at column 0 so a visitor's HTML stays byte-identical. --}}
+    <x-admin.contextual-controls title="لوحة تحكم قسم المنوعات" :controls="\App\Domain\Admin\Contextual\Controls\AnasheedGroupControls::panel($groupModel)" />
+@endcontextualAdmin
 
     <div class="row service-box margin-bottom-40">
         {{--
@@ -59,6 +63,11 @@
             with a second query just to replicate that one edge exactly.)
         --}}
         @if($items->total() > 0)
+            {{-- OLD Group() (visitor parity A10, 2026-11-04): the series download block only on a sub-group
+                 (`parent_id > 0`) with items, never on a root department; series_download.htm's GetRight link and
+                 notice. OLD's direct installer link (download.getright.com/getright-download.exe) answers 403, so the
+                 link goes to the vendor's site instead. --}}
+            @if((int) $groupModel->parent_id > 0)
             <div class="col-md-12 col-sm-12">
                 <div class="portlet box blue">
                     <div class="portlet-title">
@@ -75,11 +84,14 @@
                             </div>
                             <div class="w2a-series-download-actions">
                                 <a href="/var-series-{{ $groupModel->id }}.grx" class="w2a-series-download-btn"><i class="fa fa-download" aria-hidden="true"></i> <span>تحميل السلسلة (.grx)</span></a>
+                                <a href="https://getright.com/" class="w2a-series-download-btn w2a-series-download-btn--secondary" target="_blank" rel="noopener noreferrer" data-getright-link><i class="fa fa-external-link" aria-hidden="true"></i> <span>رابط تحميل برنامج التحميل</span></a>
                             </div>
                         </div>
+                        <p class="w2a-series-download-notice" data-getright-notice>قبل تحميل السلسلة يجب أن يكون برنامج (getright) مثبت على جهازك وسوف يقوم بتحميل السلسلة مباشرة بمجرد الضغط على تحميل السلسلة. لتحميل البرنامج إضغط على رابط تحميل البرنامج</p>
                     </div>
                 </div>
             </div>
+            @endif
 
             <div class="col-md-12 col-sm-12">
                 <div class="portlet box blue">
@@ -87,6 +99,8 @@
                         <div class="caption"><i class="fa fa-video-camera"></i> قائمة المواد : {{ $groupModel->title }}</div>
                     </div>
                     <div class="portlet-body">
+                        {{-- OLD ListAnasheed() calls pagination() above and below the items (visitor parity A11, 2026-11-04). --}}
+                        {{ $items->onEachSide(1)->links('components.content.premium-pagination') }}
                         <x-content.anasheed-media-grid :items="$items" />
                         {{ $items->onEachSide(1)->links('components.content.premium-pagination') }}
                     </div>

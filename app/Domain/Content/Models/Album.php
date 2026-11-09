@@ -6,6 +6,7 @@ use App\Domain\Content\Models\Concerns\TracksViews;
 use App\Domain\Content\Models\Contracts\Viewable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 /**
  * One row per image gallery album (`nuke_albums`, `gallery` module —
@@ -78,10 +79,10 @@ class Album extends Model implements Viewable
      * uses, and hydrating 2,522 `AlbumImage` models to read 84 of them
      * would trade one inefficiency for another.
      *
-     * @param  \Illuminate\Support\Collection<int, self>  $albums
-     * @return array<int, string>  album_id => thumbnail url (absent when the album has no images)
+     * @param  Collection<int, self>  $albums
+     * @return array<int, string> album_id => thumbnail url (absent when the album has no images)
      */
-    public static function thumbnailUrlsFor(\Illuminate\Support\Collection $albums): array
+    public static function thumbnailUrlsFor(Collection $albums): array
     {
         $albumIds = $albums->pluck('album_id')->all();
 

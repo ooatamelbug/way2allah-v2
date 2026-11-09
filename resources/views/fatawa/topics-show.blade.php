@@ -38,12 +38,12 @@
         including the always-empty `<h1 style="">` and the unconditional
         angle-right icon after "الفتاوى المرئية" (no conditional check in
         source). Every ancestor link — including the CURRENT category's
-        own entry — points to `fatawa-topics-{id}-1.htm`page 1, not
-        legacy's own literal `fatawa-topics-{id}.htm` (missing the required
-        page segment — a confirmed dead link in legacy itself, since only
-        the 2-parameter .htaccess rule exists). This matches this same
-        file's own already-established subcategory-link precedent below,
-        not a new choice made here.
+        own entry — points to `fatawa-topics-{id}-1.htm`, page 1. OLD's own
+        links use `fatawa-topics-{id}.htm`, which OLD's .htaccess:631 serves
+        (an earlier note here called it dead, judged against Gen 2's
+        .htaccess); Laravel serves that URL too, as the same page (Fatwa
+        visitor parity F5b). The -1.htm form matches this same file's
+        subcategory-link precedent below and is kept.
     --}}
     <h1 style=""></h1>
     <div class="page-bar">
@@ -67,6 +67,10 @@
             @endforeach
         </ul>
     </div>
+@contextualAdmin
+    {{-- OLD topics(): AdvancedStats(0,0,$cat,"topics") — «لوحة تحكم المشرفين» with «اضافة موضوع للتصنيف» (its «حذف التصنيف من قسم الفتاوى» is dead in production). Admins only; column-0 directives keep a visitor's HTML byte-identical. --}}
+    <x-admin.contextual-controls title="لوحة تحكم المشرفين" :controls="\App\Domain\Admin\Contextual\Controls\FatwaControls::category($categoryModel)" />
+@endcontextualAdmin
 
     <div class="row service-box margin-bottom-40">
         <div class="col-lg-9 col-md-8 col-sm-7 nopadding flex flex-column gap-5">

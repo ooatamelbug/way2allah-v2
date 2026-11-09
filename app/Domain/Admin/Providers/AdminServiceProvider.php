@@ -6,6 +6,7 @@ use App\Domain\Admin\Http\Middleware\EnsureAdminHasPermission;
 use App\Domain\Admin\Http\Middleware\EnsureAdminHasRole;
 use App\Domain\Admin\Models\AdminUser;
 use App\Domain\Admin\Support\AdminDashboardModules;
+use App\Domain\Admin\Support\AdminRecordAuthorizer;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
@@ -20,9 +21,28 @@ use Illuminate\View\View as ViewInstance;
  * 'admin.permission' is checked directly inside `EnsureAdminHasPermission`,
  * not registered here — see that class's own docblock for why a
  * `Gate::before` rule wouldn't actually work for this.
+ *
+ * `register()` (OLD Admin Migration Phase 0) binds
+ * `AdminRecordAuthorizer` as a singleton so its constraint list has one
+ * definition per request. The list is empty and stays empty for Mirror
+ * Management: decision D1b' is closed (owner, 2026-10-12) — OLD's
+ * audio/video moderator division is not reproduced, so mirror
+ * authorization is flat Spatie permissions with no record constraint. See
+ * `AdminRecordConstraint`'s docblock.
  */
 class AdminServiceProvider extends ServiceProvider
 {
+    public function register(): void
+    {
+        $this->app->singleton(AdminRecordAuthorizer::class, fn () => new AdminRecordAuthorizer(
+            // Intentionally empty, and no Mirror constraint is planned —
+            // D1b' is closed in favour of flat mirror permissions. This
+            // stays the registration seam for any future record-scoped
+            // rule the business explicitly asks for.
+            constraints: [],
+        ));
+    }
+
     public function boot(): void
     {
         Route::aliasMiddleware('admin.role', EnsureAdminHasRole::class);

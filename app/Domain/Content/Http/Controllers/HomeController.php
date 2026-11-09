@@ -2,12 +2,12 @@
 
 namespace App\Domain\Content\Http\Controllers;
 
-use App\Domain\Admin\Models\SiteOption;
 use App\Domain\Content\Services\ContentListingService;
 use App\Domain\Content\Support\MediaPathResolver;
 use App\Domain\Content\Support\MediaUrl;
 use App\Domain\Engagement\Models\Poll;
 use App\Domain\Engagement\Models\PollOption;
+use App\Support\Settings\SiteOption;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -113,7 +113,7 @@ class HomeController
     {
         if ($frame === 1) {
             $rel = MediaPathResolver::path('khotab_frames', $id, 'jpg');
-            if (file_exists(public_path($rel))) {
+            if (file_exists(MediaPathResolver::absolute($rel))) {
                 return MediaUrl::asset($rel);
             }
 
@@ -122,7 +122,7 @@ class HomeController
 
         if ($authorId !== null) {
             $rel = MediaPathResolver::path('authors', $authorId, 'jpg');
-            if (file_exists(public_path($rel))) {
+            if (file_exists(MediaPathResolver::absolute($rel))) {
                 return MediaUrl::asset($rel);
             }
         }

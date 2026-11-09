@@ -67,22 +67,14 @@ return new class extends Migration
     }
 
     /**
-     * Name-based on purpose: this must only drop the index this migration
-     * created, never whatever else happens to cover the same columns.
+     * Deliberately non-destructive (owner-approved, 2026-11-08). These indexes live on shared legacy tables,
+     * and MySQL records no owner: production carries hand-deployed indexes under the very names this migration
+     * uses (decision-log #58), which a name-based DROP would remove. Rolling this migration back therefore
+     * leaves every index in place; removing one is a separate, owner-approved DBA action. Production
+     * `migrate:rollback` remains prohibited until an owner-approved rollback procedure exists.
      */
     public function down(): void
     {
-        $connection = DB::connection('main');
-
-        if (! LegacyIndexGuard::applicable($connection, self::TABLE)
-            || ! LegacyIndexGuard::namedIndexExists($connection, self::TABLE, self::INDEX)) {
-            return;
-        }
-
-        $connection->statement(sprintf(
-            'ALTER TABLE `%s` DROP INDEX `%s`',
-            self::TABLE,
-            self::INDEX,
-        ));
+        // Intentionally no DROP INDEX — see the docblock above.
     }
 };

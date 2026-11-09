@@ -7,6 +7,6 @@
 <div dir="rtl">
 <p>السلام عليكم / {{ $friendName }}</p>
 <p>صديقك <strong>{{ $yourName }}</strong> قام بارسال المادة التالية من موقع الطريق الى الله ، </p>
-<p>عنوان المادة : <a href="{{ url('/khotab-item-'.$khotabItem->id.'.htm') }}">{{ $khotabItem->title }}</a></p>
+<p>عنوان المادة : <a href="{{ $siteUrl.'/khotab-item-'.$khotabItem->id.'.htm' }}">{{ $khotabItem->title }}</a></p>
 <p>نتمنى ان تحوز على اعجابكم</p>
 </div>

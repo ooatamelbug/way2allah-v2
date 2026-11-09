@@ -173,7 +173,7 @@
 
                     <div class="w2a-fatwa-actions">
                         <button type="button" class="w2a-action-btn w2a-action-play"
-                            onclick="w2a_play({{ $fatwaQuestion->id }}, "fatawa")">
+                            onclick="w2a_play({{ $fatwaQuestion->id }}, 'fatawa')">
                             <i class="fa fa-play-circle" aria-hidden="true"></i> مشاهدة / استماع
                         </button>
                         <a href="/fatawa-download-{{ $fatwaQuestion->id }}.htm" target="_blank" rel="noopener"

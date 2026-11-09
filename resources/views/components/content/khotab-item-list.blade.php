@@ -7,7 +7,10 @@
     'showViews' => true,
     'pdf' => false,
     'emptyMessage' => 'لا توجد مواد مطابقة بقاعدة بيانات الموقع لهذا التاريخ',
+    'rowControls' => null,
 ])
+{{-- rowControls: an admin-only callable(item): list<ContextualControl>, rendered at the end of
+     each row. Null — always, for visitors — leaves the markup as before. --}}
 
 @if($items->isNotEmpty())
     <div class="w2a-items-list-wrap">
@@ -60,6 +63,9 @@
                     <span>{{ $pdf ? 'تحميل / قراءة PDF' : 'استماع / مشاهدة' }}</span>
                     <i class="fa {{ $pdf ? 'fa-file-pdf-o' : 'fa-angle-right' }}" aria-hidden="true"></i>
                 </a>
+                @if ($rowControls !== null)
+                    <x-admin.contextual-controls variant="inline" :controls="$rowControls($item)" />
+                @endif
             </article>
         @endforeach
     </div>

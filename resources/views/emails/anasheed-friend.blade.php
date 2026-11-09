@@ -9,9 +9,9 @@
 <div dir="rtl">
 <p>السلام عليكم / {{ $friendName }}</p>
 <p>صديقك <strong>{{ $yourName }}</strong> قام بارسال المادة التالية من موقع الطريق الى الله ، </p>
-<p>عنوان المادة : <a href="{{ url('/var-item-'.$anasheedItem->id.'.htm') }}">{{ $anasheedItem->title }}</a></p>
+<p>عنوان المادة : <a href="{{ $siteUrl.'/var-item-'.$anasheedItem->id.'.htm' }}">{{ $anasheedItem->title }}</a></p>
 @if ($anasheedItem->group)
-<p>السلسلة : <a href="{{ url('/var-group-'.$anasheedItem->group->id.'.htm') }}">{{ $anasheedItem->group->title }}</a></p>
+<p>السلسلة : <a href="{{ $siteUrl.'/var-group-'.$anasheedItem->group->id.'.htm' }}">{{ $anasheedItem->group->title }}</a></p>
 @endif
 <p>نتمنى ان تحوز على اعجابكم</p>
 </div>

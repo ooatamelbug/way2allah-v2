@@ -44,6 +44,10 @@
             ['title' => 'قائمة القراء'],
         ]"
     />
+@contextualAdmin
+    {{-- OLD Group(0): «لوحة التحكم» (group_main_cp.htm). Admins only; the directives sit at column 0 so a visitor's HTML stays byte-identical. --}}
+    <x-admin.contextual-controls title="لوحة التحكم" :controls="\App\Domain\Admin\Contextual\Controls\TelawahControls::main()" />
+@endcontextualAdmin
 
     <div class="row service-box margin-bottom-40">
         <div class="col-md-12 col-sm-12">

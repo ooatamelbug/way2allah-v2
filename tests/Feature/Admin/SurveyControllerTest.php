@@ -5,6 +5,7 @@ use App\Domain\Admin\Models\Survey;
 use App\Domain\Admin\Models\SurveyAnswer;
 use App\Domain\Admin\Models\SurveyQuestion;
 use App\Support\Permission\Permission;
+use App\Support\Permission\Role;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\Fixtures\MainSchema;
 use Tests\Support\Fixtures\VbulletinSchema;
@@ -52,7 +53,7 @@ it('lists surveys for an admin holding survey.modsurvey', function () {
 
 it('a super-admin bypasses the permission check entirely', function () {
     $admin = AdminUser::on('main')->create(['aid' => 'boss', 'password' => 'x']);
-    $admin->assignRole(\App\Support\Permission\Role::firstOrCreate(['name' => 'super-admin', 'guard_name' => 'admin']));
+    $admin->assignRole(Role::firstOrCreate(['name' => 'super-admin', 'guard_name' => 'admin']));
     $this->actingAs($admin, 'admin');
 
     $this->get(route('admin.survey.index'))->assertOk();

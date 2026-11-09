@@ -4,6 +4,7 @@ namespace App\Domain\Content\Http\Controllers;
 
 use App\Domain\Content\Models\Author;
 use App\Domain\Content\Models\KhotabItem;
+use App\Domain\Content\Models\Location;
 use App\Domain\Content\Services\ContentListingService;
 use App\Domain\Content\Services\ContentSidebarWidget;
 use Illuminate\Contracts\View\View;
@@ -94,16 +95,38 @@ class ChatRoomLessonController
      */
     public function author(int $author, ContentListingService $listing, ContentSidebarWidget $sidebar): View
     {
-        $authorModel = $this->authorAtLocation($author);
+        return $this->authorPage($author, self::LOCATION_ID, $listing, $sidebar);
+    }
+
+    /**
+     * `location-{location}-author-{author}.htm` (via `LocationController::locationAuthor()`, decision-log #114) —
+     * the same author page scoped to the REQUESTED location (OLD `modules/Locations` `Author($id, $location)`), not
+     * to the chat room's fixed location 10: the author must be registered at that location (else 404), and groups,
+     * series, items and both sidebars are filtered by it. `chat_author_{id}.htm` (`author()` above) keeps location 10.
+     */
+    public function authorAtGivenLocation(int $location, int $author, ContentListingService $listing, ContentSidebarWidget $sidebar): View
+    {
+        return $this->authorPage($author, $location, $listing, $sidebar);
+    }
+
+    private function authorPage(int $author, int $location, ContentListingService $listing, ContentSidebarWidget $sidebar): View
+    {
+        $authorModel = $this->authorAtLocation($author, $location);
         abort_if($authorModel === null, 404);
 
-        $groups = $listing->groupsByAuthorAndLocation($author, self::LOCATION_ID);
-        $series = $listing->seriesByAuthorAndLocation($author, 0, self::LOCATION_ID);
-        $items = $listing->khotabItemsByAuthorAndLocation($author, 0, 0, self::LOCATION_ID);
-        $mostViewed = $sidebar->chatRoomMostViewedLessons($author);
-        $mostRecent = $sidebar->chatRoomMostRecentLessons($author);
+        // Location 10 keeps the chat-room title/breadcrumb (no lookup). Any other location is loaded with the same
+        // `Location::findOrFail()` lookup `location-{id}.htm` uses: a nonexistent location is a 404 (owner decision,
+        // 2026-11-07), even when an orphaned author-location link row exists; otherwise its title/breadcrumb name it.
+        $locationModel = $location === self::LOCATION_ID ? null : Location::findOrFail($location);
 
-        return view('chat-room.author', compact('authorModel', 'groups', 'series', 'items', 'mostViewed', 'mostRecent'));
+        $groups = $listing->groupsByAuthorAndLocation($author, $location);
+        $series = $listing->seriesByAuthorAndLocation($author, 0, $location);
+        $items = $listing->khotabItemsByAuthorAndLocation($author, 0, 0, $location);
+        $mostViewed = $sidebar->chatRoomMostViewedLessons($author, $location);
+        $mostRecent = $sidebar->chatRoomMostRecentLessons($author, $location);
+        $locationId = $location;
+
+        return view('chat-room.author', compact('authorModel', 'groups', 'series', 'items', 'mostViewed', 'mostRecent', 'locationId', 'locationModel'));
     }
 
     /**
@@ -121,7 +144,7 @@ class ChatRoomLessonController
     {
         $khotabItem = KhotabItem::where('location_id', self::LOCATION_ID)->where('hidden', 0)->findOrFail($lesson);
 
-        $authorModel = $this->authorAtLocation($khotabItem->author);
+        $authorModel = $this->authorAtLocation($khotabItem->author, self::LOCATION_ID);
         abort_if($authorModel === null, 404);
 
         $previousLesson = KhotabItem::where('author', $khotabItem->author)
@@ -161,11 +184,11 @@ class ChatRoomLessonController
     }
 
     /** `chat_room/functions.php`'s `get_author_obj($id)` — join through `nuke_islamic_authors_location`, not a plain `Author::find()`. */
-    private function authorAtLocation(int $authorId): ?Author
+    private function authorAtLocation(int $authorId, int $locationId): ?Author
     {
         $exists = DB::connection('main')->table('nuke_islamic_authors_location')
             ->where('author_id', $authorId)
-            ->where('location_id', self::LOCATION_ID)
+            ->where('location_id', $locationId)
             ->exists();
 
         if (! $exists) {

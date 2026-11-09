@@ -10,8 +10,10 @@
          a sitewide <meta> tag is the standard Laravel convention for this,
          reused from here rather than duplicated per page. --}}
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="description" content="@yield('meta_description', 'شبكة الطريق إلى الله: مكتبة إسلامية مرئية وصوتية شاملة.')">
+    @php($w2aDefaultDescription = 'شبكة الطريق إلى الله: مكتبة إسلامية مرئية وصوتية شاملة.')
+    <meta name="description" content="@yield('meta_description', $w2aDefaultDescription)">
     <title>@yield('title') - {{ config('app.name') }}</title>
+    @include('layouts.partials.social-meta', ['defaultDescription' => $w2aDefaultDescription])
 
     {{--
         Business Demo wiring only — reproduces header.php's own stylesheet
@@ -124,6 +126,7 @@
 
 <main class="main" id="main-content" tabindex="-1">
     <div class="container">
+        <x-admin.contextual-flash />
         @yield('content')
     </div>
 </main>

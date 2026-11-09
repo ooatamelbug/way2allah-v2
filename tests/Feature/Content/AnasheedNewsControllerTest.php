@@ -18,11 +18,14 @@ beforeEach(function () {
 
 it('IF-029 fix: exclusive-news.htm (group 158) renders instead of fatal-erroring', function () {
     DB::connection('main')->table('nuke_anasheed_groups')->insert(['id' => 158, 'title' => 'Exclusive']);
+    // OLD ListNews(): the department (item parent_id = the root), not the root group alone —
+    // an item two levels down still belongs (visitor parity A1).
     DB::connection('main')->table('nuke_anasheed_anasheed')->insert([
-        'id' => 1, 'title' => 'Exclusive Item', 'group_id' => 158, 'fixed' => 0,
+        ['id' => 1, 'title' => 'Exclusive Item', 'group_id' => 158, 'parent_id' => 158, 'fixed' => 0],
+        ['id' => 2, 'title' => 'Deep Exclusive Item', 'group_id' => 900, 'parent_id' => 158, 'fixed' => 0],
     ]);
 
-    $this->get('/exclusive-news.htm')->assertOk()->assertSee('Exclusive Item');
+    $this->get('/exclusive-news.htm')->assertOk()->assertSee('Exclusive Item')->assertSee('Deep Exclusive Item');
 });
 
 it('IF-029 fix: cartoon-news.htm (group 57) renders', function () {
@@ -37,12 +40,12 @@ it('IF-029 fix: documentary-news.htm (group 12) renders', function () {
     $this->get('/documentary-news.htm')->assertOk()->assertSee('Documentary');
 });
 
-it('IF-029 fix: anasheed-news.htm (group 98) includes group 16\'s items too — the confirmed special case', function () {
+it('IF-029 fix: anasheed-news.htm (department 98) includes department 16\'s items too — OLD ListNews() parent_id IN (98, 16)', function () {
     DB::connection('main')->table('nuke_anasheed_groups')->insert(['id' => 98, 'title' => 'Anasheed News']);
     DB::connection('main')->table('nuke_anasheed_anasheed')->insert([
-        ['id' => 1, 'title' => 'In 98', 'group_id' => 98, 'fixed' => 0],
-        ['id' => 2, 'title' => 'In 16', 'group_id' => 16, 'fixed' => 0],
-        ['id' => 3, 'title' => 'In Other', 'group_id' => 5, 'fixed' => 0],
+        ['id' => 1, 'title' => 'In 98', 'group_id' => 301, 'parent_id' => 98, 'fixed' => 0],
+        ['id' => 2, 'title' => 'In 16', 'group_id' => 402, 'parent_id' => 16, 'fixed' => 0],
+        ['id' => 3, 'title' => 'In Other', 'group_id' => 5, 'parent_id' => 5, 'fixed' => 0],
     ]);
 
     $response = $this->get('/anasheed-news.htm');
@@ -53,8 +56,8 @@ it('IF-029 fix: anasheed-news.htm (group 98) includes group 16\'s items too — 
 it('pinned items (fixed=1) are separated from the newest-items list', function () {
     DB::connection('main')->table('nuke_anasheed_groups')->insert(['id' => 158, 'title' => 'Exclusive']);
     DB::connection('main')->table('nuke_anasheed_anasheed')->insert([
-        ['id' => 1, 'title' => 'Pinned Item', 'group_id' => 158, 'fixed' => 1],
-        ['id' => 2, 'title' => 'Regular Item', 'group_id' => 158, 'fixed' => 0],
+        ['id' => 1, 'title' => 'Pinned Item', 'group_id' => 158, 'parent_id' => 158, 'fixed' => 1],
+        ['id' => 2, 'title' => 'Regular Item', 'group_id' => 158, 'parent_id' => 158, 'fixed' => 0],
     ]);
 
     $content = $this->get('/exclusive-news.htm')->assertOk()->getContent();

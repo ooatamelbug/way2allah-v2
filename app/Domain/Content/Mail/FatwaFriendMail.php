@@ -2,6 +2,7 @@
 
 namespace App\Domain\Content\Mail;
 
+use App\Domain\Content\Mail\Concerns\SendToFriendMessage;
 use App\Domain\Content\Models\FatwaQuestion;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -30,12 +31,13 @@ use Illuminate\Queue\SerializesModels;
  */
 class FatwaFriendMail extends Mailable
 {
-    use Queueable, SerializesModels;
+    use Queueable, SendToFriendMessage, SerializesModels;
 
     public function __construct(
         public readonly FatwaQuestion $fatwaQuestion,
         public readonly string $friendName,
         public readonly string $yourName,
+        public readonly string $yourEmail = '',
     ) {}
 
     public function build(): self
@@ -47,13 +49,21 @@ class FatwaFriendMail extends Mailable
             .($author?->prename).' : '.($author?->name)
             .'  من موقع الطريق الى الله ';
 
-        return $this->from('info@way2allah.com')
+        // #106: fixed site sender (as before); the visitor, when given, is the Reply-To.
+        $mail = $this->from(self::SITE_SENDER);
+
+        if ($this->yourEmail !== '') {
+            $mail = $mail->replyTo($this->yourEmail, $this->yourName);
+        }
+
+        return $mail
             ->subject($subject)
             ->view('emails.fatawa-friend')
             ->with([
                 'fatwaQuestion' => $this->fatwaQuestion,
                 'friendName' => $this->friendName,
                 'yourName' => $this->yourName,
+                'siteUrl' => $this->siteUrl(),
             ]);
     }
 }

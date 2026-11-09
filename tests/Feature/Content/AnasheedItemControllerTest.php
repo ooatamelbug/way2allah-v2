@@ -141,8 +141,10 @@ it('show: G-13 closure — the "most downloaded"/"most recent" sidebar is still 
 
     $content = $this->get('/var-item-1.htm')->assertOk()->getContent();
 
+    // OLD Top10(): the «new» list is titled per department — group 5 is no known department → «جديد الأناشيد» (visitor parity A12).
     expect($content)->toContain('الأكثر تحميلا')
-        ->and($content)->toContain('احدث المواد');
+        ->and($content)->toContain('جديد الأناشيد')
+        ->and($content)->not->toContain('احدث المواد');
 });
 
 it('download: redirects to the item\'s link (a full URL, not a streamed local file) and increments downcount', function () {
@@ -263,13 +265,14 @@ it('sendToFriend: a single-character name is accepted — legacy has no minimum-
     $response->assertOk()->assertSeeText('1');
 });
 
-it('AnasheedFriendMail: build() sets From to the submitting user\'s own name/email, matching shams_mail_no_spam() exactly (not a fixed site address like FatwaFriendMail)', function () {
+it('AnasheedFriendMail: build() sends From the fixed site address with the submitter as Reply-To (#106, owner-approved 2026-11-08 — replaces legacy shams_mail_no_spam()\'s visitor From)', function () {
     $item = new AnasheedItem(['id' => 1, 'title' => 'A Nasheed']);
 
     $built = (new AnasheedFriendMail($item, 'Sami', 'Ahmed', 'ahmed@example.com'))->build();
 
-    expect($built->from[0]['address'])->toBe('ahmed@example.com')
-        ->and($built->from[0]['name'])->toBe('Ahmed')
+    expect($built->from[0]['address'])->toBe('info@way2allah.com')
+        ->and($built->replyTo[0]['address'])->toBe('ahmed@example.com')
+        ->and($built->replyTo[0]['name'])->toBe('Ahmed')
         ->and($built->subject)->toBe('A Nasheed - موقع الطريق الى الله');
 });
 
@@ -284,23 +287,24 @@ it('sendToFriend: 404s for a nonexistent anasheed item', function () {
 
 // ---- G-12-01 (G-12 investigation): var-item-{id}-page-{page}.htm ----
 
-it('show: paged route\'s page 2 shows the next 20 comments, NOT page 1\'s comments again — deliberately does not reproduce item.php\'s double-decrement bug', function () {
-    DB::connection('main')->table('nuke_anasheed_anasheed')->insert(['id' => 1, 'title' => 'Item', 'comments' => 21]);
+it('show: paged route\'s page 2 shows the next 24 comments (OLD Comments() $perpage = 24), NOT page 1\'s comments again — deliberately does not reproduce item.php\'s double-decrement bug', function () {
+    DB::connection('main')->table('nuke_anasheed_anasheed')->insert(['id' => 1, 'title' => 'Item', 'comments' => 25]);
 
     $comments = [];
-    for ($i = 1; $i <= 21; $i++) {
+    for ($i = 1; $i <= 25; $i++) {
         $comments[] = ['id' => $i, 'khid' => 1, 'uname' => 'U', 'comment' => "Comment {$i}", 'view' => 1, 'mytime' => 100];
     }
     DB::connection('main')->table('nuke_anasheed_comments')->insert($comments);
 
-    // orderByDesc('id') — comment 21 is first, so page 1 (comments 21..2,
-    // 20 of them) does not include comment 1; page 2 does. Legacy's own
+    // orderByDesc('id') — comment 25 is first, so page 1 (comments 25..2,
+    // 24 of them) does not include comment 1; page 2 does. Legacy's own
     // double-decrement bug would instead re-show page 1's comments here.
+    // Visitor parity A7 (2026-11-04): 24 per page, as OLD (was 20, Gen 2).
     $page1 = $this->get('/var-item-1-page-1.htm')->assertOk()->getContent();
     $page2 = $this->get('/var-item-1-page-2.htm')->assertOk()->getContent();
 
-    expect($page1)->not->toContain('Comment 1<')->and($page1)->toContain('Comment 21');
-    expect($page2)->toContain('Comment 1<')->and($page2)->not->toContain('Comment 21');
+    expect($page1)->not->toContain('Comment 1<')->and($page1)->toContain('Comment 25')->and($page1)->toContain('Comment 2<');
+    expect($page2)->toContain('Comment 1<')->and($page2)->not->toContain('Comment 25');
 });
 
 it('show: paged route still increments hits and 404s for a nonexistent item, matching the base route', function () {
@@ -370,14 +374,16 @@ it('show: detail table date row uses CoolShortDate() formatting, not a raw Y-m-d
 it('show: sidebar boxes use compact media cards with the correct downloads/date metadata', function () {
     DB::connection('main')->table('nuke_anasheed_anasheed')->insert([
         ['id' => 1, 'title' => 'Main Item', 'group_id' => 5, 'hits' => 0, 'downcount' => 0, 'mytime' => null],
-        ['id' => 2, 'title' => 'Sidebar Item', 'group_id' => 5, 'hits' => 10, 'downcount' => 42, 'mytime' => mktime(0, 0, 0, 6, 23, 2026)],
+        ['id' => 2, 'title' => 'Sidebar Item', 'group_id' => 5, 'hits' => 1234, 'downcount' => 42, 'mytime' => mktime(0, 0, 0, 6, 23, 2026)],
     ]);
 
     $content = $this->get('/var-item-1.htm')->assertOk()->getContent();
 
     expect($content)->toContain('class="w2a-chat-sidebar-list"')
         ->and($content)->toContain('class="w2a-chat-sidebar-item"')
-        ->and($content)->toContain('<i class="fa fa-download" aria-hidden="true"></i> 42 مرة')
+        // OLD Top10() printed hits, its sort key, not downcount (owner, 2026-11-04).
+        ->and($content)->toContain('<i class="fa fa-download" aria-hidden="true"></i> 1,234 مرة')
+        ->and($content)->not->toContain('42 مرة')
         ->and($content)->toContain('<i class="fa fa-calendar" aria-hidden="true"></i> الثلاثاء 23 يونيو 2026 مـ')
         ->and($content)->toContain('href="/var-item-2.htm"');
 });

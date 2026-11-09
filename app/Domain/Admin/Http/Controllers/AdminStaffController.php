@@ -3,12 +3,17 @@
 namespace App\Domain\Admin\Http\Controllers;
 
 use App\Domain\Admin\Models\AdminUser;
+use App\Domain\Admin\Support\AdminGrantInspector;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Throwable;
 
 /**
  * Replaces `admincp/authors/index.php` + `backup/index.php` — Roadmap
@@ -35,6 +40,9 @@ use Illuminate\Support\Str;
  */
 class AdminStaffController
 {
+    /** Serialises Laravel admin creation (duplicate checks + insert). */
+    public const CREATE_LOCK = 'admin-staff-create';
+
     public function index(): View
     {
         // `thumb` added — AdminCP Final 12-Route Browser Visual Evidence
@@ -52,8 +60,21 @@ class AdminStaffController
         return view('admin.staff.create');
     }
 
-    /** `backup/index.php:93-140`'s working add-flow, rebuilt: same vBulletin-member-id lookup and already-an-admin guard, no hardcoded password. */
-    public function store(Request $request): RedirectResponse
+    /**
+     * `backup/index.php:93-140`'s working add-flow, rebuilt: same vBulletin-member-id lookup and already-an-admin guard, no hardcoded password.
+     *
+     * Admin grant safety (owner-approved 2026-11-08):
+     *  - One application lock serialises Laravel admin creation, so two concurrent requests cannot both pass the
+     *    duplicate checks. Gen 2 / OLD AdminCP creation does not take this lock.
+     *  - Duplicate usernames are refused: the `aid` comparison runs in the database, so the column's collation
+     *    decides case / accent / trailing-space equality. The forum-uid check is unchanged.
+     *  - The row is inserted inside a `main` transaction; before commit, the Spatie grant tables are checked for
+     *    grants already stored under the newly allocated `nuke_authors.id` (an id reused after a MySQL 5.7
+     *    restart would inherit a deleted admin's grants). Any found → rollback and a controlled refusal; the
+     *    grants are never deleted or reassigned. If the check itself cannot run, the creation is rolled back too
+     *    (fail closed). The log carries only the id and counts.
+     */
+    public function store(Request $request, AdminGrantInspector $grants): RedirectResponse
     {
         $vbUserId = (int) $request->input('vbuid');
 
@@ -63,18 +84,59 @@ class AdminStaffController
             return back()->with('error', 'هذا العضو غير موجود بالمنتدى');
         }
 
-        if (AdminUser::on('main')->where('uid', $vbUser->userid)->exists()) {
-            return back()->with('error', 'هذا العضو متواجد بالفعل في قائمة المشرفين');
+        $lock = Cache::lock(self::CREATE_LOCK, 30);
+
+        try {
+            $lock->block(5);
+        } catch (LockTimeoutException) {
+            return back()->with('error', 'عملية إضافة مشرف أخرى قيد التنفيذ، من فضلك حاول مرة أخرى بعد قليل');
         }
 
-        $admin = AdminUser::on('main')->create([
-            'uid' => $vbUser->userid,
-            'aid' => $vbUser->username,
-            'name' => $vbUser->username,
-            'email' => $vbUser->email,
-            'password' => Hash::make(Str::random(32)),
-            'radminsuper' => 0,
-        ]);
+        try {
+            if (AdminUser::on('main')->where('uid', $vbUser->userid)->exists()) {
+                return back()->with('error', 'هذا العضو متواجد بالفعل في قائمة المشرفين');
+            }
+
+            if (AdminUser::on('main')->where('aid', $vbUser->username)->exists()) {
+                return back()->with('error', 'يوجد مشرف آخر بنفس اسم المستخدم، لا يمكن إضافة هذا العضو');
+            }
+
+            $main = DB::connection('main');
+            $main->beginTransaction();
+
+            try {
+                $admin = AdminUser::on('main')->create([
+                    'uid' => $vbUser->userid,
+                    'aid' => $vbUser->username,
+                    'name' => $vbUser->username,
+                    'email' => $vbUser->email,
+                    'password' => Hash::make(Str::random(32)),
+                    'radminsuper' => 0,
+                ]);
+
+                $existing = $grants->grantCountsFor((int) $admin->getKey());
+            } catch (Throwable $e) {
+                $main->rollBack();
+                Log::error('admin-create: refused — creation or grant check failed', ['exception' => $e::class]);
+
+                return back()->with('error', 'تعذر إضافة المشرف بأمان، لم يتم حفظ أي تغيير. من فضلك حاول مرة أخرى أو راجع سجل الأخطاء');
+            }
+
+            if ($existing['roles'] + $existing['permissions'] > 0) {
+                $main->rollBack();
+                Log::warning('admin-create: refused — grants already exist under the new admin id', [
+                    'admin_id' => (int) $admin->getKey(),
+                    'roles' => $existing['roles'],
+                    'permissions' => $existing['permissions'],
+                ]);
+
+                return back()->with('error', 'لم يتم إضافة المشرف: توجد صلاحيات سابقة مسجلة على نفس رقم المشرف. شغّل php artisan admin:audit-grants وراجع النتائج قبل المحاولة مرة أخرى');
+            }
+
+            $main->commit();
+        } finally {
+            $lock->release();
+        }
 
         return redirect()->route('admin.permissions.edit', $admin)->with('success', 'تم إضافة العضو كمشرف بالموقع، يمكنك الآن تعيين صلاحياته وكلمة مروره');
     }

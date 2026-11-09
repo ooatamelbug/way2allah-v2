@@ -11,11 +11,16 @@ use App\Domain\Content\Models\FatwaQuestion;
 use App\Domain\Content\Models\FatwaTopic;
 use App\Domain\Content\Services\ContentListingService;
 use App\Domain\Content\Services\ContentSidebarWidget;
+use App\Domain\Content\Services\SendToFriend\SendToFriendInput;
+use App\Domain\Content\Services\SendToFriend\SendToFriendMailer;
+use App\Domain\Content\Services\SendToFriend\SendToFriendRateLimiter;
+use App\Domain\Content\Support\FatwaPipeIds;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Mail;
 
 /**
  * Replaces `fatawa/single.php` ("one_question" op), `fatawa/answer.php` /
@@ -151,7 +156,8 @@ class FatwaQuestionController
     {
         $generalQuestionModel->recordView();
 
-        $topicId = (int) str_replace('|', '', (string) $generalQuestionModel->topic_id);
+        // The question's FIRST topic — OLD get_topic_id_for_general_question(), never the digits concatenated (decision-log #71).
+        $topicId = FatwaPipeIds::firstId($generalQuestionModel->topic_id);
         $topicModel = $topicId > 0 ? FatwaTopic::find($topicId) : null;
         $categoryId = $topicModel->parent_id ?? 0;
         $categoryChain = $categoryId > 0 ? $this->pageBarCategoryChain($categoryId) : collect();
@@ -290,20 +296,33 @@ class FatwaQuestionController
      * legacy's raw `mail()` call — see that Mailable's own docblock for
      * exactly what content is preserved unchanged.
      */
-    public function sendToFriend(int $question, Request $request): View|\Illuminate\Http\JsonResponse
+    public function sendToFriend(int $question, Request $request, SendToFriendRateLimiter $limiter, SendToFriendMailer $mailer): View|JsonResponse|Response
     {
         $validated = $request->validate([
-            'your_name' => ['required', 'string', 'min:2'],
-            'your_email' => ['required', 'email'],
-            'friend_name' => ['required', 'string', 'min:2'],
-            'friend_email' => ['required', 'email'],
+            // #106 (2026-11-08): shared length limits added; existing rules unchanged.
+            'your_name' => ['required', 'string', 'min:2', 'max:'.SendToFriendInput::NAME_MAX],
+            'your_email' => ['required', 'email', 'max:'.SendToFriendInput::EMAIL_MAX],
+            'friend_name' => ['required', 'string', 'min:2', 'max:'.SendToFriendInput::NAME_MAX],
+            'friend_email' => ['required', 'email', 'max:'.SendToFriendInput::EMAIL_MAX],
         ]);
 
         $fatwaQuestion = FatwaQuestion::with('author')->findOrFail($question);
 
-        Mail::to($validated['friend_email'])->send(
-            new FatwaFriendMail($fatwaQuestion, $validated['friend_name'], $validated['your_name'])
+        // #106: the shared send-to-friend rate limits, before any mail.
+        if (! $limiter->attempt((string) $request->ip(), $validated['friend_email'])) {
+            return response()->view('fatawa.friend-not-sent', ['message' => SendToFriendRateLimiter::REFUSED_MESSAGE], 429);
+        }
+
+        $sent = $mailer->send(
+            $validated['friend_email'],
+            new FatwaFriendMail($fatwaQuestion, $validated['friend_name'], $validated['your_name'], $validated['your_email']),
+            'fatawa',
+            (int) $fatwaQuestion->id,
         );
+
+        if (! $sent) {
+            return response()->view('fatawa.friend-not-sent', ['message' => 'عفوا ، حدث خطأ اثناء ارسال الرسالة من فضلك حاول مرة اخرى'], 503);
+        }
 
         return view('fatawa.friend-sent');
     }

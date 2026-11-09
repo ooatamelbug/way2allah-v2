@@ -6,6 +6,7 @@ use App\Domain\Content\Models\Category;
 use App\Domain\Content\Models\Series;
 use App\Domain\Content\Services\ContentListingService;
 use App\Domain\Content\Services\ContentSidebarWidget;
+use App\Support\Http\AdminViewer;
 use Illuminate\Contracts\View\View;
 
 /**
@@ -50,9 +51,21 @@ use Illuminate\Contracts\View\View;
  */
 class CategorySeriesController
 {
-    public function show(int $series, int $category, ContentListingService $listing, ContentSidebarWidget $sidebar): View
+    public function show(int $series, int $category, ContentListingService $listing, ContentSidebarWidget $sidebar, AdminViewer $contextual): View
     {
-        $seriesModel = Series::findOrFail($series);
+        // Admin hidden-content visibility V1 (owner, 2026-11-05): the same rule as
+        // KhotabSeriesController (owner decision 2026-10-21, decision-log #55/#56) — a hidden
+        // series is a 404 for visitors and signed-in members, decided first, before any other
+        // query or output; any signed-in administrator still opens it, and that response is
+        // kept private (`no-store, private`). The listed items keep `hidden = 0`.
+        $admin = $contextual->active();
+
+        $seriesModel = Series::query()->when(! $admin, fn ($query) => $query->where('hidden', 0))->findOrFail($series);
+
+        if ($admin) {
+            $contextual->markRendered();
+        }
+
         $categoryModel = Category::findOrFail($category);
 
         $items = $listing->khotabItemsByCategory($category, $series, 0, true);

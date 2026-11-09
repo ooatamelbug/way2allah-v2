@@ -30,15 +30,16 @@ beforeEach(function () {
 
 // ---- anasheed ----
 
-it('anasheedMostDownloaded: orders by hits desc, limits to 7, filters by group only when given', function () {
+it('anasheedMostDownloaded: orders by hits desc, limits to 6 (OLD Top10), filters by the given groups only when given', function () {
     $db = DB::connection('main');
     for ($i = 1; $i <= 9; $i++) {
-        $db->table('nuke_anasheed_anasheed')->insert(['id' => $i, 'hits' => $i, 'group_id' => $i <= 3 ? 1 : 2]);
+        $db->table('nuke_anasheed_anasheed')->insert(['id' => $i, 'hits' => $i, 'group_id' => $i <= 3 ? 1 : ($i <= 5 ? 2 : 3)]);
     }
 
-    expect($this->widget->anasheedMostDownloaded())->toHaveCount(7)
+    expect($this->widget->anasheedMostDownloaded())->toHaveCount(6)
         ->and($this->widget->anasheedMostDownloaded()->first()->id)->toBe(9) // highest hits first
-        ->and($this->widget->anasheedMostDownloaded(groupId: 1))->toHaveCount(3);
+        ->and($this->widget->anasheedMostDownloaded([1]))->toHaveCount(3)
+        ->and($this->widget->anasheedMostDownloaded([1, 2])->pluck('id')->all())->toBe([5, 4, 3, 2, 1]);
 });
 
 it('anasheedMostDownloaded: G-13-09 — frame=1 rows get a thumbnails.php-wrapped thumb (w=72,h=50), frame=0 rows fall back to a thumbnails.php-wrapped tvnoise.gif too (var-item-17350.htm parity: functions.php:150-187\'s thumbnail() routes BOTH branches through thumbnails.php, not just frame=1), no file_exists() gate', function () {
@@ -61,6 +62,16 @@ it('anasheedMostRecent: orders by mytime desc, not hits', function () {
     ]);
 
     expect($this->widget->anasheedMostRecent()->first()->id)->toBe(2); // later mytime wins, despite fewer hits
+});
+
+it('anasheedMostRecent: limits to 6 and filters by the given groups (OLD Top10)', function () {
+    $db = DB::connection('main');
+    for ($i = 1; $i <= 9; $i++) {
+        $db->table('nuke_anasheed_anasheed')->insert(['id' => $i, 'mytime' => $i * 10, 'group_id' => $i % 2 === 0 ? 4 : 5]);
+    }
+
+    expect($this->widget->anasheedMostRecent())->toHaveCount(6)
+        ->and($this->widget->anasheedMostRecent([4])->pluck('id')->all())->toBe([8, 6, 4, 2]);
 });
 
 // ---- w2acd (no group filter exists at all) ----

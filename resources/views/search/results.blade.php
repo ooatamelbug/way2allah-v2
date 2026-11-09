@@ -104,7 +104,7 @@
                             @endforeach
                         @elseif ($resultKind === 'fatawa')
                             @foreach ($mawad as $item)
-                                @php $linkId = str_replace('|', '', (string) $item->general_question_id); @endphp
+                                @php $linkId = \App\Domain\Content\Support\FatwaPipeIds::linkId($item->general_question_id); @endphp
                                 <li>
                                     <a href="/fatawa-all-{{ $linkId }}.htm">{!! LegacySearchRendering::highlight($item->question_text, $title) !!}</a>
                                     <div>{{ $item->date_of_fatwa }}</div>

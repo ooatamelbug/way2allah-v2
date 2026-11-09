@@ -74,12 +74,14 @@ class ChannelController
      * inventing behavior author.php has never actually had.
      *
      * The "اخترنا لك هذه المادة" (Recommended For You) box
-     * (author.php:81, randomitems()) is also not reproduced — it needs a
-     * real content-item model to pick a random row from, which doesn't
-     * exist until Wave 4. Documented as deferred scope, not a silent gap
-     * (Wave 3 report, Technical Debt).
+     * (Gen 2 author.php:75-82, randomitems()) IS populated in legacy — one
+     * random sitewide Khotab item with a gif / frame, not scoped to the
+     * channel or author. Restored (2026-11-08, visitor-parity fix) through
+     * the shared khotabRandomFeatured() — the same port the Khotab / category
+     * pages use, with the owner-approved hidden-item exclusion (#94).
+     * (The earlier "deferred until Wave 4" note is superseded.)
      */
-    public function showAuthor(int $channel, int $author, ContentListingService $listing): View
+    public function showAuthor(int $channel, int $author, ContentListingService $listing, ContentSidebarWidget $sidebar): View
     {
         $channelModel = Channel::findOrFail($channel);
 
@@ -88,7 +90,8 @@ class ChannelController
         $groups = $listing->groupsByChannel($channel, $author, true);
         $series = $listing->seriesByChannel($channel, $author, true);
         $items = $listing->khotabItemsByChannel($channel, $author, 0, 0, true);
+        $randomFeatured = $sidebar->khotabRandomFeatured();
 
-        return view('channels.author', compact('channelModel', 'authorRow', 'author', 'groups', 'series', 'items'));
+        return view('channels.author', compact('channelModel', 'authorRow', 'author', 'groups', 'series', 'items', 'randomFeatured'));
     }
 }

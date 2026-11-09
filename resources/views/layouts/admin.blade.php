@@ -348,6 +348,14 @@
             @if (session('error'))
                 <div class="alert alert-danger">{{ session('error') }}</div>
             @endif
+            {{-- Contextual administration: opened from a public page. --}}
+            @php($contextualBack = \App\Domain\Admin\Contextual\ContextualReturn::safeTarget(old(\App\Domain\Admin\Contextual\ContextualReturn::PARAM, request()->query(\App\Domain\Admin\Contextual\ContextualReturn::PARAM)), request()))
+            @if ($contextualBack !== null)
+                <div class="alert alert-info" data-contextual-admin-back>
+                    فُتحت هذه الصفحة من الموقع — بعد الحفظ بنجاح ستعود إلى الصفحة نفسها.
+                    <a href="{{ $contextualBack }}">العودة إلى الصفحة دون حفظ</a>
+                </div>
+            @endif
 
             <div class="row">
                 @yield('content')

@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Content\Services\ContentListingService;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\Fixtures\MainSchema;
 use Tests\Support\InMemoryConnection;
@@ -132,7 +133,7 @@ it('generated SQL is ONLY_FULL_GROUP_BY safe: no SELECT *, and every non-aggrega
         }
     });
 
-    app(App\Domain\Content\Services\ContentListingService::class)->fatwaAuthorsWithQuestions();
+    app(ContentListingService::class)->fatwaAuthorsWithQuestions();
 
     expect($sql)->not->toBeNull();
 
@@ -143,8 +144,8 @@ it('generated SQL is ONLY_FULL_GROUP_BY safe: no SELECT *, and every non-aggrega
     [, $groupBy] = explode('group by', $sql, 2);
 
     foreach (['id', 'name', 'prename'] as $column) {
-        expect($sql)->toContain('"nuke_islamic_authors"."' . $column . '"');
-        expect($groupBy)->toContain('"nuke_islamic_authors"."' . $column . '"');
+        expect($sql)->toContain('"nuke_islamic_authors"."'.$column.'"');
+        expect($groupBy)->toContain('"nuke_islamic_authors"."'.$column.'"');
     }
 
     // The aggregate is the only thing selected that is not grouped.
@@ -168,7 +169,7 @@ it('result parity after the ONLY_FULL_GROUP_BY fix: one row per author, legacy C
         ['id' => 4, 'auther_id' => 2, 'general_question_id' => '|12|', 'question_text' => 'd'],
     ]);
 
-    $authors = app(App\Domain\Content\Services\ContentListingService::class)->fatwaAuthorsWithQuestions();
+    $authors = app(ContentListingService::class)->fatwaAuthorsWithQuestions();
 
     expect($authors)->toHaveCount(2)
         ->and($authors->pluck('name')->all())->toBe(['Alpha', 'Beta'])

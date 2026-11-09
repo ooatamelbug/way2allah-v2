@@ -30,4 +30,31 @@ class LinkSizeChecker
             return 0;
         }
     }
+
+    /**
+     * An admin form's interactive size lookup (Fatwa X2 — OLD
+     * `getfilesize()`, a cURL `NOBODY` request following redirects): a HEAD
+     * request, so the media itself is never downloaded, with a short
+     * timeout. Only an absolute http(s) URL is requested. Null when the size
+     * cannot be learned — the caller keeps whatever the admin typed.
+     */
+    public function headContentLength(string $link, int $timeoutSeconds = 10): ?int
+    {
+        $link = trim($link);
+        $scheme = strtolower((string) parse_url($link, PHP_URL_SCHEME));
+
+        if (! in_array($scheme, ['http', 'https'], true) || (string) parse_url($link, PHP_URL_HOST) === '') {
+            return null;
+        }
+
+        try {
+            $response = Http::timeout($timeoutSeconds)->head($link);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        $length = $response->header('Content-Length');
+
+        return $response->successful() && ctype_digit($length) && (int) $length > 0 ? (int) $length : null;
+    }
 }

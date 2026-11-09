@@ -27,11 +27,12 @@ $(document).ready(function(){
 		var msg = '';
 		$("#send_comment").attr("disabled","disabled");
 		$("#send_comment").html('جاري الارسال');
-		var anasheed_id = $("#anasheed_id").val();
+		// Laravel (decision-log #105): the canonical comment endpoint (anasheed.item.store-comment, rendered into the
+		// form's data-comment-url) and the form's CSRF token; Gen 2's own comment URL is not routed in Laravel.
 		var request = $.ajax({
-		  url: "add-anasheed-comment-"+anasheed_id+".htm",
+		  url: $("#comments_form").data("comment-url"),
 		  method: "POST",
-		  data: { user_nickname : user_nickname, user_comment:user_comment},
+		  data: { user_nickname : user_nickname, user_comment:user_comment, _token: $("#comments_form input[name='_token']").val()},
 		  dataType: "html",
 		  success:function(data){
 			  if(data == 1){
@@ -123,11 +124,12 @@ function anasheed_send_friend(){
 	var msg = '';
 	$("#send_friend").attr("disabled","disabled");
 	$("#send_friend").html('جاري الارسال');
-	var anasheed_id = $("#anasheed_id").val();
+	// Laravel (decision-log #106): the same send-friend-anasheed-{id}.htm route, rendered into the form's
+	// data-send-url, and the form's CSRF token (Laravel CSRF applies to this POST).
 	var request = $.ajax({
-	  url: "send-friend-anasheed-"+anasheed_id+".htm",
+	  url: $("#sendFriend_form").data("send-url"),
 	  method: "POST",
-	  data: { your_name : your_name, your_email:your_email, friend_name:friend_name, friend_email:friend_email},
+	  data: { your_name : your_name, your_email:your_email, friend_name:friend_name, friend_email:friend_email, _token: $("#sendFriend_form input[name='_token']").val()},
 	  dataType: "html",
 	  success:function(data){
 		  if(data == 1){
@@ -140,6 +142,17 @@ function anasheed_send_friend(){
 		  $("#sendFriend_form").hide();
 		  $("#modal-sendFriend-body").append(msg);
 		  $("#send_friend").hide();
+	  },
+	  // #106 (2026-11-08): rate limit (429) or any other HTTP error — never left on «جاري الارسال».
+	  error:function(xhr){
+		  if(xhr.status === 429){
+			  msg = '<div class="sending-result alert alert-danger">عفوا ، تم تجاوز الحد المسموح لإرسال المواد. من فضلك حاول مرة اخرى لاحقا</div>';
+		  }else{
+			  msg = '<div class="sending-result alert alert-danger">عفوا ، حدث خطأ اثناء ارسال المادة من فضلك حاول مرة اخرى</div>';
+		  }
+		  $("#sendFriend_form").hide();
+		  $("#modal-sendFriend-body").append(msg);
+		  $("#send_friend").hide();
 	  }
-	});	
+	});
 }

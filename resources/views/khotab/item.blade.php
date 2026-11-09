@@ -20,6 +20,9 @@
 @section('title', $khotabItem->title . ' - ' . ($khotabItem->authorModel->prename ?? '') . ' ' .
     ($khotabItem->authorModel->name ?? ''))
 
+{{-- IF-056: Gen 2 `khotab/item.php` share image (frame / gif); empty → the layout's default image. --}}
+@section('social_image', $khotabItem->socialImageUrl() ?? '')
+
     @push('page-styles')
         <link href="/assets/frontend/layout/css/content-refresh.css" rel="stylesheet" type="text/css">
     @endpush
@@ -45,7 +48,8 @@
         authoring bug (stray `\f` escape) — not reproduced, same standing
         rule already applied on khotab/authors.blade.php.
     --}}
-    <h3 class="page-title">{{ $khotabItem->title }} - {{ $khotabAuthorName }}</h3>
+    {{-- OLD Detailes(): « مخفي » after a hidden item's title, for an admin (visitors never reach a hidden item). --}}
+    <h3 class="page-title">{{ $khotabItem->title }}{{ ($hiddenForAdmin ?? false) ? ' مخفي ' : '' }} - {{ $khotabAuthorName }}</h3>
     <div class="page-bar">
         <ul class="page-breadcrumb">
             <li><i class="fa fa-home"></i><a href="/">الرئيسية</a><i class="fa fa-angle-right"></i></li>
@@ -60,17 +64,45 @@
             @if ($series)
                 <li><a href="/khotab-series-{{ $series->id }}.htm">سلسلة {{ $series->title }}</a><i class="fa fa-angle-right"></i></li>
             @endif
-            <li><a href=""> {{ $khotabItem->title }}</a><i class=""></i></li>
+            <li><a href=""> {{ $khotabItem->title }}{{ ($hiddenForAdmin ?? false) ? ' مخفي ' : '' }}</a><i class=""></i></li>
         </ul>
+        @contextualAdmin
+            @php($contextualCategories = \App\Domain\Admin\Contextual\Controls\KhotabItemControls::assignedCategories($khotabItem))
+        @endcontextualAdmin
         @foreach ($categoryChains as $chain)
             @foreach ($chain as $category)
                 <span><img src="/images/arrowbullet.png" alt="" />&nbsp;<b><a href="/category-{{ $category->id }}.htm">{{ $category->title }}</a></b>&nbsp;</span>
+                {{-- Contextual administration (OLD Tree(): remove beside each of the item's categories). --}}
+                @contextualAdmin
+                    @if ($loop->last && array_key_exists((int) $category->id, $contextualCategories))
+                        <x-admin.contextual-controls variant="inline" :controls="[\App\Domain\Admin\Contextual\Controls\KhotabItemControls::removeCategory($khotabItem, (int) $category->id)]" />
+                    @endif
+                @endcontextualAdmin
                 @if (!$loop->last)
                     &nbsp;&nbsp;&nbsp;
                 @endif
             @endforeach
         @endforeach
     </div>
+
+    {{-- Contextual administration (OLD AdminPanel() / Gen 2 adminItemControls()). --}}
+    @contextualAdmin
+        <x-admin.contextual-controls title="لوحة تحكم المشرفين" :controls="\App\Domain\Admin\Contextual\Controls\KhotabItemControls::toolbar($khotabItem)" />
+        {{-- OLD AdminPanel() «تنزيل الوورد»: the item's Word file, for any admin while docx != 0. --}}
+        @if ((int) $khotabItem->docx !== 0)
+            <div class="w2a-admin-ctx w2a-admin-ctx--inline" dir="rtl" data-contextual-admin>
+                <a href="{{ \App\Domain\Content\Support\MediaUrl::asset($khotabItem->docxPath()) }}" class="w2a-admin-ctx__btn"><i class="fa fa-download" aria-hidden="true"></i> تنزيل الوورد</a>
+            </div>
+        @endif
+        @include('admin.contextual._khotab-advanced-stats', ['stats' => \App\Domain\Admin\Contextual\Controls\KhotabItemAdvancedStats::for((int) $khotabItem->id)])
+        {{-- Categories in the item's list that the page above does not show. --}}
+        @include('admin.contextual._category-rows', [
+            'heading' => 'تصنيفات أخرى مسجلة للمادة',
+            'rows' => collect(array_diff_key($contextualCategories, array_flip(collect($categoryChains)->map(fn ($chain) => (int) collect($chain)->last()?->id)->all())))
+                ->map(fn ($title, $categoryId) => ['id' => $categoryId, 'title' => $title, 'controls' => [\App\Domain\Admin\Contextual\Controls\KhotabItemControls::removeCategory($khotabItem, $categoryId)]])
+                ->values()->all(),
+        ])
+    @endcontextualAdmin
 
     <div class="row service-box margin-bottom-40 w2a-media-layout">
         <div class="col-lg-9 col-md-8 col-sm-7 nopadding flex flex-column gap-5">
@@ -83,6 +115,15 @@
                         (int) ($khotabItem->linksize ?? 0),
                     )"
                         :download-url="'/khotab-download-' . $khotabItem->id . '.htm'" :pdf-url="'/khotab-item-pdf-' . $khotabItem->id . '.htm'" :pdf-count="$khotabItem->pdf" :notes="$khotabItem->notes" />
+                    {{-- OLD detailes.htm:74-79 «الملف الدعائي»: the item's promotional file in a popup.
+                         Shown for a published file only (OLD also showed it while a request was pending,
+                         opening an empty popup). --}}
+                    @if ((int) $khotabItem->advfile > 0 && \App\Domain\Content\Models\Advfile::query()->whereKey($khotabItem->id)->exists())
+                        <div class="text-center" style="margin-top:10px">
+                            <a class="various btn btn-default" data-fancybox-type="iframe" title="الملف الدعائي للمادة" href="/khotab-advfile-{{ $khotabItem->id }}.htm"><i class="fa fa-bullhorn" aria-hidden="true"></i> الملف الدعائي</a>
+                        </div>
+                        @include('advfiles._popup-script')
+                    @endif
                 </div>
             </div>
 
@@ -225,13 +266,48 @@
                 </div>
             @endif
 
-            @if ($comments !== null && $comments->isNotEmpty())
+            {{-- OLD Detailes(): the item's banner and its three embed codes, after the mirrors and before the
+                 comments, for every visitor (KhotabBanner: banner = 1, not hidden, file present). --}}
+            @php($khotabBanner = \App\Domain\Content\Support\KhotabBanner::for((int) $khotabItem->id, (int) $khotabItem->banner, (int) $khotabItem->hidden))
+            @if ($khotabBanner !== null)
+                <div class="portlet box blue" data-item-banner>
+                    <div class="portlet-title">
+                        <div class="caption"><i class="fa fa-picture-o"></i> بانر المادة</div>
+                    </div>
+                    <div class="portlet-body text-center">
+                        <p><img src="{{ $khotabBanner['url'] }}" @if ($khotabBanner['width'] > 0) width="{{ $khotabBanner['width'] }}" height="{{ $khotabBanner['height'] }}" @endif
+                            alt="{{ $khotabItem->title }} لـ{{ $khotabAuthorName }}" style="max-width:100%;height:auto"></p>
+                        <p dir="rtl"><b>شارك معنا و قم بوضع رابط لهذه المادة في موقعك أو توقيعك</b><br>
+                            (
+                            <a class="various" data-fancybox-type="iframe" href="/khotab-code-{{ $khotabItem->id }}-1.htm" title="كود HTML">كود HTML</a>
+                            -
+                            <a class="various" data-fancybox-type="iframe" href="/khotab-code-{{ $khotabItem->id }}-2.htm" title="كود منتديات VBulletin">كود منتديات VBulletin</a>
+                            -
+                            <a class="various" data-fancybox-type="iframe" href="/khotab-code-{{ $khotabItem->id }}-3.htm" title="كود منتديات phpBB">كود منتديات phpBB</a>
+                            )
+                        </p>
+                    </div>
+                </div>
+                @include('advfiles._popup-script')
+            @endif
+
+            {{-- OLD Comments() ran whenever the item's `comments` counter was above 0, and gave an
+                 admin the «إضافة تعليق إداري» form and «(تعديل التعليق)» beside each comment. --}}
+            @php($contextualComments = app(\App\Domain\Admin\Contextual\ContextualAdmin::class))
+            @php($moderatorForm = $comments !== null && $contextualComments->visible([\App\Domain\Admin\Contextual\Controls\KhotabItemControls::moderatorComment($khotabItem)]) !== [])
+            @if ($comments !== null && ($comments->isNotEmpty() || $moderatorForm))
                 <div class="portlet box blue">
                     <div class="portlet-title">
                         <div class="caption"><i class="fa fa-comments"></i> تعليقات الزوار على المادة</div>
                     </div>
                     <div class="portlet-body">
-                        <x-content.visitor-comments :comments="$comments" />
+                        @if ($moderatorForm)
+                            @include('admin.contextual._khotab-moderator-comment', ['item' => $khotabItem])
+                        @endif
+                        @if ($comments->isNotEmpty())
+                            <x-content.visitor-comments :comments="$comments"
+                                :comment-controls="$contextualComments->active() ? fn ($comment) => [\App\Domain\Admin\Contextual\Controls\KhotabItemControls::forComment((int) $comment->id)] : null" />
+                        @endif
                     </div>
                 </div>
             @endif
@@ -437,10 +513,23 @@
                             if (data == 1) {
                                 msg =
                                     '<div class="sending-result alert alert-success">شكرا لك ، تم ارسال المادة الى صديقك بنجاح</div>';
+                            } else if (data == -1) {
+                                // #106: mail-transport failure (legacy code -1, as on the Anasheed page).
+                                msg =
+                                    '<div class="sending-result alert alert-danger">عفوا ، حدث خطأ اثناء ارسال المادة من فضلك حاول مرة اخرى</div>';
                             } else if (data == 2) {
                                 msg =
                                     '<div class="sending-result alert alert-danger">عفوا ، يجب عليك اكمال البيانات المطلوبة</div>';
                             }
+                            $('#sendFriend_form').hide();
+                            $('#modal-sendFriend-body').append(msg);
+                            $('#send_friend').hide();
+                        },
+                        // #106: rate limit (429) or any other HTTP error — never left on «جاري الارسال».
+                        error: function(xhr) {
+                            msg = xhr.status === 429
+                                ? '<div class="sending-result alert alert-danger">عفوا ، تم تجاوز الحد المسموح لإرسال المواد. من فضلك حاول مرة اخرى لاحقا</div>'
+                                : '<div class="sending-result alert alert-danger">عفوا ، حدث خطأ اثناء ارسال المادة من فضلك حاول مرة اخرى</div>';
                             $('#sendFriend_form').hide();
                             $('#modal-sendFriend-body').append(msg);
                             $('#send_friend').hide();

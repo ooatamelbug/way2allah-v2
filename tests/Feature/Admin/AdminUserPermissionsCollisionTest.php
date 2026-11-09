@@ -3,7 +3,9 @@
 use App\Domain\Admin\Models\AdminUser;
 use App\Support\Permission\Permission;
 use App\Support\Permission\Role;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use Tests\Support\Fixtures\MainSchema;
 use Tests\Support\InMemoryConnection;
 
@@ -37,7 +39,7 @@ uses(RefreshDatabase::class);
 function useInMemoryMainConnectionWithRealPermissionsColumn(): void
 {
     InMemoryConnection::setup('main', [
-        'nuke_authors' => function (\Illuminate\Database\Schema\Blueprint $table) {
+        'nuke_authors' => function (Blueprint $table) {
             (MainSchema::nukeAuthors())($table);
             $table->text('permissions')->nullable();
         },
@@ -58,7 +60,7 @@ it('getPermissionNames() no longer crashes on a real admin row with a populated 
 
     $fresh = AdminUser::on('main')->find($admin->id);
 
-    expect($fresh->getPermissionNames())->toBeInstanceOf(\Illuminate\Support\Collection::class);
+    expect($fresh->getPermissionNames())->toBeInstanceOf(Collection::class);
 });
 
 it('getAllPermissions() and getDirectPermissions() also resolve the real Spatie relation, not the raw legacy blob', function () {

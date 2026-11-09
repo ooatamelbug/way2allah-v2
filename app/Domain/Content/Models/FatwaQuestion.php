@@ -48,8 +48,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $db_insertion_date
  * @property int|null $num_view
  * @property int|null $num_download
- * @property-read \App\Domain\Content\Models\Author|null $author
- * @property-read \App\Domain\Content\Models\Channel|null $channel
+ * @property-read Author|null $author
+ * @property-read Channel|null $channel
  */
 class FatwaQuestion extends Model
 {

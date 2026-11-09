@@ -118,7 +118,7 @@
                     <div class="portlet-body">
                         <ul class="news">
                             @foreach ($mostDownloaded as $item)
-                                <li><a href="/fatawa-all-{{ str_replace('|', '', $item->general_question_id) }}.htm#{{ $item->id }}" class="add"><span class="w2a-news-title">{{ $item->question_text }}</span></a></li>
+                                <li><a href="/fatawa-all-{{ \App\Domain\Content\Support\FatwaPipeIds::linkId($item->general_question_id) }}.htm#{{ $item->id }}" class="add"><span class="w2a-news-title">{{ $item->question_text }}</span></a></li>
                             @endforeach
                         </ul>
                     </div>
@@ -134,7 +134,7 @@
                     <div class="portlet-body">
                         <ul class="news">
                             @foreach ($mostRecent as $item)
-                                <li><a href="/fatawa-all-{{ str_replace('|', '', $item->general_question_id) }}.htm#{{ $item->id }}" class="add"><span class="w2a-news-title">{{ $item->question_text }}</span></a></li>
+                                <li><a href="/fatawa-all-{{ \App\Domain\Content\Support\FatwaPipeIds::linkId($item->general_question_id) }}.htm#{{ $item->id }}" class="add"><span class="w2a-news-title">{{ $item->question_text }}</span></a></li>
                             @endforeach
                         </ul>
                     </div>

@@ -45,8 +45,10 @@ it('serves /landing_page.htm directly (no redirect) with the exact same real con
 });
 
 it('/landing_page.htm and /about return byte-identical content — confirming this is pass-through to the same existing controller, not a duplicated view', function () {
-    $landingPage = $this->get('/landing_page.htm')->getContent();
-    $about = $this->get('/about')->getContent();
+    // og:url is the requested URL (IF-056, as Gen 2) — the only per-URL difference.
+    $withoutOgUrl = fn (string $html) => (string) preg_replace('/<meta property="og:url" content="[^"]*">/', '', $html);
+    $landingPage = $withoutOgUrl($this->get('/landing_page.htm')->getContent());
+    $about = $withoutOgUrl($this->get('/about')->getContent());
 
     expect($landingPage)->toBe($about);
 });
@@ -101,8 +103,10 @@ it('/about renders modern structured sections for vision, mission, goals, and hi
 });
 
 it('/landing_page.htm inherits the exact same view as /about — still byte-identical to it', function () {
-    $landingPage = $this->get('/landing_page.htm')->getContent();
-    $about = $this->get('/about')->getContent();
+    // og:url is the requested URL (IF-056, as Gen 2) — the only per-URL difference.
+    $withoutOgUrl = fn (string $html) => (string) preg_replace('/<meta property="og:url" content="[^"]*">/', '', $html);
+    $landingPage = $withoutOgUrl($this->get('/landing_page.htm')->getContent());
+    $about = $withoutOgUrl($this->get('/about')->getContent());
 
     expect($landingPage)->toBe($about)
         ->toContain('<h3 class="page-title">من نحن</h3>')

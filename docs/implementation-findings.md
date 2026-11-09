@@ -114,6 +114,72 @@ Living record of undocumented legacy behavior discovered while implementing Blue
 - **Decision:** `ChannelController::showAuthor()` does not call either sidebar method at all. The two boxes render with headings only, no items — matching legacy exactly, not "completing" what looks like an oversight.
 - **Impact on the migration:** A visitor browsing a channel filtered to one author sees no downloads/newest recommendations, while the unfiltered channel page does show them — a real, confirmed inconsistency in the current site, not introduced by this port. Good candidate for a future business question ("should author-filtered pages have this too?"), not resolved here.
 - **Test:** `tests/Feature/Content/ChannelControllerTest.php` — "showAuthor: ... leaves the most-downloaded/newest boxes empty (IF-012)", which also proves an unrelated author's high-hit item never leaks into the (absent) sidebar.
+- **Update (2026-11-08) — related LOW visitor-parity gap: «اخترنا لك هذه المادة» — IMPLEMENTED AND TESTED LOCALLY — AWAITING OWNER VERIFICATION.**
+  IF-012 itself (the two empty boxes) is unchanged and remains parity with Gen 2. Separately, Gen 2
+  `channels/author.php:75-82` renders a third box, «اخترنا لك هذه المادة», **populated** by `randomitems()`
+  (`functions.php:1092`: one random sitewide Khotab item with `gif = 1` or `frame = 1`, gif / frame thumbnail,
+  author name, title linked to `khotab-item-{id}.htm`); Laravel had omitted it under a stale "needs a content model
+  (Wave 4)" deferral. Restored on `channel-{id}-{author}.htm`: `ChannelController::showAuthor()` now passes
+  `ContentSidebarWidget::khotabRandomFeatured()` (the shared port already used by 8 Khotab / category pages) and
+  `channels/author.blade.php` renders it with the existing `<x-content.featured-items>` in the same `fa-child`
+  portlet as `khotab/series.blade.php`, after the profile image and before the two IF-012 boxes (Gen 2 order).
+  Differences from Gen 2, both pre-existing in the shared port: hidden items are excluded (owner-approved #94); the
+  shared card layout (Laravel card; author shown as prename + name). Author filtering, listing, pagination, the empty
+  IF-012 boxes and `channel-{id}.htm` (Gen 2 `channel.php` has no such box) unchanged; no query in Blade. Tests: new
+  `tests/Feature/Content/ChannelAuthorRecommendationTest.php` (7) — box once with the heading, before the two boxes;
+  sitewide pick linked to its item page with the frame image; gif image when `gif = 1`; no image → never picked;
+  hidden excluded; author page otherwise unchanged; channel page unaffected. Mutation: without the box 5 / 7 fail
+  (view restored byte-identical). Channel + sidebar + Architecture set 57 / 57; full suite 2,562 — 2,561 passed, 0
+  failed, 1 skipped (pre-existing), 18,840 assertions; PHPStan level 5: 0 errors; Pint PASS (changed files and
+  repository-wide). Not owner verified; not production verified.
+- **Update (2026-11-08, later) — CHANNEL AUTHOR UI & NAVIGATION: IMPLEMENTED AND TESTED LOCALLY — AWAITING OWNER
+  VERIFICATION.** The owner rejected the `channel-3-2.htm` layout (isolated profile image, oversized featured card,
+  empty groups section, narrow item rows, weak hierarchy). **Root cause:** `channels/author.blade.php` never used
+  Gen 2's two-column `row service-box` (author.php:41-98) that `channels/show.blade.php` already uses — the listing and a
+  bare `<aside>` stacked full width; no page chrome; the shared `_listing` partial rendered empty sections, which Gen 2
+  omits (`channels/functions.php:19, :107, :195`); the author-page item title kept a half-width column; and the item
+  metadata cells' grid `flex-basis: 25%` plus the strip's gaps always wrapped the last cell. Read-only reachability
+  check: author pages are linked from the channel page's item rows, search results and the Ramadan page; Gen 2's
+  group / series author links (`functions.php:48, :137`) had been dropped by the shared card grid.
+  **Owner-approved decisions:** (1) item rows on the author page use the full row, no repeated author column;
+  (2) the two IF-012 boxes stay, as empty Gen 2-style portlets; (3) Gen 2 heading «مرئيات {prename} {name} - قناة
+  {title}» as page heading and document title (so also `og:title`), with the three-level breadcrumb (two levels and
+  «قناة {title}» when the author does not exist, as Gen 2); (4) author links restored with a stretched-link card;
+  (5) a two-column series / group grid on the author page only.
+  **Implementation:** `channels/author.blade.php` — `<x-page-chrome>`, `row service-box w2a-channel-author`, main
+  `col-lg-9 col-md-8 col-sm-7`, sidebar `col-lg-3 col-md-4 col-sm-5`: «الملف الشخصي» (`profile-userpic` /
+  `img-responsive`, same image source), «اخترنا لك هذه المادة» (unchanged `khotabRandomFeatured()` + featured card),
+  the two empty IF-012 portlets. `channels/_listing.blade.php` — sections only when non-empty (both channel pages);
+  full-width title column on the author branch only; group cards link the author to `khotab.authors.show`
+  (`/khotab-video-{author}.htm`), series cards to `channels.show-author` (`/channel-{channel}-{author}.htm`), relative
+  URLs, no link when the author / channel id is missing. `components/content/media-collection-grid.blade.php` — opt-in
+  `secondaryHref` (callable): an `<article>` card whose title link is stretched over the card and whose author link
+  sits above it (no nested `<a>`); without the prop, or when it returns null, the original single-`<a>` markup —
+  verified byte-identical for all existing consumer configurations (`khotab/author` ×2, `khotab/group`, channels).
+  `content-refresh.css` — scoped rules only: the linked-card overlay / focus outlines (`.w2a-cat-series-card--linked`),
+  two grid columns (one under 576 px) under `.w2a-channel-author`, and the author page's full-width one-line metadata
+  strip. Controller unchanged (only the earlier `randomFeatured` addition). The normal channel page keeps its sidebar,
+  item author column and three-column grid; its cards also gain the Gen 2 author links.
+  **Tests:** new `tests/Feature/Content/ChannelAuthorLayoutTest.php` (14 incl. datasets) — 200, heading, breadcrumb,
+  title, `og:title`; missing-author fallback; main / sidebar structure and order; profile and single featured item in
+  the sidebar; empty IF-012 portlets; empty sections omitted, populated kept; author / hidden filtering; full-width item
+  row with metadata; series / group author links and unchanged card destinations; no nested anchors (both pages);
+  normal channel page intact; component default markup unchanged; null author → original card; scoped CSS. Updated:
+  four assertions in `ChannelAuthorRecommendationTest` made obsolete by the approved markup (portlet headings, title
+  prefix). Mutation: without the series `secondary-href` 2 / 14 fail (restored byte-identical). Channel set 45 / 45;
+  full suite 2,576 — 2,575 passed, 0 failed, 1 skipped (pre-existing), 18,951 assertions; PHPStan level 5: 0 errors;
+  Pint PASS (changed files and repository-wide).
+  **Local rendering check (headless Chrome against the local :8123 server, other hosts blocked; an automated check,
+  not the owner's review):** at 1366 / 1024 / 390 px — no horizontal overflow; sidebar beside the main column at 1366
+  and 1024, below it at 390; series grid 2 / 2 / 1 columns; profile and featured images sized by the sidebar (191 /
+  221 / 284 px); metadata strip on one line at 1366 and 1024, two at 390; hit-testing: the author link and the card
+  body each receive their own click; `/channel-3.htm` keeps 3 columns, no nested anchors.
+  **Remaining differences:** card / portlet styling follows Laravel's shared components, not Gen 2's tables; the
+  sidebar follows the long main column on phones (as Gen 2); the CSS is served without a version query, so a hard
+  refresh may be needed. **Owner verification:** see the plan row (`/channel-3-2.htm`, `/channel-3.htm`).
+- **Owner verification (2026-11-08, decision-log #133): CHANNEL AUTHOR UI & NAVIGATION — OWNER VERIFIED — CLOSED LOCALLY**
+  (layout, heading / breadcrumb, sidebar, recommendation, author links). The two IF-012 boxes stay empty by owner
+  decision; IF-012 itself is Gen 2 parity — closed as a historical note. Not production-verified.
 
 ## IF-013: `channels/author.php`'s profile picture uses a third, non-bucketed media path convention
 
@@ -194,6 +260,7 @@ Living record of undocumented legacy behavior discovered while implementing Blue
 - **Test:** Done — `tests/Feature/Content/KhotabItemControllerTest.php`, `'show: IF-020 fix — the PDF link resolves to a real route'` (asserts both the rendered link and that hitting it redirects to the actual PDF path).
 
 ---
+- **Historical URL note (2026-11-07, decision-log #119):** OLD's item-PDF URL `khotab-pdf-{itemid}.htm` (`getpdf`) is matched in Gen 2 by the earlier author-PDF rule (`.htaccess:206`), so it opens an author PDF page; Laravel follows Gen 2. Inherited behaviour, not a Laravel regression; inbound usage UNKNOWN; no compatibility fix approved. Item PDFs stay at `khotab-item-pdf-{id}.htm`.
 
 ## IF-021: `khotab/author.php`'s PDF-listing page has the same unset-`$ob->video` sidebar bug as IF-017, this time combined with an author filter
 
@@ -252,6 +319,12 @@ Living record of undocumented legacy behavior discovered while implementing Blue
 ---
 
 ## IF-026: 130 of the site's ~217 `.htaccess` pretty-URL rules route to `new_modules.php`, a file that does not exist anywhere in this codebase
+
+> **[Correction 2026-11-06, decision-log #103:** the current Gen 2 `.htaccess` has 217 active RewriteRules / 210 unique patterns, of which
+> **124** rules target `new_modules.php` (not 130) and 20 target `modules.php`. The missing-dispatcher premise holds for
+> Gen 2 only — OLD (`old-project`, served at `old.way2allah.com`) has `new_modules.php` (200 of its 233 rules use it).
+> A missing local Gen 2 handler is local evidence; production 404 is recorded only for specific URLs (#44, IF-045).
+> Original finding kept below.**]**
 
 - **Location:** `.htaccess` (site root), sitewide — not module-specific.
 - **Evidence:** While tracing `w2acd`'s real routing (every `cds-*.htm` rule resolves to `new_modules.php?name=w2acd&op=...`, none to `w2acd/cds.php`/`w2acd/item.php` — the files this session had just finished reading), an exhaustive check found `new_modules.php` absent from the entire working tree (`find` from the site root, zero matches, in the root directory and everywhere else). A broader count: `grep -c "new_modules.php" .htaccess` → 130 matches, spanning `name=Mobile` (23), `name=Fatwa` (23), `name=Khotab` (18, including the already-known-dead duplicate mirror/pdf rules), `name=RSS` (15), `name=Surveys` (9), `name=Satellite`/`name=Locations` (6 each), `name=Feedback` (5), `name=Chat`/`name=Telawah`/others (fewer each) — effectively every module's RSS feeds, and large parts of `Mobile`/`Fatwa`/`Surveys`/`Satellite`/`Locations`/`Feedback`/`Chat` routing.
@@ -327,6 +400,10 @@ Living record of undocumented legacy behavior discovered while implementing Blue
 ---
 
 ## IF-032: `radio/`'s 3 personalized-playlist op-routes are live URLs that silently do nothing — the code that implements them is unreachable
+
+> **[Update 2026-11-06, decision-log #104:** owner disposition — the three operations stay unimplemented; a GET to
+> `remove-playlist-item-*`, `playlist-item-*`, `save-last-listen.htm` now 301s to `radio.htm`. POST (the AJAX method of
+> `scripts/w2a_radio.js`) is not handled and answers 405. Original finding kept below.**]**
 
 - **Location:** `.htaccess` (route source); `radio/index.php` (actual routed-to file); `radio/indexXX.php` (the file that implements the ops, unreachable); `radio/functions.php` (the op implementations themselves).
 - **Evidence:** all 5 `.htaccess` rules for this module route to `radio/index.php` — including the 3 op-named ones (`remove-playlist-item-{id}-{section}.htm?op=remove-playlist-item`, `playlist-item-{id}.htm?op=playlist-item`, `save-last-listen.htm?op=save-last-listen`). `radio/index.php`, read in full, contains no `$_GET['op']` handling anywhere — it unconditionally renders one static page regardless of query parameters. `radio/functions.php`'s `delete_playlist_item()`/`get_playlist_item()`/`save_last_listen()` — the real, complete implementations of exactly these 3 ops, including a per-user `nuke_radio_playlists` table — are only ever called from `radio/indexXX.php`, a second, more feature-rich entry point with its own `op=` dispatch (read in full, confirmed). No `.htaccess` rule, nor any other file in the codebase (grepped), references `indexXX.php`. It is unreachable.
@@ -413,6 +490,10 @@ Living record of undocumented legacy behavior discovered while implementing Blue
 - **Decision:** All three reproduced exactly. `CategorySeriesController` builds its own breadcrumb markup (not reusing the `IF-037` tree-page Blade pattern) and calls two new `ContentSidebarWidget` methods (`khotabMostDownloadedByCategoryForSeries()`/`khotabMostRecentByCategoryForSeries()`) rather than the existing `hidden`-filtered ones, specifically to avoid silently dropping hidden items this page's real query includes.
 - **Impact on the migration:** self-contained to this one page. Worth knowing before anyone assumes all `categories/`-family breadcrumbs follow IF-037's pattern — they don't; each page's actual `Cat_Breadcrumb()`/`breadcrumb()` call arguments must be checked individually, not assumed from a sibling page.
 - **Test:** `tinker` — `khotabItemsByCategory(11, 10475, 0, true)` returns 1,386 rows, exact match to a direct read-only `olddb` count (`nuke_islamic_khotab kh JOIN khotab_category_index kci ... WHERE kci.category_id=11 AND kh.ser_id=10475 AND kh.group_id=0 AND kh.vedio=1 AND kh.hidden=0`). HTTP `GET /category-series-10475-11.htm` → 200, 1,397 unique `khotab-item-*.htm` links (1,386 main listing + sidebar widgets), 17 breadcrumb blocks rendered (1 main + 16 series-category, matching the series' own 16-category `cat` list exactly), main breadcrumb confirmed all-linked-except-final via direct HTML inspection. Empty case (`ser=2, cat=255`, 0 matching rows, confirmed via `olddb`) → 200, main listing and series-category-breadcrumb blocks both correctly absent, sidebar still renders. Nonexistent series (`category-series-99999999-1.htm`) → 404. Full regression sweep (12 routes) — all clean, no exceptions.
+- **Superseded in part (2026-11-05, hidden-content security fix, decision-log #94 — the text above is kept as recorded):**
+  the sidebar `hidden` difference (point 3) is no longer reproduced. `khotabMostDownloadedByCategoryForSeries()` /
+  `khotabMostRecentByCategoryForSeries()` now filter `hidden = 0`, so visitors are never offered hidden items' titles and
+  links; their cache key carries `hidden=0`. The breadcrumb findings are unchanged.
 
 ## IF-040: `categories/downitems.php`'s GetRight playlist output must be `windows-1256`-encoded, not UTF-8 — a real, easy-to-miss legacy requirement, not an artifact of the source encoding
 
@@ -469,8 +550,17 @@ Living record of undocumented legacy behavior discovered while implementing Blue
 - **Impact on the migration:** No functional regression — this capability is not reproduced today either way. Closes out the GetRight/download-playlist family's 4th and final `.grx` route with an evidenced terminal status, alongside the 3 already-closed ones.
 - **Classification: OPEN / SOURCE UNRECOVERABLE** — same standard, same category as `fatawa-category-{id}.htm` (IF-038). Not gated on Business Confirmation (no business/behavior conflict exists, only a missing-source fact); not redirected or stubbed to either of the two working `.grx` controllers. Revisit only if `new_modules.php` (or an equivalent recovered copy containing the `DownSeries` op) is ever evidenced some other way.
 - **Test:** Not applicable — no code was built or changed by this finding.
+- **Correction (2026-11-05, W2ACD visitor parity — the historical text above is kept as recorded):** "source-unrecoverable"
+  no longer holds. OLD's `modules/w2acd/index.php` `DownSeries()` exists (the earlier search covered Gen 2's tree, not OLD), but its output is wrong: each line is `https://way2allah.com/var-download-{CD id}.htm` — the **Anasheed** download URL, so it fetches whatever Anasheed item shares the CD's id — under the folder «الأناشيد». Owner decision (2026-11-05, decision-log #91): W1 deferred LOW — neither the broken OLD output nor a new corrected `.grx` is built; the box is not shown (no W2ACD sub-group has CDs in the local data, so OLD showed none either).
+- **Consistency note (2026-11-07, decision-log #118):** unchanged — the W2ACD historical URL family was closed locally without touching `cds-series-{id}.grx`, which stays deferred LOW (#92).
 
 ## IF-045: RSS feed generation (15 `.rss` routes) is SOURCE UNRECOVERABLE — the underlying data is fully recoverable, but the exact XML output shape has zero surviving evidence anywhere, including live production
+
+> **[Correction 2026-11-06, decision-log #103:** the premise "the exact XML output shape has zero surviving evidence anywhere" does not hold for
+> OLD — `old-project/modules/RSS/index.php` exists. The recorded production 404s (`way2allah.rss`,
+> `khotab-audio_news.rss`, `khotab-video-1.rss`, `var-news.rss`, `more-fatawa.rss` on `way2allah.com`) still stand
+> (PRODUCTION_404_VERIFIED for those URLs only). RSS is an open OLD-only functionality family under #102 / #103 (owner
+> family-level review); the earlier owner choice is kept as history, not reversed here. Original finding kept below.**]**
 
 - **Location:** `.htaccess` — 15 `new_modules.php?name=RSS&op=...` rules (`way2allah.rss`, `khotab-audio_news.rss`, `khotab-video_news.rss`, `khotab-audio-{id}.rss`, `khotab-video-{id}.rss`, `khotab-group-{id}.rss`, `khotab-series-{id}.rss`, `var-news.rss`, `var-group-{id}.rss`, `recite-news.rss`, `recite-group-{id}.rss`, `news-bar.rss`, `more-fatawa.rss`, `more-hedaya.rss`, `dumped-lectures.rss`); `new_content.php` (homepage include, lines with commented-out `<a class="rssb" href="var-group-{id}.rss">` links).
 - **Evidence:**
@@ -513,6 +603,13 @@ Living record of undocumented legacy behavior discovered while implementing Blue
 - **Decision:** not generalized. `LocationController::locationAuthor()` is a thin pass-through delegating directly to the real, unmodified `ChatRoomLessonController::author()` — no new query, no new location-parameterized logic, per the explicit instruction not to invent behavior the source doesn't actually have.
 - **Impact on the migration:** corrects this session's own prior report — recorded transparently, not silently. No functional impact on any other closed route.
 - **Test:** `tests/Feature/Content/LocationControllerTest.php` — "ignores the location segment entirely," "404s for an author only registered at a DIFFERENT location, even though the URL names that location" (author 154, registered at location 1 but not — in that specific test's fixture — location 10, 404s via `location-1-author-154.htm`, proving the location segment cannot substitute for the real, hardcoded-10 requirement). Live-verified: `location-1-author-626.htm` (author 626 real, registered at location 10 in `olddb`) → 200, matches `chat_author_626.htm`.
+- **Correction (2026-11-07, decision-log #114):** superseded. The Gen 2 / chat-room source evidence above stands
+  (`chat_room/author.php` is hard-coded to location 10), but the `.htaccess:155` rule targets OLD `modules/Locations`
+  `Author($id, $location)`, which scopes to the requested `$location`; the pass-through made 20 of 104 location-page
+  author links 404 and showed location-10 content for authors at two locations. Laravel now scopes
+  `location-{l}-author-{a}.htm` to `{l}` (owner-approved fix; nonexistent location → 404); `chat_author_{a}.htm` keeps
+  location 10. The "ignores the location segment" tests above were rewritten accordingly. The original finding is
+  kept as history.
 
 ## IF-049: `location-{id}-item-{id2}.htm` — `khotab/item.php` ignores its `location` parameter too, same pattern as IF-048, already correctly anticipated in the Wave C report
 
@@ -521,6 +618,7 @@ Living record of undocumented legacy behavior discovered while implementing Blue
 - **Decision:** `LocationController::locationItem()` is a thin pass-through to the real, unmodified `KhotabItemController::show()` — no new logic.
 - **Impact on the migration:** none beyond this route — already-built, already-tested khotab item behavior is exactly what renders.
 - **Test:** `tests/Feature/Content/LocationControllerTest.php` — "produces the exact same response as khotab-item-{id}.htm." Live-verified: `location-1-item-107170.htm` and `khotab-item-107170.htm` both → 200, same content, real `olddb` khotab item id=107170 (location_id=1, author=154).
+- **Consistency note (2026-11-07, decision-log #114):** unchanged and still accurate — the item route stays a pass-through; only the author route (IF-048) was rescoped. IF-047 also stands (location fetch unfiltered by `hidden`; a *nonexistent* location is 404 on both `location-{l}.htm` and, since #114, `location-{l}-author-{a}.htm`).
 
 ## IF-050: `wizard.php` — a real, complete, orphaned (no `.htaccess` rule) public form for the `estebian` table, whose admin-review half already existed; confirmed quirks preserved exactly, not cleaned up
 
@@ -554,6 +652,13 @@ Living record of undocumented legacy behavior discovered while implementing Blue
 
 ## IF-053: `category-group-{id}-{id2}.htm` routes to the missing `new_modules.php` dispatcher — same evidentiary category as `fatawa-category-{id}.htm`/`cds-series-{id}.grx`, never previously documented for Categories specifically
 
+> **[Correction 2026-11-06, decision-log #103:** "DEAD / SOURCE UNRECOVERABLE" does not hold for OLD — `old-project/modules/Cat/index.php:165`
+> `Group()` implements the page (a group's series and items within one category), linked from OLD's `Series()`
+> breadcrumb (`:204`) and `GroupTree()` (`:491`). What remains true: Gen 2 cannot serve it (its rule targets the missing
+> dispatcher), and Gen 2's only generator (`categories/functions.php:32`, `ListGroup()`) emits a one-id URL the rule
+> cannot match and is never called. Classification now: LOCAL_GEN2_HANDLER_MISSING; an open OLD-only family under
+> #102 / #103. Original finding kept below.**]**
+
 - **Location:** `.htaccess:177` (`RewriteRule ^category-group-([0-9]*)-([0-9]*).htm new_modules.php?name=Cat&op=Group&id=$1&cat_id=$2 [L]`).
 - **Evidence:** A real, live `.htaccess` rule under the same `#Categories` block as `category-{id}.htm`/`category-series-{ser}-{cat}.htm` (both already built, IF-036/039), but its target is `new_modules.php` — confirmed absent from the entire working tree (IF-026's own exhaustive `find`, re-confirmed this pass). No `Cat`/`op=Group` handler exists anywhere in `categories/functions.php`, `categories/category.php`, `categories/tree.php`, or `categories/series.php` (all 4 already read in full across this session and the prior Category Browsing wave) — unlike `w2acd`'s `Group`/`Detailes` ops (IF-044's own comparison point), which DO have fallback implementations reachable via a raw path, this op has no implementation anywhere outside the missing dispatcher to fall back to. This exact URL was never individually named in IF-026, IF-038, or IF-044, nor anywhere in `docs/PROJECT-HANDOFF.md` — confirmed via direct search of both files before this entry was written, not assumed absent.
 - **Why this is NOT merely "IF-026 again":** IF-026 documents that `new_modules.php` itself is missing, as a sitewide, dispatcher-level fact. This entry applies that already-established fact to one specific, previously-unnamed Categories route, and additionally confirms (per the same standard IF-044 already applied to `cds-series-{id}.grx`) that no fallback `Group`-op implementation exists anywhere else in the codebase to build from.
@@ -583,13 +688,135 @@ Living record of undocumented legacy behavior discovered while implementing Blue
 - **Second reconciliation note (2026-08-28, decision-log #48) — CORRECTING, not just extending, the "no generated link" claim above:** the owner observed a real, live generated `khotab-fatwa-{id}.htm` link by clicking through `/fatawa-authors.htm` in the browser. Both prior passes' literal-string greps (`khotab-fatwa`, `khotab_fatwa`) genuinely found zero hits — but that was a real methodological gap, not a false alarm: the generator never contains that literal substring in source. `khotab/authors.php:80` builds it dynamically — `href="khotab-<?php echo $op.'-'.$Author->id;?>.htm"` — and the `fatwa` op comes from that same file's own real `else` branch (line 22-27, reached by `fatawa-authors.htm` → `khotab/authors.php?op=fatwa`). A literal-string grep can never find a URL assembled from a runtime variable; only reading the generating file's own logic finds it. Traced fully to ground: `.htaccess` still has exactly 3 rules for `khotab/author.php` (video/audio/pdf, re-confirmed) — no `khotab-fatwa-*` rule, active or historical. `khotab/author.php` itself (the one file that could implement a 4th op) treats any unrecognized `op` — including `fatwa` — as `pdf` (its own real `else` branch, line 21-24), never as a distinct listing. **Classification confirmed unchanged: SOURCE_UNRECOVERABLE** — now via a fully closed evidence loop (a real, identified, live generator; a real, confirmed, complete absence of any implementing code, including in the one file that would need it) rather than an open "nothing found" one. Two representative real author rows verified read-only against `olddb` (id 17 = الحويني, fatwa count 12; id 79 = الحنبلي, fatwa count 449) — both correctly, faithfully still 404, matching legacy's own real, live, unfixed authoring bug (a listing page whose link generator was never restricted to the 3 ops its own detail page actually supports). No redirect target is defensible: `khotab-pdf-{id}.htm` (what `author.php` would silently fall back to) shows unrelated PDF content, not fatwa videos — redirecting there would show real users wrong content, worse than a 404. Laravel's own generator (`resources/views/khotab/authors.blade.php:62`) is confirmed byte-faithful to legacy, not a migration-introduced bug.
 - **Third reconciliation note (2026-08-28, decision-log #49) — final resolution, `SOURCE_UNRECOVERABLE` superseded by `BUSINESS_REPAIR_LOW_RISK` for the URL's fate, unchanged for its legacy status:** the URL's legacy status stays exactly as established above (real bug, no implementing code ever existed) — that historical fact is not revised. What changed: a design-only reuse audit (no code touched) found `ContentListingService::fatwaGeneralQuestionsByAuthor()`/`FatwaAuthorController::show()`/`/auther-questions-{author}.htm` already implement, correctly and completely, "this author's fatwas" — the same content concept `khotab-fatwa-{id}.htm` would have shown had legacy ever built it. Owner approved a compatibility redirect (`FatwaAuthorController::redirectFromKhotabFatwaUrl()`, resolved via the `fatawa.author.show` named route) — explicitly **not** a legacy-parity implementation (legacy never served anything here), a deliberate product repair using content legacy did build elsewhere. `khotab-fatwa-{id}.htm` now returns `302` → `/auther-questions-{id}.htm` → `200`, live-verified for both id 17 and 79.
 
+## IF-056: Social-sharing metadata — Gen 2 emits item-specific `og:image` / `twitter:image`; Laravel Blade templates emit no `og:` / `twitter:` meta (OPEN investigation candidate, 2026-11-07)
+
+- **Location:** Gen 2 `header.php:43-73` (`og:image`, `twitter:image`, `image_src`, `videothumbnail` from
+  `$video_thumb`, falling back to `logo-light.png`); Gen 2 `khotab/item.php:77-84` sets `$video_thumb` to the item's
+  `media/khotab_frames/{bucket}/{id}.jpg` (or `khotab_gifs/…gif` when `gif=1`). Laravel `resources/views/layouts/app.blade.php`.
+- **Evidence:** a repo-wide search of `resources/views`, `app` and `config` (2026-11-07) found no `og:` or `twitter:`
+  meta in any Laravel template. Which other Gen 2 pages set `$video_thumb` (beyond Khotab items) was not traced.
+- **Classification:** **OPEN — investigation candidate**; outside the Khotab historical media URL family (decision-log
+  #115). Affects social-share previews, not a visitor control. Not verified in a browser or in production.
+- **Decision:** none yet — no implementation; does not reopen Khotab #60. Needs its own scoped investigation (which
+  Gen 2 pages emit which tags, and expected values) and owner approval.
+- **Update (2026-11-08) — owner-approved targeted fix: IMPLEMENTED AND TESTED LOCALLY — AWAITING OWNER VERIFICATION.**
+  Status lines above kept as history.
+  - **Root cause:** the shared Laravel layout ported Gen 2's `<title>` / `description` but never its social-sharing
+    block, so no Laravel page emitted any of these tags.
+  - **Gen 2 reference behaviour (re-verified in source, 2026-11-08):** `header.php:43-46` defaults `$video_thumb` to
+    `$siteurl."logo-light.png"` (`$siteurl = 'https://way2allah.com/'`, `w2a_config.php:61`); `:64-72` emits
+    `og:image` (twice — `name=` and `property=`), `og:title` = `$header['title']` (no site-name suffix), `og:url` =
+    scheme + `HTTP_HOST` + `REQUEST_URI`, `og:description` = `$newmeta`, `og:type` = `website` (hard-coded),
+    `twitter:image`, `image_src`, `videothumbnail`. `$newmeta` = module name + slogan + site name, but `$name` is never
+    assigned in active Gen 2 code, so it rendered `" , {slogan} , {sitename}"` (a site-level string, not the page's
+    description). The only active setter of `$video_thumb` is `khotab/item.php:76-85`: for any found item,
+    `gif = 1` → `media/khotab_gifs/{id/1000}/{id}.gif`, else `media/khotab_frames/{id/1000}/{id}.jpg`, prefixed by
+    `$image_url = 'https://way2allah.com/'` — with no file-existence check. (Other setters are in the non-executing
+    `khotab/old.php` / `channels/old.php`.)
+  - **Laravel implementation:** one shared partial, `resources/views/layouts/partials/social-meta.blade.php`, included
+    once from `layouts/app.blade.php` after `<title>`; values from `App\Support\Http\SocialMetadata`. `og:title` = the
+    page's existing `title` section (= Gen 2 `$header['title']`); `og:description` = the page's existing description
+    (`meta_description` section or the layout default, unchanged); `og:type` = `website`; `og:url` = the requested
+    path + query string on the configured public host (`config('app.url')`, never the request Host header); image =
+    the page's `social_image` section, else `logo-light.png` (`public/logo-light.png`, byte-identical to Gen 2's).
+    Khotab item pages set `social_image` from `KhotabItem::socialImageUrl()` — Gen 2's gif / frame choice through the
+    existing `MediaPathResolver` and `MediaUrl` (so `MEDIA_BASE_URL` is honoured), returned only when the file exists
+    under `admin_khotab.media_root` (as `KhotabBanner`); otherwise the default logo. Relative URLs are made absolute
+    with `APP_URL`. Values are tag-stripped, entity-decoded and escaped exactly once with `{{ }}`. No package, table,
+    migration, setting, route or controller change.
+  - **Intentional differences from Gen 2:** the duplicate non-standard `<meta name="og:image">` is not repeated; a
+    missing frame / gif gives the default logo instead of a broken image URL; `og:url` uses `APP_URL`'s host instead
+    of the request Host; `og:description` uses Laravel's existing site description text, not Gen 2's
+    `" , {slogan} , {sitename}"` string (both site-level); the `facebook-domain-verification` meta is not part of this
+    fix.
+  - **Tests:** new `tests/Feature/Content/SocialMetadataParityTest.php` (12): normal page tags and values; default
+    asset exists; frame image; `gif = 1` image (bucket 298); missing file → logo (2 cases, including no frame
+    substitution for a missing gif); configured media host kept; quotes / `&` / `<>` / Arabic escaped once; `og:url`
+    on the configured host with the query string, request host `127.0.0.1:8123` never emitted; each tag exactly once
+    (2 pages); existing `<title>` / description unchanged. Mutation: without the item's `social_image` section 3 / 12
+    fail (file restored byte-identical). Six existing byte-identical alias comparisons (`FatwaTopicControllerTest` ×2,
+    `FatwaVisitorParityTest`, `KhotabBrowsingControllersTest`, `StaticPagesTest` ×2) now exclude the per-request
+    `og:url` tag, as they already excluded CSRF tokens. Content + Pages + Architecture 1,295 tests; full suite 2,555 —
+    2,554 passed, 0 failed, 1 skipped (pre-existing), 18,791 assertions; PHPStan level 5: 0 errors; Pint PASS
+    (changed files and repository-wide).
+  - **Remaining limitations:** production requires `APP_URL` = the public site URL (local `.env` is
+    `http://localhost`, so local tags show localhost) — a deployment check; not verified in a browser, a share
+    debugger or production; locally there is no `media/khotab_gifs` directory, so `gif = 1` items show the default
+    logo here; per-item `meta_description` (Gen 2's `DESCRIPTION` meta) remains outside this fix; the standalone
+    `banner-code` / fragment views have no social tags (Gen 2 equivalents are fragments too).
+  - **Owner verification required:** view source of a normal page (e.g. `/privacy`) and a Khotab item whose frame
+    exists locally (e.g. `/khotab-item-230000.htm` — visible, `gif = 0`, frame present) on the local site and confirm
+    one set of tags: item → `…/media/khotab_frames/230/230000.jpg`; other pages → `…/logo-light.png`.
+- **Owner verification (2026-11-08): OWNER VERIFIED — CLOSED LOCALLY.** The heading and earlier status lines above are
+  kept as history and superseded by this note. The owner manually checked, on the local site:
+  1. `/privacy` — `og:image` = `http://localhost/logo-light.png` (default social image) — **PASS**;
+  2. `/khotab-item-230000.htm` — `og:image` = `http://localhost/media/khotab_frames/230/230000.jpg` (Khotab
+     item-specific frame image) — **PASS**.
+  - **Scope of the owner check:** the default social image and the Khotab item frame image only. The other tags
+    (`og:title`, `og:url`, `og:description`, `og:type`, `twitter:image`, `image_src`, `videothumbnail`), the `gif = 1`
+    image, the missing-file fallback, escaping and single emission are covered by the automated tests above, not
+    independently verified by the owner. Implementation and test evidence above unchanged.
+  - **Not production-verified.** Deployment requirements kept open: production `APP_URL` set to the public site URL
+    (the local values above show `localhost` because local `APP_URL` is `http://localhost`); social images publicly
+    reachable at the emitted URLs; production media path compatibility (`admin_khotab.media_root`, `MEDIA_BASE_URL`)
+    and availability of `media/khotab_gifs` (absent locally).
+  - Visitor parity is **not** closed by this note.
+
+## IF-057: Fatwa playback — owner browser test (2026-11-07): `.avi` records get no player under decision-log #20; question 3552 partly verified; misleading "try another quality" message deferred (Fatwa historical URL family — NOT closed)
+
+- **[Clarification 2026-11-08, #133: the heading's "NOT closed" is superseded — the Fatwa family closed under #116 and the
+  playback issue is RESOLVED LOCALLY (see the Resolution bullet below). Heading kept.]**
+
+- **Context:** the single-fatwa play button (`resources/views/fatawa/question-show.blade.php:176`) had malformed
+  quoting (`onclick="w2a_play(ID, "fatawa")"`), corrected locally on 2026-11-07 (owner-approved targeted fix; regression
+  test in `FatwaQuestionControllerTest`; full suite 2,537 passed / 1 skipped). Owner browser test afterwards:
+  `fatawa-2103.htm` and `fatawa-all-1865.htm` played; `fatawa-36.htm` showed «هذه المادة غير متاحة للتشغيل حالياً.
+  يمكنك تجربة جودة أخرى أو إعادة المحاولة.»; `fatawa-all-3552.htm` partly failed.
+- **Evidence (source and read-only data, no external requests):** the message is shown only when `POST /media-player`
+  returns an empty body (`media-player-script.blade.php:78`) — no player was built server-side; a browser load failure
+  («تعذّر تحميل الملف…») and a request failure («تعذّر الاتصال بالمشغل…») have their own messages.
+  `MediaPlayerService::fromFatwaQuestion()` returns the stored `media_link` unchanged as video; `renderPlayer()` builds
+  a player only for YouTube, `.mp3`, SoundCloud and `.mp4`, else `null`. Fatwa 36's link is
+  `…/fatawa_way2allah-1/001.avi` → no player (cause confirmed). Gen 2 posted the same raw link and emitted a Windows
+  Media ActiveX embed for `.avi` (`functions.php` `w2a_mada_play`) — no working playback in a current browser either.
+  Question 3552 has three answers: 36 (`.avi`), 4814 (`.mp4`), 11019 (`.mp4`, `media_type` audio); 2103 is `.mp4`
+  (`media_type` audio, played as video — same as Gen 2).
+- **Decision (owner, 2026-11-07) — `.avi`:** decision-log #20 (obsolete formats get no in-page player) **applies to
+  Fatwa playback through the shared media player.** The **89** Fatwa `.avi` records (89 general questions) need no
+  Laravel playback implementation — no ActiveX, no transcoding, no URL changes; records preserved. #20 is unchanged.
+- **Browser verification still open:** fatwa 36 is confirmed (unsupported-media message). **Fatwas 4814 and 11019
+  await owner browser verification** — not recorded as working on the basis of their `.mp4` extension alone; if either
+  fails, which message it shows distinguishes "no player built" from a file / network load failure (external media
+  availability UNKNOWN).
+- **Deferred UX improvement (no implementation approved):** the message suggests «يمكنك تجربة جودة أخرى» ("try another
+  quality"), but Fatwa has no quality alternatives, so the hint is misleading for `type = fatawa`.
+- **Status:** OPEN within the Fatwa historical URL family; no family-closure decision yet. Send-to-friend and the #106
+  rate-limiting concern unchanged.
+- **Resolution (2026-11-07, decision-log #116): RESOLVED LOCALLY.** Owner local browser checks (owner-reported, not
+  automated or production): `fatawa-4814.htm` and `fatawa-11019.htm` play, so `fatawa-all-3552.htm`'s partial result is
+  explained — 36 is `.avi` (unsupported under #20, expected), 4814 and 11019 (`.mp4`) work; `fatawa-2103.htm` and
+  `fatawa-all-1865.htm` work. Not generalised to all Fatwa records. The supported (`.mp4` / `.mp3` / YouTube / SoundCloud)
+  versus unsupported (`.avi`, other obsolete formats) distinction stands. The message UX stays DEFERRED.
+- **Related (2026-11-07, decision-log #117):** the same shared player and #20 rule apply to Telawah; there, a separate source gap (`fromTelawahItem()` ignoring `vedio`) was fixed so `.mp4` items with `vedio=1` play — Fatwa playback (`fromFatwaQuestion()`) is unchanged.
+
+## IF-058: Fatwa media-link data quality — 10 malformed and 11 empty `media_link` values (data-quality finding, 2026-11-07)
+
+- **Location:** `nuke_fatwa_questions.media_link` (local database, read-only aggregates, 2026-11-07).
+- **Evidence:** of 13,364 questions — 13,253 `.mp4`, 89 `.avi` (IF-057), 1 `.mp3`, **10 malformed**, **11 empty**.
+  Malformed: 7 hold question text instead of a URL (ids 10003, 11649, 13409, 13533, 14874, 15101, 18021); 2 are bare
+  file names followed by " download" (17937, 20585); 1 has text before a real archive.org URL (20514). All 21 get no
+  player (the «غير متاحة للتشغيل» message); a download of the malformed / empty ones cannot reach a valid file.
+- **Decision (owner, 2026-11-07):** recorded as a separate data-quality finding only — **no database change, no
+  automatic URL replacement, no record deletion.** Any correction needs its own approved data task.
+- **Status:** OPEN — data quality; not a Laravel code defect. Still OPEN after the family closure (decision-log #116, 2026-11-07).
+
 ## Index by module
 
 | Module | Findings |
 |---|---|
-| `khotab` | IF-001, IF-005, IF-006, IF-014, IF-015, IF-016, IF-017, IF-018, IF-019, IF-020, IF-021, IF-022, IF-023, IF-024, IF-055 |
+| `khotab` | IF-001, IF-005, IF-006, IF-014, IF-015, IF-016, IF-017, IF-018, IF-019, IF-020, IF-021, IF-022, IF-023, IF-024, IF-055, IF-056 |
 | `categories` | IF-006, IF-036, IF-037, IF-038, IF-039, IF-040, IF-041, IF-053 |
-| `fatawa` | IF-038, IF-054 |
+| `fatawa` | IF-038, IF-054, IF-057, IF-058 |
 | `w2acd` | IF-002, IF-003, IF-025, IF-044 |
 | `home_functions.php` / `functions.php` (shared-core) | IF-004 |
 | `live-stream` | IF-007, IF-009, IF-010 |
@@ -609,6 +836,8 @@ Living record of undocumented legacy behavior discovered while implementing Blue
 ## Open items requiring escalation beyond this log
 
 - **IF-026** is the highest-priority Business Confirmation candidate in this log — whether `new_modules.php` exists in production affects the reachability of roughly 60% of the site's pretty-URL surface across nearly every module, not just the one currently being implemented.
+  **[Clarification 2026-11-08, #133: superseded — IF-026's premise and counts were corrected in #102 / #103, and every
+  affected URL family now has an owner disposition (#104, #107–#132). Original text kept.]**
 - **IF-004** should be added to Blueprint Part IV (Business Confirmations Required) — genuinely new scope, not covered when the Blueprint was frozen. **IF-013** strengthens this same item (a third divergent media-path convention, not a second).
 - **IF-006** is a candidate for a similar addition once/if the by-author and by-category surfaces are confirmed to need to agree.
 - **IF-012** is a candidate for a new business question: should the author-filtered channel page also show download/newest recommendations, matching the unfiltered page?

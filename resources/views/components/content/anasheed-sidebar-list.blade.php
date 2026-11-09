@@ -1,5 +1,7 @@
 @props(['items', 'meta'])
 
+{{-- «downloads»: OLD Top10() printed `hits` (its sort key) as «مرات التحميل» — not `downcount` (owner, 2026-11-04). --}}
+
 <ul class="w2a-chat-sidebar-list">
     @foreach ($items as $item)
         <li>
@@ -9,7 +11,7 @@
                     <span class="w2a-chat-sidebar-title">{{ $item->title }}</span>
                     <small>
                         @if ($meta === 'downloads')
-                            <i class="fa fa-download" aria-hidden="true"></i> {{ number_format((int) $item->downcount) }} مرة
+                            <i class="fa fa-download" aria-hidden="true"></i> {{ number_format((int) $item->hits) }} مرة
                         @else
                             <i class="fa fa-calendar" aria-hidden="true"></i> {{ \App\Domain\Content\Support\LegacyShortDateFormatter::format((int) $item->mytime) }}
                         @endif

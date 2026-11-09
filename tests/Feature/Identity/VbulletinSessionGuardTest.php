@@ -49,6 +49,7 @@ it('resolves a user from a valid bb_sessionhash cookie', function () {
         'sessionhash' => 'valid-hash',
         'userid' => 42,
         'idhash' => expectedIdHashForTestRequest(),
+        'host' => '203.0.113.42',        // vBulletin stores IPADDRESS as session.host (D1)
         'lastactivity' => time() - 60,
     ]);
 
@@ -64,6 +65,7 @@ it('rejects a session cookie whose idhash does not match the requesting user age
         'sessionhash' => 'valid-hash',
         'userid' => 42,
         'idhash' => md5('a-different-agent'.'203.0.113'),
+        'host' => '203.0.113.42',
         'lastactivity' => time() - 60,
     ]);
 
@@ -78,6 +80,7 @@ it('rejects a session whose lastactivity exceeds the 900-second legacy TTL', fun
         'sessionhash' => 'stale-hash',
         'userid' => 42,
         'idhash' => expectedIdHashForTestRequest(),
+        'host' => '203.0.113.42',
         'lastactivity' => time() - 901,
     ]);
 

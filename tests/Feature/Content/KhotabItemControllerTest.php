@@ -535,7 +535,9 @@ it('KhotabFriendMail: subject/body match khotab_send_friend() exactly, except th
     $rendered = $mail->render();
 
     expect($mail->hasSubject('The Lesson Title - موقع الطريق الى الله'))->toBeTrue()
-        ->and($mail->hasFrom('you@example.com', 'Your Name'))->toBeTrue()
+        // #106 (owner-approved 2026-11-08): fixed site From, the submitter as Reply-To.
+        ->and($mail->hasFrom('info@way2allah.com'))->toBeTrue()
+        ->and($mail->hasReplyTo('you@example.com', 'Your Name'))->toBeTrue()
         ->and($rendered)->toContain('/khotab-item-42.htm')
         ->and($rendered)->not->toContain('/var-item-42.htm')
         ->and($rendered)->toContain('Friend Name')

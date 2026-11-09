@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Engagement\Http\Controllers\PollCommentController;
 use App\Domain\Engagement\Http\Controllers\PollController;
 use Illuminate\Support\Facades\Route;
 
@@ -42,6 +43,21 @@ Route::post('/polls/{poll}/vote', [PollController::class, 'vote'])->name('engage
 // Wave D — pretty-URL aliases, `.htaccess:405-407,413`. Reuse the same
 // controller actions above directly; no new query logic.
 Route::get('/surveys.htm', [PollController::class, 'index'])->name('engagement.surveys.index');
+
+// Final public features (owner, 2026-10-15) — public poll comments, OLD
+// modules/Surveys/comments.php. The three OLD comment URL shapes with a poll
+// id keep their exact paths (one constrained segment each, because OLD
+// allowed the mode/order/threshold parts to be empty); the poll's own
+// comment page had no rewrite and gets one. survey-comments.htm and the
+// poll-less showreply shape are dead in OLD and not registered.
+Route::get('/survey-comments-{poll}.htm', [PollCommentController::class, 'thread'])->whereNumber('poll')->name('engagement.polls.comments');
+Route::get('/survey-comment-{spec}.htm', [PollCommentController::class, 'comment'])
+    ->where('spec', '[0-9]+-(tid|pid)-[0-9]+-[a-z]*-[0-9]*-[0-9\-]*')->name('engagement.polls.comments.single');
+Route::get('/survey-commreply-{spec}.htm', [PollCommentController::class, 'reply'])
+    ->where('spec', '[0-9]+-[0-9]+-[a-z]*-[0-9]*-[0-9\-]*')->name('engagement.polls.comments.reply');
+Route::get('/survey-showreply-{spec}.htm', [PollCommentController::class, 'showReply'])
+    ->where('spec', '[0-9]+-[0-9]+-[0-9]+-[a-z]*-[0-9]*-[0-9\-]*')->name('engagement.polls.comments.showreply');
+Route::post('/polls/{poll}/comments', [PollCommentController::class, 'submit'])->whereNumber('poll')->name('engagement.polls.comments.submit');
 Route::get('/survey-{poll}.htm', [PollController::class, 'show'])
     ->whereNumber('poll')
     ->name('engagement.surveys.show');

@@ -55,6 +55,15 @@ return [
     'url' => env('APP_URL', 'http://localhost'),
 
     /*
+    | N3 (2026-11-08): when true, every absolute URL Laravel generates (url(),
+    | route(), asset(), redirects, pagination) uses APP_URL's root and scheme
+    | instead of the request's Host header (App\Support\Http\CanonicalUrl).
+    | Default off. Enable in production only with a verified canonical APP_URL.
+    */
+
+    'force_root_url' => (bool) env('APP_FORCE_ROOT_URL', false),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------

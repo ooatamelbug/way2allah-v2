@@ -2,6 +2,7 @@
 
 namespace App\Domain\Content\Mail;
 
+use App\Domain\Content\Mail\Concerns\SendToFriendMessage;
 use App\Domain\Content\Models\AnasheedItem;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -24,7 +25,7 @@ use Illuminate\Queue\SerializesModels;
  */
 class AnasheedFriendMail extends Mailable
 {
-    use Queueable, SerializesModels;
+    use Queueable, SendToFriendMessage, SerializesModels;
 
     public function __construct(
         public readonly AnasheedItem $anasheedItem,
@@ -37,13 +38,16 @@ class AnasheedFriendMail extends Mailable
     {
         $subject = $this->anasheedItem->title.' - موقع الطريق الى الله';
 
-        return $this->from($this->yourEmail, $this->yourName)
+        // #106: fixed site sender; the visitor is the Reply-To.
+        return $this->from(self::SITE_SENDER)
+            ->replyTo($this->yourEmail, $this->yourName)
             ->subject($subject)
             ->view('emails.anasheed-friend')
             ->with([
                 'anasheedItem' => $this->anasheedItem,
                 'friendName' => $this->friendName,
                 'yourName' => $this->yourName,
+                'siteUrl' => $this->siteUrl(),
             ]);
     }
 }

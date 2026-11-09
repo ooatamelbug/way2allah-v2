@@ -105,26 +105,15 @@
     </div>
 
     {{--
-        list.php:69-83's inline downlaod_gellery_images() — reproduced as
-        real, present markup (it IS what the "حفظ الألبوم" button calls),
-        but its actual destination (`download-album-{id}.htm`) routes
-        through the confirmed-missing `new_modules.php` dispatcher
-        (.htaccess:367-369, IF-026) — already correctly left unbuilt by
-        GalleryController's own docblock (IF-027). Not implemented here
-        either: reproducing a broken-in-production trigger is not the
-        same as building the endpoint it calls.
+        list.php:69-83's inline downlaod_gellery_images() — the "حفظ الألبوم" button's handler. Its destination
+        (`download-album-{id}.htm`) was unbuilt (IF-027). Decision-log #107 (owner, 2026-11-06): the endpoint now
+        returns the album ZIP itself, so the handler navigates to it directly instead of the old AJAX-then-redirect
+        (which expected a URL back). Button markup unchanged.
     --}}
     @push('scripts')
         <script>
             function downlaod_gellery_images(id){
-                var ajax_url = "download-album-"+id+".htm";
-                $.ajax({
-                    url:ajax_url,
-                    type:"GET",
-                    success:function(data){
-                        window.location = data;
-                    }
-                });
+                window.location.href = "/download-album-" + parseInt(id, 10) + ".htm";
             }
         </script>
     @endpush
