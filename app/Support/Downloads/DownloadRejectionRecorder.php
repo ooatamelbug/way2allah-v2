@@ -4,6 +4,7 @@ namespace App\Support\Downloads;
 
 use App\Support\Http\AdminViewer;
 use App\Support\Performance\RequestMetrics;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -13,9 +14,10 @@ use Throwable;
 /**
  * Operational telemetry for downloads refused because the global capacity
  * pool (DownloadCapacityGuard) was full: a structured warning in the
- * application log, and one `download_rejections` row (`main` connection) when
- * `downloads.rejection_log` is on. Not the admin audit log — nobody acted;
- * the server was full.
+ * application log (at most one per `downloads.rejection_log_interval`, see
+ * DownloadRejectionLogThrottle), and one `download_rejections` row (`main`
+ * connection) for EVERY refusal when `downloads.rejection_log` is on. Not the
+ * admin audit log — nobody acted; the server was full.
  *
  * Overload protection must not add load, so everything recorded is something
  * the request already had: the caller's DownloadRejectionContext (built from
@@ -46,21 +48,29 @@ final class DownloadRejectionRecorder
         $clientIp = (string) $request->ip();
 
         try {
-            Log::warning('Download refused: global capacity full', [
-                'event' => self::REASON_CAPACITY_FULL,
-                'pool' => DownloadCapacityGuard::POOL,
-                'module' => $context->module,
-                'resource_type' => $context->resourceType,
-                'resource_id' => $context->resourceId,
-                'variant' => $context->variant,
-                'variant_id' => $context->variantId,
-                'active_downloads' => $activeDownloads,
-                'download_limit' => $limit,
-                'retry_after_seconds' => $retryAfter,
-                'file_size' => $context->fileSize,
-                'client_ip' => $clientIp,
-                'request_id' => $requestId,
-            ]);
+            // Volume control (DownloadRejectionLogThrottle): at most one warning per
+            // interval, carrying the number suppressed since the previous one. The
+            // table row below is still written for every refusal.
+            $suppressed = (new DownloadRejectionLogThrottle)->admit();
+            if ($suppressed !== null) {
+                Log::warning('Download refused: global capacity full', [
+                    'event' => self::REASON_CAPACITY_FULL,
+                    'pool' => DownloadCapacityGuard::POOL,
+                    'module' => $context->module,
+                    'resource_type' => $context->resourceType,
+                    'resource_id' => $context->resourceId,
+                    'variant' => $context->variant,
+                    'variant_id' => $context->variantId,
+                    'active_downloads' => $activeDownloads,
+                    'download_limit' => $limit,
+                    'retry_after_seconds' => $retryAfter,
+                    'file_size' => $context->fileSize,
+                    'client_ip' => $clientIp,
+                    'request_id' => $requestId,
+                    'suppressed_since_last_log' => $suppressed,
+                    'log_interval_seconds' => DownloadRejectionLogThrottle::interval(),
+                ]);
+            }
         } catch (Throwable) {
             // A broken log channel must not break the refusal.
         }
@@ -72,7 +82,7 @@ final class DownloadRejectionRecorder
         try {
             [$adminId, $isAdmin] = $this->admin();
 
-            DB::connection('main')->table(self::TABLE)->insert([
+            $row = [
                 'created_at' => time(),
                 'reason' => self::REASON_CAPACITY_FULL,
                 'pool' => DownloadCapacityGuard::POOL,
@@ -100,7 +110,19 @@ final class DownloadRejectionRecorder
                 // interval must not turn into a failed insert.
                 'retry_after_seconds' => min(65535, max(0, $retryAfter)),
                 'request_id' => $requestId,
-            ]);
+                // Phase 3D origin tracking: the material's title AT REFUSAL TIME, from the record already loaded.
+                'resource_title' => self::cut($context->resourceTitle, 255),
+            ];
+            try {
+                DB::connection('main')->table(self::TABLE)->insert($row);
+            } catch (QueryException $e) {
+                // Deployed before the additive `resource_title` migration ran: keep the row, without the title.
+                if (! self::unknownColumn($e)) {
+                    throw $e;
+                }
+                unset($row['resource_title']);
+                DB::connection('main')->table(self::TABLE)->insert($row);
+            }
         } catch (Throwable $e) {
             try {
                 // The exception class and code only: a query exception's message
@@ -147,6 +169,12 @@ final class DownloadRejectionRecorder
         } catch (Throwable) {
             return null;
         }
+    }
+
+    /** SQLSTATE 42S22 (MySQL/MariaDB "Unknown column") or SQLite's "no column named". */
+    private static function unknownColumn(QueryException $e): bool
+    {
+        return ($e->errorInfo[0] ?? null) === '42S22' || str_contains($e->getMessage(), 'no column named resource_title');
     }
 
     private static function cut(?string $value, int $length): ?string

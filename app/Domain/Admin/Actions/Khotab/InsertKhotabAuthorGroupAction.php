@@ -5,6 +5,7 @@ namespace App\Domain\Admin\Actions\Khotab;
 use App\Domain\Admin\Models\AdminUser;
 use App\Domain\Admin\Support\AdminAuditRecorder;
 use App\Domain\Admin\Support\AdminRecordAuthorizer;
+use App\Domain\Admin\Support\Constraints\KhotabMediaTarget;
 use App\Domain\Content\Models\Author;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -38,7 +39,8 @@ final class InsertKhotabAuthorGroupAction
      */
     public function execute(AdminUser $actor, Author $author, int $vedio, array $data, ?string $ip = null): int
     {
-        $this->authorizer->authorize($actor, 'khotab.addgroup', $author);
+        // The section chosen by `{media}` (OLD AvAdmin($vedio)); the author row carries no section.
+        $this->authorizer->authorize($actor, 'khotab.addgroup', new KhotabMediaTarget($vedio));
 
         return DB::connection('main')->transaction(function () use ($actor, $author, $vedio, $data, $ip) {
             $main = DB::connection('main');

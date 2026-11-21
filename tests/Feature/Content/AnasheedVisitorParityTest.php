@@ -11,6 +11,7 @@ use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\Fixtures\MainSchema;
 use Tests\Support\InMemoryConnection;
+use Tests\Support\ProxiedDownloadProbe;
 
 beforeEach(function () {
     InMemoryConnection::setup('main', [
@@ -108,10 +109,11 @@ it('A2: item and mirror downloads redirect to the canonical archive.org URL, sti
     avpDb()->table('nuke_anasheed_mirror')->insert(['id' => 8276, 'khid' => 3, 'title' => 'mp3', 'hidden' => 0, 'hits' => 1,
         'link' => 'http://ia601500.us.archive.org/1/items/elrafk2/Rahma.mp3']);
 
-    $this->get('/var-download-3.htm')->assertRedirect('https://archive.org/download/way2allah_islamics505/3_4_abt-nfsa.rmvb');
-    $this->get('/var-mirror-3-8276.htm')->assertRedirect('https://archive.org/download/elrafk2/Rahma.mp3');
+    // F04: downloaded through the protected proxy from the canonical URL (refused here: the pool is full, not counted).
+    expect(ProxiedDownloadProbe::resolvedLink('/var-download-3.htm'))->toBe('https://archive.org/download/way2allah_islamics505/3_4_abt-nfsa.rmvb')
+        ->and(ProxiedDownloadProbe::resolvedLink('/var-mirror-3-8276.htm'))->toBe('https://archive.org/download/elrafk2/Rahma.mp3');
 
-    expect((int) avpDb()->table('nuke_anasheed_anasheed')->where('id', 3)->value('downcount'))->toBe(5)
+    expect((int) avpDb()->table('nuke_anasheed_anasheed')->where('id', 3)->value('downcount'))->toBe(4)
         // the stored links are never rewritten
         ->and(avpDb()->table('nuke_anasheed_anasheed')->where('id', 3)->value('link'))->toBe('http://ia331419.us.archive.org/3/items/way2allah_islamics505/3_4_abt-nfsa.rmvb')
         ->and(avpDb()->table('nuke_anasheed_mirror')->where('id', 8276)->value('link'))->toBe('http://ia601500.us.archive.org/1/items/elrafk2/Rahma.mp3');
@@ -124,8 +126,8 @@ it('A2: details-page and non-archive links keep their previous redirect (https u
     avpDb()->table('nuke_anasheed_mirror')->insert(['id' => 8493, 'khid' => 6662, 'title' => 'flv', 'hidden' => 0,
         'link' => 'http://archive.org/details/Han3alekRasolEllahUshtam.flv']);
 
-    $this->get('/var-download-6662.htm')->assertRedirect('https://cdn.example.com/a.mp4');
-    $this->get('/var-mirror-6662-8493.htm')->assertRedirect('https://archive.org/details/Han3alekRasolEllahUshtam.flv');
+    expect(ProxiedDownloadProbe::resolvedLink('/var-download-6662.htm'))->toBe('https://cdn.example.com/a.mp4')
+        ->and(ProxiedDownloadProbe::resolvedLink('/var-mirror-6662-8493.htm'))->toBe('https://archive.org/details/Han3alekRasolEllahUshtam.flv');
 });
 
 it('A2: the player plays item and mirror archive.org links from the canonical URL', function () {
@@ -195,20 +197,13 @@ it('A5: an item\'s notes show as «تعليق على المادة», escaped; no
 
 // ─── A6 — hidden items ───────────────────────────────────────────────────────
 
-it('A6: a hidden item\'s page keeps its chrome but shows no details, actions, mirrors or comments; hits still count', function () {
-    avpDb()->table('nuke_anasheed_groups')->insert(['id' => 300, 'title' => 'Group', 'parent_id' => 98]);
-    avpDb()->table('nuke_anasheed_anasheed')->insert(['id' => 1, 'title' => 'Hidden item', 'group_id' => 300, 'hidden' => 2,
-        'hits' => 7, 'comments' => 1, 'mirror' => 1, 'notes' => 'Hidden note', 'link' => 'https://cdn.example.com/h.mp4']);
-    avpDb()->table('nuke_anasheed_mirror')->insert(['id' => 1, 'khid' => 1, 'title' => 'Hidden mirror', 'hidden' => 0, 'link' => 'https://cdn.example.com/m.mp3']);
-    avpDb()->table('nuke_anasheed_comments')->insert(['id' => 1, 'khid' => 1, 'uname' => 'U', 'comment' => 'Hidden comment', 'view' => 1, 'mytime' => 1]);
+// F08 / B4 (owner-approved, 2026-11-14): for VISITORS a hidden item is now a 404, and its hit counter does not move.
+// The A6 page below (chrome kept, details suppressed) is what a signed-in administrator sees: AnasheedVisibilityB4Test.
+it('A6 → B4: a hidden item is a 404 for visitors and its hits do not count', function () {
+    avpDb()->table('nuke_anasheed_anasheed')->insert(['id' => 1, 'title' => 'Hidden item', 'hidden' => 2, 'hits' => 7]);
 
-    $html = $this->get('/var-item-1.htm')->assertOk()->getContent();
-
-    expect($html)->toContain('Hidden item')->toContain('href="/var-group-300.htm"')->toContain('الأكثر تحميلا')
-        ->not->toContain('تفاصيل المادة')->not->toContain('/var-download-1.htm')->not->toContain('w2a_play(')
-        ->not->toContain('Hidden mirror')->not->toContain('Hidden comment')->not->toContain('Hidden note')
-        ->not->toContain('id="commentsModal"')->not->toContain('id="sendFriendModal"')
-        ->and((int) avpDb()->table('nuke_anasheed_anasheed')->where('id', 1)->value('hits'))->toBe(8);
+    $this->get('/var-item-1.htm')->assertNotFound()->assertDontSee('Hidden item');
+    expect((int) avpDb()->table('nuke_anasheed_anasheed')->where('id', 1)->value('hits'))->toBe(7);
 });
 
 it('A6: a hidden item\'s media is not served — download, mirror download, player and mirror player', function () {
@@ -228,8 +223,8 @@ it('A6: a visible item is unaffected — details, download and its mirror all wo
     avpDb()->table('nuke_anasheed_mirror')->insert(['id' => 1, 'khid' => 1, 'title' => 'Visible mirror', 'hidden' => 0, 'link' => 'https://cdn.example.com/m.mp3']);
 
     expect($this->get('/var-item-1.htm')->assertOk()->getContent())->toContain('تفاصيل المادة')->toContain('Visible mirror');
-    $this->get('/var-download-1.htm')->assertRedirect('https://cdn.example.com/v.mp3');
-    $this->get('/var-mirror-1-1.htm')->assertRedirect('https://cdn.example.com/m.mp3');
+    expect(ProxiedDownloadProbe::resolvedLink('/var-download-1.htm'))->toBe('https://cdn.example.com/v.mp3')
+        ->and(ProxiedDownloadProbe::resolvedLink('/var-mirror-1-1.htm'))->toBe('https://cdn.example.com/m.mp3');
 });
 
 // ─── A8 — the .grx playlist ──────────────────────────────────────────────────
@@ -258,6 +253,10 @@ it('A9: sub-group cards show the group icon, «التعليق» and zero counts,
         ['id' => 1200, 'title' => 'With icon', 'parent_id' => 300, 'icon' => 1, 'des' => 'وصف <b>القسم</b>', 'anasheed' => 4, 'child' => 0],
         ['id' => 301, 'title' => 'Empty', 'parent_id' => 300, 'icon' => 0, 'des' => '', 'anasheed' => 0, 'child' => 0],
     ]);
+    // F08 / B4 (2026-11-15): the card count is now the group's publicly visible items, so the fixture has 4 real ones.
+    foreach ([1, 2, 3, 4] as $n) {
+        avpDb()->table('nuke_anasheed_anasheed')->insert(['id' => 9000 + $n, 'title' => 'Item '.$n, 'group_id' => 1200, 'hidden' => 0]);
+    }
 
     $html = $this->get('/var-group-300.htm')->assertOk()->getContent();
 

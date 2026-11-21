@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Mail;
 use Tests\Support\Fixtures\MainSchema;
 use Tests\Support\InMemoryConnection;
+use Tests\Support\ProxiedDownloadProbe;
 
 function useInMemoryMainConnectionForAnasheedItem(): void
 {
@@ -35,12 +36,13 @@ it('show: renders item details and increments hits', function () {
     expect(DB::connection('main')->table('nuke_anasheed_anasheed')->find(1)->hits)->toBe(6);
 });
 
-it('show: hidden items remain viewable, matching legacy\'s confirmed lack of hidden filtering', function () {
+// F08 / B4 (owner-approved, 2026-11-14) supersedes "hidden items remain viewable": visitors get a 404.
+it('show: a hidden item is a 404 for visitors (F08 / B4)', function () {
     DB::connection('main')->table('nuke_anasheed_anasheed')->insert([
         'id' => 1, 'title' => 'Hidden Item', 'hidden' => 1,
     ]);
 
-    $this->get('/var-item-1.htm')->assertOk()->assertSee('Hidden Item');
+    $this->get('/var-item-1.htm')->assertNotFound()->assertDontSee('Hidden Item');
 });
 
 // ---- var-item-{id}.htm parity: css/custom.css, w2a_play.js/anasheed_scripts.js, watch/comment/send-friend controls, modals, player container ----
@@ -147,25 +149,23 @@ it('show: G-13 closure — the "most downloaded"/"most recent" sidebar is still 
         ->and($content)->not->toContain('احدث المواد');
 });
 
-it('download: redirects to the item\'s link (a full URL, not a streamed local file) and increments downcount', function () {
+it('download (F04): the protected proxy fetches the https-normalised link (never a local file); a refused download is not counted', function () {
     DB::connection('main')->table('nuke_anasheed_anasheed')->insert([
         'id' => 1, 'title' => 'Item', 'link' => 'http://example.com/a.mp3', 'downcount' => 2,
     ]);
 
-    $this->get('/var-download-1.htm')->assertRedirect('https://example.com/a.mp3');
-
-    expect(DB::connection('main')->table('nuke_anasheed_anasheed')->find(1)->downcount)->toBe(3);
+    expect(ProxiedDownloadProbe::resolvedLink('/var-download-1.htm'))->toBe('https://example.com/a.mp3')
+        ->and(DB::connection('main')->table('nuke_anasheed_anasheed')->find(1)->downcount)->toBe(2);
 });
 
-it('downloadMirror: redirects to the mirror\'s link and increments the mirror\'s own hits', function () {
+it('downloadMirror (F04): the protected proxy fetches the mirror\'s https-normalised link; a refused download is not counted', function () {
     DB::connection('main')->table('nuke_anasheed_anasheed')->insert(['id' => 1, 'title' => 'Item']);
     DB::connection('main')->table('nuke_anasheed_mirror')->insert([
         'id' => 1, 'khid' => 1, 'link' => 'http://example.com/hd.mp4', 'hits' => 0,
     ]);
 
-    $this->get('/var-mirror-1-1.htm')->assertRedirect('https://example.com/hd.mp4');
-
-    expect(DB::connection('main')->table('nuke_anasheed_mirror')->find(1)->hits)->toBe(1);
+    expect(ProxiedDownloadProbe::resolvedLink('/var-mirror-1-1.htm'))->toBe('https://example.com/hd.mp4')
+        ->and(DB::connection('main')->table('nuke_anasheed_mirror')->find(1)->hits)->toBe(0);
 });
 
 it('storeComment: creates an unmoderated comment and returns "1"', function () {

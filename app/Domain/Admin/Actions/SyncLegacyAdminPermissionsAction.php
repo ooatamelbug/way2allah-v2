@@ -3,6 +3,7 @@
 namespace App\Domain\Admin\Actions;
 
 use App\Domain\Admin\Models\AdminUser;
+use App\Domain\Admin\Support\AdminDeactivation;
 use App\Support\Permission\Permission;
 use App\Support\Permission\Role;
 use Illuminate\Support\Collection;
@@ -50,7 +51,7 @@ use Spatie\Permission\PermissionRegistrar;
 class SyncLegacyAdminPermissionsAction
 {
     /**
-     * @return Collection<int, array{id: int, aid: string, super_admin: bool, permissions: list<string>}>
+     * @return Collection<int, array{id: int, aid: string, super_admin: bool, permissions: list<string>, skipped?: 'deactivated'}>
      */
     public function execute(bool $dryRun = false): Collection
     {
@@ -66,7 +67,21 @@ class SyncLegacyAdminPermissionsAction
         $superAdminRole = Role::firstOrCreate(['name' => 'super-admin', 'guard_name' => 'admin']);
         $validPermissionNames = Permission::where('guard_name', 'admin')->pluck('name')->all();
 
-        return AdminUser::on('main')->get()->map(function (AdminUser $admin) use ($superAdminRole, $validPermissionNames, $dryRun) {
+        // F02: deactivated admins are skipped — their grants are neither added nor removed (kept for reactivation, inert
+        // because the guard refuses them).
+        $deactivated = AdminDeactivation::deactivatedIds();
+
+        return AdminUser::on('main')->get()->map(function (AdminUser $admin) use ($superAdminRole, $validPermissionNames, $dryRun, $deactivated) {
+            if (in_array((int) $admin->id, $deactivated, true)) {
+                return [
+                    'id' => $admin->id,
+                    'aid' => $admin->aid,
+                    'super_admin' => (bool) $admin->radminsuper,
+                    'permissions' => [],
+                    'skipped' => 'deactivated',
+                ];
+            }
+
             $isSuperAdmin = (bool) $admin->radminsuper;
             $grantedPermissions = $this->resolveLegacyPermissionNames(
                 $admin->getRawOriginal('permissions'),

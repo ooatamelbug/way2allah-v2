@@ -8,7 +8,8 @@
  * released when it ends or fails; the slot directory and file names are the
  * earlier Khotab guard's, so both guards share one pool during the
  * transition; the generic settings fall back to the KHOTAB_DOWNLOAD_* ones;
- * and redirect-only downloads never take a slot.
+ * and redirect-only downloads never take a slot. Since F04 (2026-11-17) the Variety, Telawah, Fatwa and lesson
+ * save links that proxy a file join the same pool.
  */
 
 use App\Support\Downloads\DownloadCapacityGuard;
@@ -20,6 +21,7 @@ use App\Support\Downloads\ProxiedDownloadStreamer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Tests\Support\ContextualAdminHarness as H;
@@ -150,7 +152,8 @@ function gdpValue(string $table, int $id, string $column): int
 function gdpConfigWithEnv(array $vars): array
 {
     $names = ['DOWNLOAD_CAPACITY_GUARD', 'DOWNLOAD_CAPACITY_MAX_CONCURRENT', 'DOWNLOAD_CAPACITY_RETRY_AFTER', 'DOWNLOAD_REJECTION_LOG', 'DOWNLOAD_CAPACITY_SLOT_DIRECTORY',
-        'KHOTAB_DOWNLOAD_CONCURRENCY_GUARD', 'KHOTAB_DOWNLOAD_MAX_CONCURRENT', 'KHOTAB_DOWNLOAD_RETRY_AFTER', 'KHOTAB_DOWNLOAD_REJECTION_LOG', 'KHOTAB_DOWNLOAD_SLOT_DIRECTORY'];
+        'KHOTAB_DOWNLOAD_CONCURRENCY_GUARD', 'KHOTAB_DOWNLOAD_MAX_CONCURRENT', 'KHOTAB_DOWNLOAD_RETRY_AFTER', 'KHOTAB_DOWNLOAD_REJECTION_LOG', 'KHOTAB_DOWNLOAD_SLOT_DIRECTORY',
+        'DOWNLOAD_REMOTE_CONNECT_TIMEOUT', 'DOWNLOAD_REMOTE_IDLE_TIMEOUT', 'DOWNLOAD_REJECTION_LOG_INTERVAL'];
     $set = function (string $name, ?string $value): void {
         if ($value === null) {
             unset($_ENV[$name], $_SERVER[$name]);
@@ -235,25 +238,21 @@ it('holds the slot WHILE the bytes are moving (Khotab endpoint), and frees it wh
         ->and(gdpFreeSlot())->toBeTrue();                                                                    // free once done
 });
 
-it('releases the slot when the transfer fails half-way', function () {
+it('releases the slot when the transfer fails half-way — logged once, not re-thrown after the headers are sent', function () {
+    // 2026-11-10 stalled-source fix: a read failure mid-transfer used to escape the
+    // callback as an exception (an error page appended to the file, a stack trace in
+    // the log). It now ends the transfer with one structured warning.
+    Log::spy();
     GdpProbeStream::$failMidway = true;
     $this->fakeLink = 'gdpprobe://archive/broken.mp4';
 
     $response = $this->get('/__test/fake-proxied-5.bin')->assertOk();
 
-    ob_start();
-    try {
-        $response->baseResponse->sendContent();
-        $thrown = null;
-    } catch (RuntimeException $e) {
-        $thrown = $e;
-    } finally {
-        ob_end_clean();
-    }
-
-    expect($thrown?->getMessage())->toBe('remote transfer broke')
+    expect($response->streamedContent())->toBe('chunk1')
         ->and(GdpProbeStream::$duringTransfer[0])->toBeNull()   // was held mid-transfer
         ->and(gdpFreeSlot())->toBeTrue();                        // and released by the failure
+    Log::shouldHaveReceived('warning')->withArgs(fn (string $message, array $context) => $context['event'] === 'DOWNLOAD_SOURCE_READ_FAILED'
+        && $context['exception'] === RuntimeException::class && $context['bytes_sent'] === 6)->once();
 });
 
 it('shares slots with the earlier Khotab guard: same directory default, same slot-NNN.lock files', function () {
@@ -284,6 +283,9 @@ it('falls back to the KHOTAB_DOWNLOAD_* variables, prefers the generic ones, and
         'max_concurrent' => 100,
         'retry_after' => 60,
         'rejection_log' => true,
+        'remote_connect_timeout' => 15.0,
+        'remote_idle_timeout' => 60.0,
+        'rejection_log_interval' => 60,
         'slot_directory' => storage_path('app/download-concurrency/khotab'),
     ]);
 
@@ -295,7 +297,8 @@ it('falls back to the KHOTAB_DOWNLOAD_* variables, prefers the generic ones, and
         'KHOTAB_DOWNLOAD_SLOT_DIRECTORY' => '/srv/slots/khotab',
     ]);
     expect($legacyOnly)->toBe([
-        'guard' => true, 'max_concurrent' => 100, 'retry_after' => 30, 'rejection_log' => false, 'slot_directory' => '/srv/slots/khotab',
+        'guard' => true, 'max_concurrent' => 100, 'retry_after' => 30, 'rejection_log' => false,
+        'remote_connect_timeout' => 15.0, 'remote_idle_timeout' => 60.0, 'rejection_log_interval' => 60, 'slot_directory' => '/srv/slots/khotab',
     ]);
 
     $both = gdpConfigWithEnv([
@@ -306,7 +309,8 @@ it('falls back to the KHOTAB_DOWNLOAD_* variables, prefers the generic ones, and
         'KHOTAB_DOWNLOAD_SLOT_DIRECTORY' => '/srv/slots/khotab', 'DOWNLOAD_CAPACITY_SLOT_DIRECTORY' => '/srv/slots/other',
     ]);
     expect($both)->toBe([
-        'guard' => false, 'max_concurrent' => 400, 'retry_after' => 60, 'rejection_log' => true, 'slot_directory' => '/srv/slots/other',
+        'guard' => false, 'max_concurrent' => 400, 'retry_after' => 60, 'rejection_log' => true,
+        'remote_connect_timeout' => 15.0, 'remote_idle_timeout' => 60.0, 'rejection_log_interval' => 60, 'slot_directory' => '/srv/slots/other',
     ]);
 
     $emptyGeneric = gdpConfigWithEnv([
@@ -322,20 +326,30 @@ it('redirect-only downloads never take a slot: they still redirect and count whi
     $this->held[] = app(DownloadCapacityGuard::class)->tryAcquire();   // the pool (1) is full
     expect($this->held[0]?->isHeld())->toBeTrue();
 
+    $this->get("/khotab-item-pdf-{$this->item}.htm")->assertRedirect();
+    // A lesson whose link is a local path is never proxied (F04 reads no local file for these modules): redirect as before.
+    $this->get("/lesson-download-{$this->item}.htm")->assertRedirect($this->file);
+
+    expect(gdpValue('nuke_islamic_khotab', $this->item, 'pdf'))->toBe(3)
+        ->and(gdpValue('nuke_islamic_khotab', $this->item, 'downcount'))->toBe(4)
+        ->and(DownloadRejection::query()->count())->toBe(0)
+        ->and(count(glob($this->slotDir.'/slot-*.lock')))->toBe(1);   // no other slot was ever touched
+});
+
+it('F04: the Variety and Telawah save links now proxy the file and so join the ONE pool: full → 503, not counted, recorded', function () {
+    $this->held[] = app(DownloadCapacityGuard::class)->tryAcquire();   // the pool (1) is full
+
     $anasheed = H::insert('nuke_anasheed_anasheed', ['title' => 'نشيد', 'link' => 'http://archive.invalid/n.mp3', 'downcount' => 1]);
     $anasheedMirror = H::insert('nuke_anasheed_mirror', ['khid' => $anasheed, 'link' => 'http://archive.invalid/nm.mp3', 'hits' => 1]);
     $telawah = H::insert('nuke_telawah_telawah', ['title' => 'تلاوة', 'link' => 'https://archive.invalid/t.mp3', 'downcount' => 1]);
 
-    $this->get("/var-download-{$anasheed}.htm")->assertRedirect('https://archive.invalid/n.mp3');
-    $this->get("/var-mirror-{$anasheed}-{$anasheedMirror}.htm")->assertRedirect('https://archive.invalid/nm.mp3');
-    $this->get("/recite-download-{$telawah}.htm")->assertRedirect('https://archive.invalid/t.mp3');
-    $this->get("/khotab-item-pdf-{$this->item}.htm")->assertRedirect();
-    $this->get("/lesson-download-{$this->item}.htm")->assertRedirect($this->file);
+    $this->get("/var-download-{$anasheed}.htm")->assertStatus(503)->assertHeader('Retry-After', '60');
+    $this->get("/var-mirror-{$anasheed}-{$anasheedMirror}.htm")->assertStatus(503);
+    $this->get("/recite-download-{$telawah}.htm")->assertStatus(503);
 
-    expect(gdpValue('nuke_anasheed_anasheed', $anasheed, 'downcount'))->toBe(2)
-        ->and(gdpValue('nuke_anasheed_mirror', $anasheedMirror, 'hits'))->toBe(2)
-        ->and(gdpValue('nuke_telawah_telawah', $telawah, 'downcount'))->toBe(2)
-        ->and(gdpValue('nuke_islamic_khotab', $this->item, 'pdf'))->toBe(3)
-        ->and(DownloadRejection::query()->count())->toBe(0)
-        ->and(count(glob($this->slotDir.'/slot-*.lock')))->toBe(1);   // no other slot was ever touched
+    expect(gdpValue('nuke_anasheed_anasheed', $anasheed, 'downcount'))->toBe(1)
+        ->and(gdpValue('nuke_anasheed_mirror', $anasheedMirror, 'hits'))->toBe(1)
+        ->and(gdpValue('nuke_telawah_telawah', $telawah, 'downcount'))->toBe(1)
+        ->and(DownloadRejection::query()->pluck('module')->all())->toBe(['anasheed', 'anasheed', 'telawah'])
+        ->and(count(glob($this->slotDir.'/slot-*.lock')))->toBe(1);   // still the one global pool
 });

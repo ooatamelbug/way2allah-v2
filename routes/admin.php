@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Admin\Http\Controllers\AdAdminController;
 use App\Domain\Admin\Http\Controllers\AdminAuditLogController;
 use App\Domain\Admin\Http\Controllers\AdminAuthController;
 use App\Domain\Admin\Http\Controllers\AdminStaffController;
@@ -10,6 +11,8 @@ use App\Domain\Admin\Http\Controllers\AnasheedMirrorController;
 use App\Domain\Admin\Http\Controllers\AnasheedWithoutAuthorsController;
 use App\Domain\Admin\Http\Controllers\AnasheedWithoutCatsController;
 use App\Domain\Admin\Http\Controllers\AnasheedWithoutChannelsController;
+use App\Domain\Admin\Http\Controllers\BadAdReportsAdminController;
+use App\Domain\Admin\Http\Controllers\BannerAdsAdminController;
 use App\Domain\Admin\Http\Controllers\BroadcastingController;
 use App\Domain\Admin\Http\Controllers\CategoryAssignmentController;
 use App\Domain\Admin\Http\Controllers\CdBannerController;
@@ -21,6 +24,7 @@ use App\Domain\Admin\Http\Controllers\FatwaTopicAdminController;
 use App\Domain\Admin\Http\Controllers\KhotabAuthorAdminController;
 use App\Domain\Admin\Http\Controllers\KhotabGroupAdminController;
 use App\Domain\Admin\Http\Controllers\KhotabItemAdminController;
+use App\Domain\Admin\Http\Controllers\KhotabItemCoverController;
 use App\Domain\Admin\Http\Controllers\KhotabLinkReportController;
 use App\Domain\Admin\Http\Controllers\KhotabMainAdminController;
 use App\Domain\Admin\Http\Controllers\KhotabMirrorController;
@@ -214,7 +218,7 @@ Route::middleware(['admin.role'])->prefix('admincp')->name('admin.')->group(func
     // gated by khotab.editmirror — the token OLD's MoveMirror checked; no
     // movemirror permission exists.
     Route::prefix('mirrors')->name('mirrors.')->group(function () {
-        Route::prefix('khotab')->name('khotab.')->group(function () {
+        Route::prefix('khotab')->name('khotab.')->middleware(['admin.khotab-media'])->group(function () {
             Route::middleware(['admin.permission:khotab.addmirror,khotab.editmirror,khotab.delmirror'])->group(function () {
                 Route::get('/', [KhotabMirrorController::class, 'index'])->name('index');
                 Route::get('/items/{khotabItem}', [KhotabMirrorController::class, 'show'])->whereNumber('khotabItem')->name('show');
@@ -350,6 +354,8 @@ Route::middleware(['admin.role'])->prefix('admincp')->name('admin.')->group(func
         Route::middleware(['admin.permission:anasheed.editanasheed'])->group(function () {
             Route::get('/edit', [AnasheedItemAdminController::class, 'edit'])->name('edit');
             Route::put('/', [AnasheedItemAdminController::class, 'update'])->name('update');
+            // F08 / B4: hide / unhide (the legacy `hidden` column only).
+            Route::put('/visibility', [AnasheedItemAdminController::class, 'setVisibility'])->name('visibility');
         });
         Route::middleware(['admin.permission:anasheed.delanasheed'])->group(function () {
             Route::get('/delete', [AnasheedItemAdminController::class, 'confirmDestroy'])->name('delete');
@@ -458,7 +464,9 @@ Route::middleware(['admin.role'])->prefix('admincp')->name('admin.')->group(func
     // route per OLD `admin.php?op=…` step; each mutation is a non-GET.
     // «مواد لم تصنف» (OLD `KhotabLists`) carries no permission: OLD checked
     // nothing there, so it stays open to every administrator (admin.role).
-    Route::prefix('khotab')->name('khotab.')->group(function () {
+    // OLD Khotab audio / video moderator scope (2026-11-17): EnsureKhotabMediaScope checks each route's own scoped key
+    // against its record's section; the actions check it again (KhotabMediaScopeConstraint).
+    Route::prefix('khotab')->name('khotab.')->middleware(['admin.khotab-media'])->group(function () {
         Route::prefix('groups/{group}')->whereNumber('group')->name('groups.')->group(function () {
             Route::middleware(['admin.permission:khotab.sortitems'])->group(function () {
                 Route::get('/rearrange', [KhotabGroupAdminController::class, 'rearrange'])->name('rearrange');
@@ -567,6 +575,10 @@ Route::middleware(['admin.role'])->prefix('admincp')->name('admin.')->group(func
                 Route::get('/edit', [KhotabItemAdminController::class, 'edit'])->name('edit');
                 Route::put('/', [KhotabItemAdminController::class, 'update'])->name('update');
                 Route::post('/images', [KhotabItemAdminController::class, 'leechImages'])->name('images');
+                // F10 / B5: the custom cover (video items only), under the same key as «سحب الصور».
+                Route::get('/cover', [KhotabItemCoverController::class, 'show'])->name('cover');
+                Route::post('/cover', [KhotabItemCoverController::class, 'store'])->name('cover.store');
+                Route::delete('/cover', [KhotabItemCoverController::class, 'destroy'])->name('cover.destroy');
             });
             Route::middleware(['admin.permission:khotab.moveitem'])->group(function () {
                 Route::get('/move', [KhotabItemAdminController::class, 'move'])->name('move');
@@ -641,6 +653,33 @@ Route::middleware(['admin.role'])->prefix('admincp')->name('admin.')->group(func
             Route::get('/{poll}/comments', [PollAdminController::class, 'comments'])->whereNumber('poll')->name('comments');
             Route::delete('/comments/{comment}', [PollAdminController::class, 'destroyComment'])->whereNumber('comment')->name('comments.destroy');
         });
+    });
+
+    // F01 / B6a — OLD advertising administration (`modules/ads/admin`) on `nuke_ads`. OLD gated the
+    // whole module with one check (radminsuper or the module's admins list) → ads.manageads; raw-code
+    // (type 0) ads are additionally super-admin only, enforced in the actions. Separate from Advfiles.
+    // Administration only: no public rendering, click or view route exists (B6c, not implemented).
+    Route::prefix('ads')->name('ads.')->middleware(['admin.permission:ads.manageads'])->group(function () {
+        Route::get('/', [AdAdminController::class, 'index'])->name('index');
+        Route::get('/create', [AdAdminController::class, 'create'])->name('create');
+        Route::post('/', [AdAdminController::class, 'store'])->name('store');
+        Route::get('/reports', [AdAdminController::class, 'reports'])->name('reports');
+        Route::get('/{ad}/edit', [AdAdminController::class, 'edit'])->whereNumber('ad')->name('edit');
+        Route::put('/{ad}', [AdAdminController::class, 'update'])->whereNumber('ad')->name('update');
+        Route::delete('/{ad}', [AdAdminController::class, 'destroy'])->whereNumber('ad')->name('destroy');
+        Route::post('/{ad}/toggle', [AdAdminController::class, 'toggle'])->whereNumber('ad')->name('toggle');
+    });
+
+    // F01 / B6b — OLD `modules/banners_ads/admin` («إعلانات بنرات المواد») and `modules/report_ads/admin`
+    // («الإبلاغ عن اعلانات غير لائقة»), each with its OWN key (ads.manageads authorizes neither). Administration
+    // only: the home banner strip and any report submission are not implemented (B6c / not approved).
+    Route::prefix('banners-ads')->name('banners_ads.')->middleware(['admin.permission:banners_ads.managebanners'])->group(function () {
+        Route::get('/', [BannerAdsAdminController::class, 'index'])->name('index');
+        Route::put('/', [BannerAdsAdminController::class, 'update'])->name('update');
+    });
+    Route::prefix('report-ads')->name('report_ads.')->middleware(['admin.permission:report_ads.managereports'])->group(function () {
+        Route::get('/', [BadAdReportsAdminController::class, 'index'])->name('index');
+        Route::delete('/{report}', [BadAdReportsAdminController::class, 'destroy'])->whereNumber('report')->name('destroy');
     });
 
     // OLD Admin Migration Phase 5 — Featured / Promotional Content
@@ -744,6 +783,20 @@ Route::middleware(['admin.role'])->prefix('admincp')->name('admin.')->group(func
         Route::middleware(['admin.permission:authors.addstuff'])->group(function () {
             Route::get('/create', [AdminStaffController::class, 'create'])->name('create');
             Route::post('/', [AdminStaffController::class, 'store'])->name('store');
+        });
+        // F02 — deactivation / reactivation: super-admin only; 404 while `admin_deactivation.enabled` is off.
+        Route::middleware(['admin.role:super-admin'])->group(function () {
+            Route::get('/{admin}/deactivate', [AdminStaffController::class, 'confirmDeactivate'])->whereNumber('admin')->name('deactivate.confirm');
+            Route::post('/{admin}/deactivate', [AdminStaffController::class, 'deactivate'])->whereNumber('admin')->name('deactivate');
+            Route::get('/{admin}/reactivate', [AdminStaffController::class, 'confirmReactivate'])->whereNumber('admin')->name('reactivate.confirm');
+            Route::post('/{admin}/reactivate', [AdminStaffController::class, 'reactivate'])->whereNumber('admin')->name('reactivate');
+            // Administrator management (OLD mod_authors parity, 2026-11-17): profile (email / URL) and the super-admin
+            // role. AdminManagementPolicy narrows these further (protected targets and role changes: owners only).
+            Route::put('/{admin}/profile', [AdminStaffController::class, 'updateProfile'])->whereNumber('admin')->name('profile');
+            // Login-name rename (OLD UpdateAuthor `aid`): owners only; 404 while `admin_rename.enabled` is off.
+            Route::put('/{admin}/login-name', [AdminStaffController::class, 'rename'])->whereNumber('admin')->name('rename');
+            Route::post('/{admin}/super-admin', [AdminStaffController::class, 'promote'])->whereNumber('admin')->name('super-admin.promote');
+            Route::delete('/{admin}/super-admin', [AdminStaffController::class, 'demote'])->whereNumber('admin')->name('super-admin.demote');
         });
     });
 });

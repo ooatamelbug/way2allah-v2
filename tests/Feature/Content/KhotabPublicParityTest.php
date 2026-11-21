@@ -193,13 +193,14 @@ it('uses the list author\'s bucket JPG for frame-less items, keeps frames, and f
 
     @mkdir($this->media.'/authors/0', 0775, true);
     file_put_contents($this->media.'/authors/0/7.jpg', 'jpg');
-    expect($sidebar(7)[$this->visible])->toBe('/media/authors/0/7.jpg')
+    // author-image feedback (2026-11-18): versioned by the file's mtime
+    expect($sidebar(7)[$this->visible])->toBe('/media/authors/0/7.jpg?v='.filemtime($this->media.'/authors/0/7.jpg'))
         ->and($sidebar(7)[$frameItem])->toBe('/media/khotab_frames/0/'.$frameItem.'.jpg');
 
     // another author's list never borrows author 7's image; non-author lists keep the placeholder
     H::insert('nuke_islamic_khotab', ['author' => 8, 'title' => 'للآخر', 'vedio' => 1]);
     expect($sidebar(8)->unique()->values()->all())->toBe(['/images/way2_withoutimg.png'])
-        ->and(app(ContentSidebarWidget::class)->khotabMostDownloadedByVideoFlag(true)->pluck('thumb')->contains('/media/authors/0/7.jpg'))->toBeFalse();
+        ->and(app(ContentSidebarWidget::class)->khotabMostDownloadedByVideoFlag(true)->pluck('thumb')->contains(fn ($t) => str_contains((string) $t, '/media/authors/0/7.jpg')))->toBeFalse();
 
     // OLD Group() / Series() ran Top10() for the group's author: the group page's sidebar shows it.
     $group = H::insert('nuke_islamic_groups', ['author_id' => 7, 'title' => 'مجموعة', 'vedio' => 1, 'hidden' => 0, 'count' => 1]);
@@ -229,7 +230,7 @@ it('renders the ranking thumbnails on the author page: frame first, then that au
 
     $response = $this->get('/khotab-video-7.htm')->assertOk();
     $html = $response->getContent();
-    expect($thumbs($html))->toContain('/media/khotab_frames/0/896.jpg')->toContain('/media/authors/0/7.jpg')->not->toContain('/images/way2_withoutimg.png')
+    expect($thumbs($html))->toContain('/media/khotab_frames/0/896.jpg')->toContain('/media/authors/0/7.jpg?v='.filemtime($this->media.'/authors/0/7.jpg'))->not->toContain('/images/way2_withoutimg.png')
         // the profile card and a visitor's cacheable page are as before
         ->and($html)->toContain('w2a-author-avatar" src="/media/authors/no_author_image.png"')->not->toContain('data-contextual-admin')
         ->and((string) $response->headers->get('Cache-Control'))->not->toContain('no-store');

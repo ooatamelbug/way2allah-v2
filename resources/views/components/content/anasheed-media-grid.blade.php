@@ -1,4 +1,4 @@
-@props(['items'])
+@props(['items', 'showHiddenMarker' => false])
 
 <div class="w2a-anasheed-wrap">
     <div class="w2a-reciters-toolbar">
@@ -37,6 +37,10 @@
                 </span>
                 <span class="w2a-media-item-body">
                     <span class="w2a-media-item-title">{{ $item->title }}</span>
+                    @if ($showHiddenMarker && (int) ($item->hidden ?? 0) !== 0)
+                        {{-- F08 / B4: administrators only (visitors never receive hidden items). --}}
+                        <span class="label label-danger w2a-hidden-item-marker">مخفية</span>
+                    @endif
                     <span class="w2a-media-item-meta">
                         <span class="w2a-media-item-hits"><i class="fa fa-eye" aria-hidden="true"></i>
                             <span>{{ number_format((int) ($item->hits ?? 0)) }} مشاهدة</span></span>

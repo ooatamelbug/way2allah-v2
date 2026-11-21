@@ -18,6 +18,7 @@
             @method('PUT')
             <label>وصف الوصلة <input type="text" name="title" value="{{ old('title', $mirror->title) }}" maxlength="255" class="form-control"></label>
             <label>وصلة التحميل <input type="text" name="link" value="{{ old('link', $mirror->link) }}" dir="ltr" class="form-control"></label>
+            @include('admin.anasheed._link-warning', ['link' => (string) old('link', $mirror->link), 'showWhenEmpty' => true])
             {{-- Bytes, not megabytes: OLD's Anasheed edit took the stored byte
                  value directly. Honoured only for the mirror states OLD
                  honoured it for; see UpdateAnasheedMirrorAction. --}}

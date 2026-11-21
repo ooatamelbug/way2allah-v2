@@ -4,6 +4,7 @@ namespace App\Domain\Content\Models;
 
 use App\Domain\Content\Models\Concerns\TracksViews;
 use App\Domain\Content\Models\Contracts\Viewable;
+use App\Domain\Content\Support\KhotabCover;
 use App\Domain\Content\Support\MediaPathResolver;
 use App\Domain\Content\Support\MediaUrl;
 use Illuminate\Database\Eloquent\Model;
@@ -197,6 +198,11 @@ class KhotabItem extends Model implements Viewable
      */
     public function socialImageUrl(): ?string
     {
+        // F10 / B5: a custom cover outranks the GIF and the frame; without one, Gen 2's GIF-first rule below.
+        if (($cover = KhotabCover::url((int) $this->id)) !== null) {
+            return $cover;
+        }
+
         $relative = (int) $this->gif === 1 ? $this->videoGifPath() : $this->videoFramePath();
         $file = rtrim((string) config('admin_khotab.media_root'), '/').'/'.substr($relative, strlen('media/'));
 

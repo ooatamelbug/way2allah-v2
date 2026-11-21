@@ -1,9 +1,11 @@
-@props(['items', 'type' => 'series', 'secondary' => null, 'rowControls' => null, 'markHidden' => false, 'secondaryHref' => null])
+@props(['items', 'type' => 'series', 'secondary' => null, 'rowControls' => null, 'markHidden' => false, 'markEmpty' => false, 'secondaryHref' => null])
 {{-- rowControls: an admin-only callable(item): list<ContextualControl>, rendered beside each
      card (a form cannot sit inside the card's <a>). Null — always, for visitors — leaves the
      markup as before.
      markHidden: OLD's «++مخفي++» after the count of a row whose `hidden` is 1. Only admin
      queries select `hidden`, so a visitor's markup is unchanged.
+     markEmpty: B2 / F03-B «فارغة» on a row whose `is_empty` is true (no item the series page would list,
+     hidden ones included — computed by the admin query, not from the stored count). Admin-only, like markHidden.
      secondaryHref: an optional callable(item): ?string giving the secondary text its own link
      (Gen 2 channel listings link the author, channels/functions.php:48, :137). When it returns
      a URL, the card is an <article> whose title link is stretched over the card (so the whole
@@ -35,7 +37,7 @@
             <div class="w2a-cat-series-header">
                 <span class="w2a-cat-series-icon-wrap"><i class="fa {{ $icon }}" aria-hidden="true"></i></span>
                 <span class="w2a-cat-series-count"><i class="fa fa-play-circle" aria-hidden="true"></i>
-                    {{ number_format((int) $item->count) }} مادة{{ $markHidden && (int) ($item->hidden ?? 0) === 1 ? ' ++مخفي++' : '' }}</span>
+                    {{ number_format((int) $item->count) }} مادة{{ $markHidden && (int) ($item->hidden ?? 0) === 1 ? ' ++مخفي++' : '' }}@if ($markEmpty && ($item->is_empty ?? false)) <span class="label label-warning w2a-empty-series-marker">فارغة</span>@endif</span>
             </div>
             <div class="w2a-cat-series-body">
                 <h3 class="w2a-cat-series-title"><a href="/khotab-{{ $type }}-{{ $item->id }}.htm" class="w2a-cat-series-card__link">{{ trim((string) $item->title) }}</a></h3>
@@ -52,7 +54,7 @@
             <div class="w2a-cat-series-header">
                 <span class="w2a-cat-series-icon-wrap"><i class="fa {{ $icon }}" aria-hidden="true"></i></span>
                 <span class="w2a-cat-series-count"><i class="fa fa-play-circle" aria-hidden="true"></i>
-                    {{ number_format((int) $item->count) }} مادة{{ $markHidden && (int) ($item->hidden ?? 0) === 1 ? ' ++مخفي++' : '' }}</span>
+                    {{ number_format((int) $item->count) }} مادة{{ $markHidden && (int) ($item->hidden ?? 0) === 1 ? ' ++مخفي++' : '' }}@if ($markEmpty && ($item->is_empty ?? false)) <span class="label label-warning w2a-empty-series-marker">فارغة</span>@endif</span>
             </div>
             <div class="w2a-cat-series-body">
                 <h3 class="w2a-cat-series-title">{{ trim((string) $item->title) }}</h3>

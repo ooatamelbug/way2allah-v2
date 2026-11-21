@@ -261,7 +261,7 @@
                         <div class="caption"><i class="fa fa-clone"></i> قائمة الجودات المختلفة للمادة</div>
                     </div>
                     <div class="portlet-body">
-                        <x-content.media-quality-list :items="$khotabItem->mirrors" module="khotab" :parent-id="$khotabItem->id" />
+                        <x-content.media-quality-list :items="$khotabItem->mirrors" module="khotab" :parent-id="$khotabItem->id" :parent-vedio="$khotabItem->vedio" />
                     </div>
                 </div>
             @endif
@@ -320,12 +320,13 @@
                         <div class="caption"><i class="fa fa-child"></i> الملف الشخصي</div>
                     </div>
                     <div class="portlet-body">
-                        {{-- G-13-03: item.php:446 calls get_author_img() unconditionally —
-                             unlike author.php/authors.php, it never checks the author_image
-                             DB column first, so this uses fallbackImageUrl(), not
-                             displayImageUrl(). --}}
+                        {{-- G-13-03: item.php:446 calls get_author_img() unconditionally
+                             (no author_image check, unlike author.php/authors.php). F06
+                             (owner-approved visitor-parity deviation, 2026-11-14) resolves it
+                             through displayImageUrl() — author_image first, then the same
+                             get_author_img() fallbacks — so an uploaded image shows here. --}}
                         <div class="profile-userpic">
-                            <img src="{{ $khotabItem->authorModel?->fallbackImageUrl() }}" alt="">
+                            <img src="{{ $khotabItem->authorModel?->displayImageUrl() }}" alt="">
                         </div>
                     </div>
                 </div>

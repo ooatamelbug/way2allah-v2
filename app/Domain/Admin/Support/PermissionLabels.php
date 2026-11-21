@@ -60,6 +60,11 @@ class PermissionLabels
         // OLD Admin Migration Phase 7 — `_DOWNLOADSMAIN` names it
         // «صفحة الموبايل الرئيسية»; the section is قسم الموبايل.
         'mobile' => 'قسم الموبايل',
+        // F01 / B6a — OLD's own admin menu label (`modules/ads/admin/links.php`).
+        'ads' => 'الإعلانات',
+        // F01 / B6b — OLD's own admin menu labels.
+        'banners_ads' => 'إعلانات بنرات المواد',
+        'report_ads' => 'الإبلاغ عن اعلانات غير لائقة',
         // OLD public admin parity — Fatwa (2026-10-30): OLD's own admin menu
         // label (`modules/Fatwa/admin/links.php`).
         'fatwa' => 'الفتـــاوي',
@@ -85,6 +90,9 @@ class PermissionLabels
         'polls' => 'icon-calculator',
         'w2acd' => 'icon-disc',
         'mobile' => 'icon-screen-smartphone',
+        'ads' => 'icon-badge',
+        'banners_ads' => 'icon-picture',
+        'report_ads' => 'icon-flag',
         'fatwa' => 'icon-question',
     ];
 
@@ -187,6 +195,9 @@ class PermissionLabels
         'khotab.uploadpdf' => 'رفع ملف التفريغ',
         'khotab.adddocx' => 'رفع ملف وورد',
         'khotab.deletedocx' => 'حذف ملف وورد',
+        // OLD `nuke_islamic_mod.audio` / `vedio` (KhotabMediaScopeConstraint).
+        'khotab.media_audio' => 'قسم الصوتيات',
+        'khotab.media_video' => 'قسم المرئيات',
         'khotab.approvecomment' => 'مراجعة التعليقات',
         'khotab.delcomment' => 'حذف تعليقات',
         // OLD public admin parity — Khotab author page. SOURCE_CONFIRMED,
@@ -198,6 +209,11 @@ class PermissionLabels
         // OLD Admin Migration Phase 6 — the OLD module's menu label.
         'w2acd.managecds' => 'الاسطوانات الدعوية',
         'mobile.managedownloads' => 'إدارة قسم الموبايل',
+        // F01 / B6a — one key for OLD's single module-level check.
+        'ads.manageads' => 'إدارة الإعلانات',
+        // F01 / B6b — one key per OLD module (each had its own module-level check).
+        'banners_ads.managebanners' => 'إدارة إعلانات بنرات المواد',
+        'report_ads.managereports' => 'إدارة الإبلاغات عن الإعلانات',
     ];
 
     public static function moduleName(string $module): string

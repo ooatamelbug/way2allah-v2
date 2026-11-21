@@ -5,6 +5,8 @@ namespace App\Domain\Content\Http\Controllers;
 use App\Domain\Content\Models\AnasheedGroup;
 use App\Domain\Content\Models\AnasheedItem;
 use App\Domain\Content\Services\ContentListingService;
+use App\Domain\Content\Support\VarietyMediaLink;
+use App\Support\Http\AdminViewer;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Response;
@@ -63,13 +65,22 @@ class AnasheedGroupController
      * rendered here anyway, with no citing comment — an unexplained
      * over-implementation, not a real legacy behavior. Removed.
      */
-    public function show(int $group, ?int $page = null): View
+    public function show(int $group, AdminViewer $contextual, ContentListingService $listing, ?int $page = null): View
     {
         $groupModel = AnasheedGroup::findOrFail($group);
 
         $subGroups = AnasheedGroup::where('parent_id', $group)->orderByDesc('id')->get();
 
-        $items = $this->itemsForGroup($group, $page);
+        // F08 / B4: each card shows its PUBLICLY VISIBLE item count (one aggregate query), not the stored counter.
+        $subGroupItemCounts = $listing->anasheedVisibleItemCountsByGroup($subGroups->pluck('id')->map(fn ($id) => (int) $id)->all());
+
+        // F08 / B4: hidden items are listed only to `anasheed.editanasheed` holders and super-admins (marked
+        // «مخفية»), so their controls stay reachable; that response is private. Everyone else: not listed.
+        $admin = $contextual->can(AnasheedItemController::HIDDEN_PREVIEW_PERMISSION);
+        $items = $this->itemsForGroup($group, $page, $admin);
+        if ($admin && collect($items->items())->contains(fn ($item) => (int) $item->hidden !== 0)) {
+            $contextual->markRendered();
+        }
 
         // anasheed/group.php:79 — group hit-count, unconditional on load.
         $groupModel->increment('hits');
@@ -85,7 +96,9 @@ class AnasheedGroupController
             ? ['title' => $g->title]
             : ['title' => $g->title, 'url' => '/var-group-'.$g->id.'.htm'])->all();
 
-        return view('anasheed.group', compact('groupModel', 'subGroups', 'items', 'breadcrumbTrail'));
+        $showHiddenMarker = $admin;
+
+        return view('anasheed.group', compact('groupModel', 'subGroups', 'subGroupItemCounts', 'items', 'breadcrumbTrail', 'showHiddenMarker'));
     }
 
     public function downloadGetright(int $group, ContentListingService $listing): Response
@@ -96,6 +109,11 @@ class AnasheedGroupController
 
         $content = '';
         foreach ($items as $item) {
+            // B2 / F07-B2 (decision-log #148): only items /var-download can actually serve (the F07-A rule); a broken
+            // link would make GetRight save this site's 404 page or home page under the item's name.
+            if (! VarietyMediaLink::isDownloadable($item->link)) {
+                continue;
+            }
             $extension = strtolower((string) pathinfo((string) $item->link, PATHINFO_EXTENSION));
             $title = (string) $item->title;
             $title = str_replace('\\', '-', $title);
@@ -128,12 +146,13 @@ class AnasheedGroupController
      * 98 / 16 merge, which OLD applies only to the news pages — ordered `order_in_group DESC,
      * mytime DESC`, 24 per page.
      */
-    private function itemsForGroup(int $groupId, ?int $page = null): LengthAwarePaginator
+    private function itemsForGroup(int $groupId, ?int $page = null, bool $includeHidden = false): LengthAwarePaginator
     {
         return AnasheedItem::query()
             ->leftJoin('nuke_anasheed_advanced as ad', 'nuke_anasheed_anasheed.id', '=', 'ad.id')
             ->select(['nuke_anasheed_anasheed.*', 'ad.adur'])
             ->where('nuke_anasheed_anasheed.group_id', $groupId)
+            ->when(! $includeHidden, fn ($query) => $query->where('nuke_anasheed_anasheed.hidden', 0))
             ->orderByDesc('nuke_anasheed_anasheed.order_in_group')
             ->orderByDesc('nuke_anasheed_anasheed.mytime')
             ->paginate(24, ['*'], 'page', $page);

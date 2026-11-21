@@ -348,6 +348,10 @@
             @if (session('error'))
                 <div class="alert alert-danger">{{ session('error') }}</div>
             @endif
+            {{-- B2 / F07-A: a saved Variety link that cannot be played or downloaded (warning only; the save succeeded). --}}
+            @if (is_string(session(\App\Domain\Content\Support\VarietyMediaLink::ADMIN_WARNING_FLASH)))
+                <div class="alert alert-warning" role="alert" data-admin-link-warning>{{ session(\App\Domain\Content\Support\VarietyMediaLink::ADMIN_WARNING_FLASH) }}</div>
+            @endif
             {{-- Contextual administration: opened from a public page. --}}
             @php($contextualBack = \App\Domain\Admin\Contextual\ContextualReturn::safeTarget(old(\App\Domain\Admin\Contextual\ContextualReturn::PARAM, request()->query(\App\Domain\Admin\Contextual\ContextualReturn::PARAM)), request()))
             @if ($contextualBack !== null)

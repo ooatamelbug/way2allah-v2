@@ -1,0 +1,76 @@
+{
+  "scenarios": [
+    {
+      "browser": "firefox",
+      "id": "J3",
+      "title": "prototype: CORS 50 MiB .mp3",
+      "expect": "SUCCESS_FORCED_DOWNLOAD",
+      "bytes": 52428800,
+      "elapsed_s": 1.281,
+      "saved_bytes": 52428800,
+      "filename": "big50.mp3",
+      "integrity": "exact",
+      "category": "SUCCESS_FORCED_DOWNLOAD",
+      "pss_base_mib": 310.1,
+      "pss_peak_mib": 697.1,
+      "cgroup_peak_mib": 1157.1,
+      "pss_after_mib": 666.5,
+      "pass": true
+    },
+    {
+      "browser": "firefox",
+      "id": "J4",
+      "title": "prototype: CORS 50 MiB .mp4",
+      "expect": "SUCCESS_FORCED_DOWNLOAD",
+      "bytes": 52428800,
+      "elapsed_s": 1.418,
+      "saved_bytes": 52428800,
+      "filename": "big50.mp4",
+      "integrity": "exact",
+      "category": "SUCCESS_FORCED_DOWNLOAD",
+      "pss_base_mib": 311.1,
+      "pss_peak_mib": 683.3,
+      "cgroup_peak_mib": 1170,
+      "pss_after_mib": 664.9,
+      "pass": true
+    },
+    {
+      "browser": "firefox",
+      "id": "J5",
+      "title": "prototype: CORS 400 MiB .mp3, no cap",
+      "expect": "SUCCESS_FORCED_DOWNLOAD",
+      "bytes": 419430400,
+      "elapsed_s": 13.883,
+      "saved_bytes": 419430400,
+      "filename": "big400.mp3",
+      "integrity": "exact",
+      "category": "SUCCESS_FORCED_DOWNLOAD",
+      "pss_base_mib": 315.7,
+      "pss_peak_mib": 2267.9,
+      "cgroup_peak_mib": 2742.2,
+      "pss_after_mib": 1146.2,
+      "pass": true
+    },
+    {
+      "browser": "firefox",
+      "id": "J6",
+      "title": "prototype: CORS 400 MiB .mp4, no cap",
+      "expect": "SUCCESS_FORCED_DOWNLOAD",
+      "bytes": 419430400,
+      "elapsed_s": 11.044,
+      "saved_bytes": 419430400,
+      "filename": "big400.mp4",
+      "integrity": "exact",
+      "category": "SUCCESS_FORCED_DOWNLOAD",
+      "pss_base_mib": 312.6,
+      "pss_peak_mib": 2609.6,
+      "cgroup_peak_mib": 3236.2,
+      "pss_after_mib": 1145.3,
+      "pass": true
+    }
+  ],
+  "playback": [],
+  "env": {
+    "firefox": "131.0"
+  }
+}

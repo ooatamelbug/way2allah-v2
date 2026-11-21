@@ -2,14 +2,16 @@
 
 @foreach ($items as $item)
     @php
-        $photo = ((int) ($item->gif ?? 0)) === 1
-            ? \App\Domain\Content\Support\MediaPathResolver::path('khotab_gifs', $item->id, 'gif')
-            : \App\Domain\Content\Support\MediaPathResolver::path('khotab_frames', $item->id, 'jpg');
+        // F10 / B5: a custom cover outranks the GIF; without one, the existing GIF-first rule (selection unchanged).
+        $photoUrl = \App\Domain\Content\Support\KhotabCover::url((int) $item->id)
+            ?? \App\Domain\Content\Support\MediaUrl::asset(((int) ($item->gif ?? 0)) === 1
+                ? \App\Domain\Content\Support\MediaPathResolver::path('khotab_gifs', $item->id, 'gif')
+                : \App\Domain\Content\Support\MediaPathResolver::path('khotab_frames', $item->id, 'jpg'));
         $authorName = trim(($item->prename ?? '').' '.($item->name ?? ''));
     @endphp
     <article class="w2a-featured-item-card">
         <div class="w2a-featured-img-wrap">
-            <img src="{{ \App\Domain\Content\Support\MediaUrl::asset($photo) }}" alt="{{ $item->title }}" class="w2a-featured-img" width="320" height="180" loading="lazy" decoding="async">
+            <img src="{{ $photoUrl }}" alt="{{ $item->title }}" class="w2a-featured-img" width="320" height="180" loading="lazy" decoding="async">
             <span class="w2a-featured-badge"><i class="fa fa-star" aria-hidden="true"></i> مادة مختارة</span>
         </div>
         <div class="w2a-featured-body">

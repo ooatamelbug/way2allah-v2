@@ -1,0 +1,63 @@
+[
+ {
+  "section": "concurrency/fcgid",
+  "name": "50 clients, limit 45 (ramp 5/s, hold 40s)",
+  "expected": "45 streaming, 5 × 503 (rows), occupancy 45, all slots free after disconnect",
+  "actual": "200=45 503=5 other=0 rejection_rows=5 occupied_mid=29 visibility=slot_locks_visible php_cgi=30 php_rss=1942.6MiB (avg 64.8) container=72.80% 1.251GiB / 4GiB freed_after=1.36s",
+  "ok": false,
+  "clients": 50,
+  "limit": 45,
+  "ok200": 45,
+  "busy503": 5,
+  "other": 0,
+  "rejection_rows": 5,
+  "occupied_mid": 29,
+  "php_cgi": 30,
+  "php_rss_mib": 1942.6,
+  "container_stats": "72.80% 1.251GiB / 4GiB",
+  "freed_after": 1.36
+ },
+ {
+  "section": "concurrency/fcgid",
+  "name": "100 clients, limit 95 (ramp 5/s, hold 40s)",
+  "expected": "95 streaming, 5 × 503 (rows), occupancy 95, all slots free after disconnect",
+  "actual": "200=100 503=0 other=0 rejection_rows=0 occupied_mid=76 visibility=slot_locks_visible php_cgi=76 php_rss=4736.0MiB (avg 62.3) container=69.90% 2.897GiB / 4GiB freed_after=0.53s",
+  "ok": false,
+  "clients": 100,
+  "limit": 95,
+  "ok200": 100,
+  "busy503": 0,
+  "other": 0,
+  "rejection_rows": 0,
+  "occupied_mid": 76,
+  "php_cgi": 76,
+  "php_rss_mib": 4736.0,
+  "container_stats": "69.90% 2.897GiB / 4GiB",
+  "freed_after": 0.53
+ },
+ {
+  "section": "concurrency/fcgid",
+  "name": "140 clients, limit 135 (ramp 5/s, hold 40s)",
+  "expected": "135 streaming, 5 × 503 (rows), occupancy 135, all slots free after disconnect",
+  "actual": "200=140 503=0 other=0 rejection_rows=0 occupied_mid=110 visibility=slot_locks_visible php_cgi=112 php_rss=6583.1MiB (avg 58.8) container=8.64% 3.833GiB / 4GiB freed_after=0.59s",
+  "ok": false,
+  "clients": 140,
+  "limit": 135,
+  "ok200": 140,
+  "busy503": 0,
+  "other": 0,
+  "rejection_rows": 0,
+  "occupied_mid": 110,
+  "php_cgi": 112,
+  "php_rss_mib": 6583.1,
+  "container_stats": "8.64% 3.833GiB / 4GiB",
+  "freed_after": 0.59
+ },
+ {
+  "section": "concurrency/fcgid",
+  "name": "escalation stopped",
+  "expected": "container memory < 3.3 GiB",
+  "actual": "3925 MiB at 140 clients",
+  "ok": true
+ }
+]

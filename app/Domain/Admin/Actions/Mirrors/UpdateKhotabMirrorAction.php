@@ -23,6 +23,14 @@ use Illuminate\Support\Facades\DB;
  *
  * Works on orphans (3E.1 I-4). OLD refused to edit a mirror whose parent
  * was missing; nothing here needs the parent, so Laravel does not.
+ *
+ * F09 post-backup link lock (OLD `EditMirror`, `admin/index.php:578-581` +
+ * `admin_edit_mirror.htm:5`): once the volunteer backup has archived the
+ * file (`down = 1`), only a super-admin may change the link. OLD enforced
+ * this only by a `disabled` input — which the browser then omitted, so
+ * OLD's `ConfirmEditMirror` blanked the link. Here the lock is enforced
+ * server-side and the stored link is kept untouched; the other fields
+ * (comment, type, backupme, trial reset) are still saved, as in OLD.
  */
 final class UpdateKhotabMirrorAction
 {
@@ -30,6 +38,12 @@ final class UpdateKhotabMirrorAction
         private readonly AdminRecordAuthorizer $authorizer,
         private readonly AdminAuditRecorder $audit,
     ) {}
+
+    /** OLD's `$disabled`: may this admin change the link of this mirror? */
+    public static function linkEditable(AdminUser $actor, Mirror $mirror): bool
+    {
+        return (int) $mirror->getAttribute('down') !== 1 || $actor->hasRole('super-admin');
+    }
 
     /**
      * @param  array{link?: string|null, comment?: string|null, vedio: int|string, backupme?: mixed}  $data
@@ -47,9 +61,12 @@ final class UpdateKhotabMirrorAction
 
             $before = $this->snapshot($locked);
 
+            // Decided on the locked row: a backup that completed after the form was opened still locks the link.
+            $link = self::linkEditable($actor, $locked) ? (string) ($data['link'] ?? '') : (string) $locked->link;
+
             $locked->forceFill([
                 'comment' => (string) ($data['comment'] ?? ''),
-                'link' => (string) ($data['link'] ?? ''),
+                'link' => $link,
                 'vedio' => (int) $data['vedio'],
                 'backupme' => empty($data['backupme']) ? 0 : 1,
                 'trial' => 0,

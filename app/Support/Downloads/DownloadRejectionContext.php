@@ -35,6 +35,8 @@ final class DownloadRejectionContext
         public readonly ?int $variantId = null,
         public readonly ?string $resolvedDownloadUrl = null,
         ?int $storedSize = null,
+        // Phase 3D: the material's title at refusal time, from the record the controller already loaded (no lookup).
+        public readonly ?string $resourceTitle = null,
     ) {
         $this->fileSize = $storedSize !== null && $storedSize > 0 ? $storedSize : null;
         $this->fileSizeSource = $this->fileSize !== null ? self::SIZE_DB : self::SIZE_UNKNOWN;

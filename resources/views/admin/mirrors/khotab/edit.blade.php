@@ -18,7 +18,12 @@
             <x-admin.contextual-return />
             @method('PUT')
             <label>التعليق <input type="text" name="comment" value="{{ old('comment', $mirror->comment) }}" maxlength="255" class="form-control"></label>
-            <label>وصلة التحميل <input type="text" name="link" value="{{ old('link', $mirror->link) }}" dir="ltr" class="form-control"></label>
+            {{-- F09: OLD locked the link once the backup archived the file (down = 1) for everyone but a super-admin.
+                 readonly (not disabled) so the unchanged value is still submitted; the action keeps the stored link anyway. --}}
+            <label>وصلة التحميل <input type="text" name="link" value="{{ old('link', $mirror->link) }}" dir="ltr" class="form-control" @readonly(! $linkEditable)></label>
+            @unless ($linkEditable)
+                <p class="help-block">تم إنزال هذه الوصلة في النسخ الاحتياطي لأرشيف الموقع؛ لا يمكن تعديل رابطها إلا بواسطة المشرف العام.</p>
+            @endunless
             {{-- No size field: Khotab's edit never wrote linksize (3E.1 C10). --}}
             <label><input type="radio" name="vedio" value="0" @checked((string) old('vedio', (int) $mirror->vedio) === '0')> مادة صوتية</label>
             <label><input type="radio" name="vedio" value="1" @checked((string) old('vedio', (int) $mirror->vedio) === '1')> مادة مرئية</label>

@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\DB;
 use Tests\Support\Fixtures\MainSchema;
 use Tests\Support\InMemoryConnection;
+use Tests\Support\ProxiedDownloadProbe;
 
 /**
  * Roadmap task 4.11 (added post-Wave-4 — see
@@ -152,14 +153,17 @@ it('show: related lessons match on title words, exclude self, and are scoped to 
     expect($content)->toContain('The Lesson Continued')->not->toContain('The Lesson Elsewhere');
 });
 
-it('download: increments downcount and redirects to the raw link, no location/hidden filter', function () {
+it('download (F04): no location filter; the protected proxy fetches the raw link; a hidden lesson is a 404 (Khotab\'s download rule)', function () {
     DB::connection('main')->table('nuke_islamic_khotab')->insert([
-        'id' => 1, 'author' => 0, 'location_id' => 99, 'title' => 'Any Lesson', 'hidden' => 1, 'downcount' => 3, 'link' => 'https://example.com/file.mp3',
+        ['id' => 1, 'author' => 0, 'location_id' => 99, 'title' => 'Any Lesson', 'hidden' => 0, 'downcount' => 3, 'link' => 'https://example.com/file.mp3'],
+        ['id' => 2, 'author' => 0, 'location_id' => 99, 'title' => 'Hidden Lesson', 'hidden' => 1, 'downcount' => 3, 'link' => 'https://example.com/hidden.mp3'],
     ]);
 
-    $this->get('/lesson-download-1.htm')->assertRedirect('https://example.com/file.mp3');
+    expect(ProxiedDownloadProbe::resolvedLink('/lesson-download-1.htm'))->toBe('https://example.com/file.mp3');
+    $this->get('/lesson-download-2.htm')->assertNotFound();
 
-    expect(DB::connection('main')->table('nuke_islamic_khotab')->where('id', 1)->value('downcount'))->toBe(4);
+    expect(DB::connection('main')->table('nuke_islamic_khotab')->where('id', 1)->value('downcount'))->toBe(3)
+        ->and(DB::connection('main')->table('nuke_islamic_khotab')->where('id', 2)->value('downcount'))->toBe(3);
 });
 
 // ---- chat_room.htm: Owner-Approved Partial Reconstruction ----

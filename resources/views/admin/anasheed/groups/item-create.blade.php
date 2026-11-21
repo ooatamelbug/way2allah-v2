@@ -24,6 +24,7 @@
                 <label><input type="radio" value="1" name="fixed" @checked(old('fixed') === '1')>مثبتة</label>
             </p>
             <p dir="rtl"><b>وصلة المادة : </b><input type="text" name="Anasheedfile" size="88" dir="ltr" value="{{ old('Anasheedfile') }}" required></p>
+            @include('admin.anasheed._link-warning', ['link' => old('Anasheedfile')])
             <p dir="rtl"><b>اسم القناة : </b>
                 <select name="Channel" size="1">
                     <option value="" @selected(old('Channel', '') === '')>غير مصنف</option>

@@ -92,6 +92,8 @@ class KhotabMirrorController
             // An orphan has no item page, so the edit page is the only
             // place its delete can be offered from.
             'canDelete' => $this->authorizer->allows($this->actor(), 'khotab.delmirror'),
+            // F09: OLD's post-backup link lock (enforced again in the action).
+            'linkEditable' => UpdateKhotabMirrorAction::linkEditable($this->actor(), $mirror),
         ]);
     }
 

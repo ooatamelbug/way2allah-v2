@@ -7,10 +7,16 @@ use App\Domain\Content\Models\KhotabItem;
 use App\Domain\Content\Models\Location;
 use App\Domain\Content\Services\ContentListingService;
 use App\Domain\Content\Services\ContentSidebarWidget;
+use App\Support\Downloads\DownloadRejectionContext;
+use App\Support\Downloads\ProxiedDownloadResponder;
+use App\Support\Downloads\Telemetry\DownloadTelemetryContext;
+use App\Support\Http\AdminViewer;
+use App\Support\Media\ArchiveOrgLink;
 use Illuminate\Contracts\View\View;
-use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Replaces the location-scoped ("Hedaya," `location_id=10`) recorded-lesson
@@ -174,13 +180,21 @@ class ChatRoomLessonController
     }
 
     /** `chat_room/functions.php`'s `download_lesson($id)` — no location/hidden filter at all (confirmed, matching `KhotabItemController::download()`'s own no-filter precedent for the same reason). */
-    public function download(int $lesson): RedirectResponse
+    public function download(int $lesson, Request $request, ProxiedDownloadResponder $responder, AdminViewer $contextual): Response
     {
-        $khotabItem = KhotabItem::select(['id', 'link'])->findOrFail($lesson);
+        $khotabItem = KhotabItem::select(['id', 'link', 'linksize', 'hidden', 'title'])->findOrFail($lesson);
+        // F04: a lesson IS a Khotab item, so it gets Khotab's own download visibility rule (KhotabItemController::download):
+        // a hidden item is a 404 for visitors before anything is counted, any slot taken or any file opened.
+        abort_if((int) $khotabItem->hidden === 1 && ! $contextual->active(), 404);
+        // F04 fix: the normalised archive.org URL (ArchiveOrgLink, as the player); other links unchanged.
+        $link = ArchiveOrgLink::normalize((string) ($khotabItem->link ?? ''));
 
-        $khotabItem->incrementDownloadCount();
-
-        return redirect($khotabItem->link ?? '/');
+        return $responder->respond($request, $link,
+            new DownloadTelemetryContext('lesson', 'khotab_item', (int) $khotabItem->id, 'primary'),
+            fn () => $khotabItem->incrementDownloadCount(),
+            fn () => new DownloadRejectionContext(module: 'lesson', resourceType: 'khotab_item', resourceId: (int) $khotabItem->id,
+                variant: 'primary', resolvedDownloadUrl: $link, storedSize: (int) $khotabItem->linksize, resourceTitle: $khotabItem->title),
+            $khotabItem->getConnectionName());
     }
 
     /** `chat_room/functions.php`'s `get_author_obj($id)` — join through `nuke_islamic_authors_location`, not a plain `Author::find()`. */

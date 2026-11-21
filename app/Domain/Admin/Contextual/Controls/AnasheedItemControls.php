@@ -18,7 +18,8 @@ use App\Domain\Content\Models\Category;
  * «إضافة تصنيف» (Phase 3). Not rendered, as in production OLD: «تعديل / حذف
  * صورة للمادة» (always commented out in OLD — their guard reads a `banner`
  * column production lacks) and «رفع / تعديل / حذف البانر» (each handler dies
- * with «قيد التطوير») — dead; the share queue — owner-retired. OLD's
+ * with «قيد التطوير») — dead; the share queue — owner-retired. F08 / B4 adds
+ * «إخفاء المادة» / «إظهار المادة» (new; OLD had no visibility control). OLD's
  * `AdvancedStats()` link-status block was never called from `Detailes()` and
  * is owner-retired too.
  */
@@ -40,7 +41,19 @@ final class AnasheedItemControls
             ContextualControl::link('حذف المادة', 'fa-trash', 'admin.anasheed.items.delete', $id, returns: false),
             // item_cp.htm «إضافة تصنيف» — Phase 3.
             ContextualControl::link('إضافة تصنيف', 'fa-sitemap', 'admin.categories.anasheed.item', $id),
+            // F08 / B4 (new, not in OLD's item_cp.htm): hide from / show to visitors.
+            self::visibility($item),
         ];
+    }
+
+    /** F08 / B4 «إخفاء المادة» / «إظهار المادة» — PUT with the target state. */
+    public static function visibility(AnasheedItem $item): ContextualControl
+    {
+        $hidden = (int) $item->hidden !== 0;
+
+        return $hidden
+            ? ContextualControl::action('إظهار المادة', 'fa-eye', 'admin.anasheed.items.visibility', ['anasheedItem' => $item->id], 'PUT', ['hidden' => '0'], 'إظهار المادة للزوار؟')
+            : ContextualControl::action('إخفاء المادة', 'fa-eye-slash', 'admin.anasheed.items.visibility', ['anasheedItem' => $item->id], 'PUT', ['hidden' => '1'], 'إخفاء المادة عن الزوار؟');
     }
 
     /** OLD `comment_admin.htm` «إضافة تعليق إداري» — decides whether the form shows. */

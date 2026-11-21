@@ -26,6 +26,7 @@
                 <label><input type="radio" value="1" name="is_published" @checked((string) old('is_published', (int) $item->is_published === 1 ? '1' : '0') === '1')>منشوره علي المصة</label>
             </p>
             <p dir="rtl"><b>وصلة المادة: </b><input type="text" name="Anasheed_link" value="{{ old('Anasheed_link', $item->link) }}" size="100" dir="ltr" required></p>
+            @include('admin.anasheed._link-warning', ['link' => (string) old('Anasheed_link', $item->link), 'showWhenEmpty' => true])
             @php($channel = (string) old('Channel', $item->channel_id === null ? '' : (string) $item->channel_id))
             <p dir="rtl"><b>اسم القناة : </b>
                 <select name="Channel" size="1">
@@ -69,6 +70,22 @@
             <br><br>
             <button type="submit" class="btn green">تعديل النشيد</button>
             <a href="/var-item-{{ $item->id }}.htm" class="btn default">رجوع</a>
+        </form>
+    </x-admin-portlet>
+
+    {{-- F08 / B4: visibility (the legacy `hidden` column only; `is_published` above is unrelated). --}}
+    @php($isHidden = (int) $item->hidden !== 0)
+    <x-admin-portlet title="ظهور المادة للزوار" :color="$isHidden ? 'red' : 'green'" icon="fa fa-eye">
+        <p>
+            الحالة الحالية: <b>{{ $isHidden ? 'مخفية عن الزوار' : 'ظاهرة للزوار' }}</b>.
+            المادة المخفية لا تظهر في القوائم أو البحث أو الصفحة الرئيسية، ورابطها المباشر يعطي 404 للزوار؛ ولا يُحذف أي ملف.
+        </p>
+        <form method="post" action="{{ route('admin.anasheed.items.visibility', $item) }}"
+            onsubmit="return confirm('{{ $isHidden ? 'إظهار المادة للزوار؟' : 'إخفاء المادة عن الزوار؟' }}')">
+            @csrf
+            @method('PUT')
+            <input type="hidden" name="hidden" value="{{ $isHidden ? '0' : '1' }}">
+            <button type="submit" class="btn {{ $isHidden ? 'green' : 'red' }}">{{ $isHidden ? 'إظهار المادة' : 'إخفاء المادة' }}</button>
         </form>
     </x-admin-portlet>
 @endsection

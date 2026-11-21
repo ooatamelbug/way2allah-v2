@@ -167,7 +167,8 @@ it('visitor readers find files under the configured media root even when public_
     expect($author->fallbackImageUrl())->toBe(MediaUrl::asset('authors/sq/5.png'))
         ->and($location->photoUrl())->toBe(MediaUrl::asset('media/locations/0/7.jpg'))
         ->and($homeThumb(1500, 1, null))->toBe(MediaUrl::asset('media/khotab_frames/1/1500.jpg'))
-        ->and($homeThumb(1, 0, 9))->toBe(MediaUrl::asset('media/authors/0/9.jpg'))
+        // author-image feedback (2026-11-18): the author JPG fallback carries its mtime version
+        ->and($homeThumb(1, 0, 9))->toBe(MediaUrl::asset('media/authors/0/9.jpg').'?v='.filemtime($media.'/authors/0/9.jpg'))
         ->and($sidebarThumb(1, 1500, null))->toBe(MediaUrl::asset('media/khotab_frames/1/1500.jpg'));
 
     slmRemove($media);

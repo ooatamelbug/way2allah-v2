@@ -104,6 +104,21 @@ use Illuminate\Database\Seeder;
  * module-level check, and no `admincp/` menu.php names W2ACD. It covers add,
  * edit, delete and order. Definition only.
  *
+ * `ads.manageads` (F01 / B6a — OLD advertising administration) is minted
+ * fresh: OLD gated the whole `modules/ads/admin` with one module-level check
+ * (radminsuper, or the admin's name in `nuke_modules.admins` for `ads`), so
+ * one key covers list, add, edit, delete, show/hide, upload and reports.
+ * Raw-code ads (type 0) are additionally super-admin only (enforced in the
+ * actions). Legacy `nuke_modules.admins` names are NOT imported: grants are
+ * assigned by a super-admin. Definition only.
+ *
+ * `banners_ads.managebanners` and `report_ads.managereports` (F01 / B6b) are
+ * minted fresh, one per OLD module: `modules/banners_ads/admin` and
+ * `modules/report_ads/admin` each had their own module-level check
+ * (radminsuper, or the admin's name in that module's `nuke_modules.admins`).
+ * `ads.manageads` deliberately authorizes neither. Legacy names are not
+ * imported. Definitions only.
+ *
  * `mobile.managedownloads` (OLD Admin Migration Phase 7 — Mobile Downloads)
  * is minted fresh: OLD gated the whole `modules/Mobile/admin` with one
  * module-level check (the `Mobile` module admins, or radminsuper), and no
@@ -195,7 +210,9 @@ class AdminPermissionSeeder extends Seeder
         'khotab' => ['uploaders', 'repair', 'addmirror', 'editmirror', 'delmirror', 'addcat', 'addadv',
             'editgroup', 'delgroup', 'addseries', 'additem', 'sortitems', 'moveitem', 'editseries', 'delseries',
             'edititem', 'delitem', 'uploadbanner', 'requestbanner', 'uploadpdf', 'adddocx', 'deletedocx', 'approvecomment', 'delcomment',
-            'editauthor', 'delauthor', 'addgroup', 'addauthor'],
+            'editauthor', 'delauthor', 'addgroup', 'addauthor',
+            // OLD Khotab audio / video moderator scope (KhotabMediaScopeConstraint, 2026-11-17).
+            'media_audio', 'media_video'],
         'telawah' => ['repair', 'editmirror', 'delmirror',
             'addgroup', 'editgroup', 'delgroup', 'addtelawah', 'edittelawah', 'deltelawah'],
         'anasheed' => ['addmirror', 'editmirror', 'delmirror', 'addcat',
@@ -205,6 +222,9 @@ class AdminPermissionSeeder extends Seeder
         'w2acd' => ['managecds'],
         'mobile' => ['managedownloads'],
         'fatwa' => ['manage'],
+        'ads' => ['manageads'],
+        'banners_ads' => ['managebanners'],
+        'report_ads' => ['managereports'],
     ];
 
     public function run(): void

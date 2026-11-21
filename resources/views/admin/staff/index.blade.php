@@ -28,7 +28,14 @@
         `.facebook`. Reproducing them here would show real data legacy
         itself never actually displayed — not recovering real content.
     --}}
-    <p><a href="{{ route('admin.staff.create') }}">إضافة مشرف</a></p>
+    {{-- Administrator management (2026-11-17): the two portlets keep legacy's grouping by `radminsuper` (the
+         legacy «الإدارة العليا» flag, which Gen 2 / OLD still read). «مشرف عام» marks Laravel's super-admin role
+         (the one Laravel authorises with), «مالك» the accounts OLD's mod_authors rule authorises (config/admin_owners.php), «الحساب الرئيسي» OLD's protected `Good` account. --}}
+    {{-- F02-UI (2026-11-14): controls appear only for viewers the route would allow
+         (AdminStaffController::index computes both flags; the middleware still enforces them). --}}
+    @if ($canAddStaff)
+        <p><a href="{{ route('admin.staff.create') }}">إضافة مشرف</a></p>
+    @endif
 
     @php $superAdmins = $staff->where('radminsuper', true)->values(); @endphp
     @if ($superAdmins->isNotEmpty())
@@ -39,16 +46,46 @@
                         <th>#</th>
                         <th>الاسم</th>
                         <th>البريد الألكتروني</th>
-                        <th>الصلاحيات</th>
+                        @if ($canEditPermissions)
+                            <th>الصلاحيات</th>
+                        @endif
+                        @if ($canManageStatus)
+                            <th>الحالة</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
                     @foreach ($superAdmins as $index => $admin)
                         <tr>
                             <td>{{ $index + 1 }}</td>
-                            <td><img class="user-pic" src="{{ $admin->thumb }}">{{ $admin->aid }}</td>
+                            <td><img class="user-pic" src="{{ $admin->thumb }}">{{ $admin->aid }}
+                                @if (in_array((int) $admin->id, $ownerIds ?? [], true))
+                                    <span class="label label-primary">مالك</span>
+                                @endif
+                                @if (in_array((int) $admin->id, $protectedIds ?? [], true))
+                                    <span class="label label-warning">الحساب الرئيسي</span>
+                                @endif
+                                @if (in_array((int) $admin->id, $laravelSuperAdminIds ?? [], true))
+                                    <span class="label label-success">مشرف عام</span>
+                                @endif
+                                @if (in_array((int) $admin->id, $deactivatedIds, true))
+                                    {{-- F02: kept in the list, never deleted. --}}
+                                    <span class="label label-danger">معطّل</span>
+                                @endif
+                            </td>
                             <td>{{ $admin->email }}</td>
-                            <td><a href="{{ route('admin.permissions.edit', $admin) }}">تعديل الصلاحيات</a></td>
+                            @if ($canEditPermissions)
+                                <td><a href="{{ route('admin.permissions.edit', $admin) }}">تعديل الصلاحيات</a></td>
+                            @endif
+                            @if ($canManageStatus)
+                                <td>
+                                    @if (in_array((int) $admin->id, $deactivatedIds, true) && in_array((int) $admin->id, $manageableIds ?? [], true))
+                                        <a href="{{ route('admin.staff.reactivate.confirm', $admin) }}">إعادة تفعيل</a>
+                                    @elseif ((int) $admin->id !== $viewerId && in_array((int) $admin->id, $manageableIds ?? [], true) && ! in_array((int) $admin->id, $protectedIds ?? [], true))
+                                        <a href="{{ route('admin.staff.deactivate.confirm', $admin) }}" class="font-red">تعطيل</a>
+                                    @endif
+                                </td>
+                            @endif
                         </tr>
                     @endforeach
                 </tbody>
@@ -65,16 +102,46 @@
                         <th>#</th>
                         <th>الاسم</th>
                         <th>البريد الألكتروني</th>
-                        <th>الصلاحيات</th>
+                        @if ($canEditPermissions)
+                            <th>الصلاحيات</th>
+                        @endif
+                        @if ($canManageStatus)
+                            <th>الحالة</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
                     @foreach ($regularAdmins as $index => $admin)
                         <tr>
                             <td>{{ $index + 1 }}</td>
-                            <td><img class="user-pic" src="{{ $admin->thumb }}">{{ $admin->aid }}</td>
+                            <td><img class="user-pic" src="{{ $admin->thumb }}">{{ $admin->aid }}
+                                @if (in_array((int) $admin->id, $ownerIds ?? [], true))
+                                    <span class="label label-primary">مالك</span>
+                                @endif
+                                @if (in_array((int) $admin->id, $protectedIds ?? [], true))
+                                    <span class="label label-warning">الحساب الرئيسي</span>
+                                @endif
+                                @if (in_array((int) $admin->id, $laravelSuperAdminIds ?? [], true))
+                                    <span class="label label-success">مشرف عام</span>
+                                @endif
+                                @if (in_array((int) $admin->id, $deactivatedIds, true))
+                                    {{-- F02: kept in the list, never deleted. --}}
+                                    <span class="label label-danger">معطّل</span>
+                                @endif
+                            </td>
                             <td>{{ $admin->email }}</td>
-                            <td><a href="{{ route('admin.permissions.edit', $admin) }}">تعديل الصلاحيات</a></td>
+                            @if ($canEditPermissions)
+                                <td><a href="{{ route('admin.permissions.edit', $admin) }}">تعديل الصلاحيات</a></td>
+                            @endif
+                            @if ($canManageStatus)
+                                <td>
+                                    @if (in_array((int) $admin->id, $deactivatedIds, true) && in_array((int) $admin->id, $manageableIds ?? [], true))
+                                        <a href="{{ route('admin.staff.reactivate.confirm', $admin) }}">إعادة تفعيل</a>
+                                    @elseif ((int) $admin->id !== $viewerId && in_array((int) $admin->id, $manageableIds ?? [], true) && ! in_array((int) $admin->id, $protectedIds ?? [], true))
+                                        <a href="{{ route('admin.staff.deactivate.confirm', $admin) }}" class="font-red">تعطيل</a>
+                                    @endif
+                                </td>
+                            @endif
                         </tr>
                     @endforeach
                 </tbody>

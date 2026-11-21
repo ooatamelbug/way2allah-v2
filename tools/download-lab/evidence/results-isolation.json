@@ -1,0 +1,86 @@
+[
+ {
+  "section": "isolation/fcgid",
+  "name": "telemetry disabled",
+  "expected": "responses, counters and slot release identical to \"telemetry disabled\"",
+  "actual": "diffs=[] counters={'local mp3': 1, 'remote 5 MiB (signed URL)': 1, 'missing file': 1, 'upstream html': 1} slots_free_after_disconnect=1.34s statuses={'GET local mp3': 200, 'GET remote 5 MiB (signed URL)': 200, 'GET missing file': 404, 'GET upstream html': 500, 'HEAD local mp3': 200, 'GET YouTube mirror': 302, 'GET at capacity': 503}",
+  "ok": true
+ },
+ {
+  "section": "isolation/fcgid",
+  "name": "telemetry enabled",
+  "expected": "responses, counters and slot release identical to \"telemetry disabled\"",
+  "actual": "diffs=[] counters={'local mp3': 1, 'remote 5 MiB (signed URL)': 1, 'missing file': 1, 'upstream html': 1} slots_free_after_disconnect=0.42s statuses={'GET local mp3': 200, 'GET remote 5 MiB (signed URL)': 200, 'GET missing file': 404, 'GET upstream html': 500, 'HEAD local mp3': 200, 'GET YouTube mirror': 302, 'GET at capacity': 503}",
+  "ok": true
+ },
+ {
+  "section": "isolation/fcgid",
+  "name": "spool unavailable (root is a file)",
+  "expected": "responses, counters and slot release identical to \"telemetry disabled\"",
+  "actual": "diffs=[] counters={'local mp3': 1, 'remote 5 MiB (signed URL)': 1, 'missing file': 1, 'upstream html': 1} slots_free_after_disconnect=0.43s statuses={'GET local mp3': 200, 'GET remote 5 MiB (signed URL)': 200, 'GET missing file': 404, 'GET upstream html': 500, 'HEAD local mp3': 200, 'GET YouTube mirror': 302, 'GET at capacity': 503}",
+  "ok": true
+ },
+ {
+  "section": "isolation/fcgid",
+  "name": "spool full (max_files reached)",
+  "expected": "responses, counters and slot release identical to \"telemetry disabled\"",
+  "actual": "diffs=[] counters={'local mp3': 1, 'remote 5 MiB (signed URL)': 1, 'missing file': 1, 'upstream html': 1} slots_free_after_disconnect=1.57s statuses={'GET local mp3': 200, 'GET remote 5 MiB (signed URL)': 200, 'GET missing file': 404, 'GET upstream html': 500, 'HEAD local mp3': 200, 'GET YouTube mirror': 302, 'GET at capacity': 503}",
+  "ok": true
+ },
+ {
+  "section": "isolation/fcgid",
+  "name": "breaker open",
+  "expected": "responses, counters and slot release identical to \"telemetry disabled\"",
+  "actual": "diffs=[] counters={'local mp3': 1, 'remote 5 MiB (signed URL)': 1, 'missing file': 1, 'upstream html': 1} slots_free_after_disconnect=0.57s statuses={'GET local mp3': 200, 'GET remote 5 MiB (signed URL)': 200, 'GET missing file': 404, 'GET upstream html': 500, 'HEAD local mp3': 200, 'GET YouTube mirror': 302, 'GET at capacity': 503}",
+  "ok": true
+ },
+ {
+  "section": "isolation/fcgid",
+  "name": "archive enabled (not run)",
+  "expected": "responses, counters and slot release identical to \"telemetry disabled\"",
+  "actual": "diffs=[] counters={'local mp3': 1, 'remote 5 MiB (signed URL)': 1, 'missing file': 1, 'upstream html': 1} slots_free_after_disconnect=1.26s statuses={'GET local mp3': 200, 'GET remote 5 MiB (signed URL)': 200, 'GET missing file': 404, 'GET upstream html': 500, 'HEAD local mp3': 200, 'GET YouTube mirror': 302, 'GET at capacity': 503}",
+  "ok": true
+ },
+ {
+  "section": "isolation/cgi",
+  "name": "telemetry disabled",
+  "expected": "responses, counters and slot release identical to \"telemetry disabled\"",
+  "actual": "diffs=[] counters={'local mp3': 1, 'remote 5 MiB (signed URL)': 1, 'missing file': 1, 'upstream html': 1} slots_free_after_disconnect=0.49s statuses={'GET local mp3': 200, 'GET remote 5 MiB (signed URL)': 200, 'GET missing file': 404, 'GET upstream html': 500, 'HEAD local mp3': 200, 'GET YouTube mirror': 302, 'GET at capacity': 503}",
+  "ok": true
+ },
+ {
+  "section": "isolation/cgi",
+  "name": "telemetry enabled",
+  "expected": "responses, counters and slot release identical to \"telemetry disabled\"",
+  "actual": "diffs=[] counters={'local mp3': 1, 'remote 5 MiB (signed URL)': 1, 'missing file': 1, 'upstream html': 1} slots_free_after_disconnect=0.35s statuses={'GET local mp3': 200, 'GET remote 5 MiB (signed URL)': 200, 'GET missing file': 404, 'GET upstream html': 500, 'HEAD local mp3': 200, 'GET YouTube mirror': 302, 'GET at capacity': 503}",
+  "ok": true
+ },
+ {
+  "section": "isolation/cgi",
+  "name": "spool unavailable (root is a file)",
+  "expected": "responses, counters and slot release identical to \"telemetry disabled\"",
+  "actual": "diffs=[] counters={'local mp3': 1, 'remote 5 MiB (signed URL)': 1, 'missing file': 1, 'upstream html': 1} slots_free_after_disconnect=0.46s statuses={'GET local mp3': 200, 'GET remote 5 MiB (signed URL)': 200, 'GET missing file': 404, 'GET upstream html': 500, 'HEAD local mp3': 200, 'GET YouTube mirror': 302, 'GET at capacity': 503}",
+  "ok": true
+ },
+ {
+  "section": "isolation/cgi",
+  "name": "spool full (max_files reached)",
+  "expected": "responses, counters and slot release identical to \"telemetry disabled\"",
+  "actual": "diffs=[] counters={'local mp3': 1, 'remote 5 MiB (signed URL)': 1, 'missing file': 1, 'upstream html': 1} slots_free_after_disconnect=0.52s statuses={'GET local mp3': 200, 'GET remote 5 MiB (signed URL)': 200, 'GET missing file': 404, 'GET upstream html': 500, 'HEAD local mp3': 200, 'GET YouTube mirror': 302, 'GET at capacity': 503}",
+  "ok": true
+ },
+ {
+  "section": "isolation/cgi",
+  "name": "breaker open",
+  "expected": "responses, counters and slot release identical to \"telemetry disabled\"",
+  "actual": "diffs=[] counters={'local mp3': 1, 'remote 5 MiB (signed URL)': 1, 'missing file': 1, 'upstream html': 1} slots_free_after_disconnect=0.5s statuses={'GET local mp3': 200, 'GET remote 5 MiB (signed URL)': 200, 'GET missing file': 404, 'GET upstream html': 500, 'HEAD local mp3': 200, 'GET YouTube mirror': 302, 'GET at capacity': 503}",
+  "ok": true
+ },
+ {
+  "section": "isolation/cgi",
+  "name": "archive enabled (not run)",
+  "expected": "responses, counters and slot release identical to \"telemetry disabled\"",
+  "actual": "diffs=[] counters={'local mp3': 1, 'remote 5 MiB (signed URL)': 1, 'missing file': 1, 'upstream html': 1} slots_free_after_disconnect=0.52s statuses={'GET local mp3': 200, 'GET remote 5 MiB (signed URL)': 200, 'GET missing file': 404, 'GET upstream html': 500, 'HEAD local mp3': 200, 'GET YouTube mirror': 302, 'GET at capacity': 503}",
+  "ok": true
+ }
+]

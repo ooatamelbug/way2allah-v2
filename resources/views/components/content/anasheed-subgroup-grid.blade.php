@@ -1,8 +1,9 @@
-@props(['groups'])
+@props(['groups', 'itemCounts' => null])
 
 {{-- OLD ListGroup() / group_cont.htm (visitor parity A9, 2026-11-04): the group icon (media/anasheed/icons when
      icon = 1, else images/pix001.gif), the sub-group / item / visit counts — zero included — and «التعليق» (des, or
-     «بدون تعليق» when empty). --}}
+     «بدون تعليق» when empty). F08 / B4 (owner-approved 2026-11-15): the item count is the publicly visible count
+     (`$itemCounts`, hidden = 0) when the page supplies it; the stored `anasheed` counter is only a fallback. --}}
 <div class="w2a-subgroups-grid">
     @foreach($groups as $group)
         <a href="/var-group-{{ $group->id }}.htm" class="w2a-subgroup-card">
@@ -12,7 +13,7 @@
                 </span>
                 <span class="w2a-subgroup-info">
                     <span class="w2a-subgroup-title">{{ $group->title }}</span>
-                    <span class="w2a-subgroup-count"><i class="fa fa-film" aria-hidden="true"></i> {{ (int) $group->anasheed }} مقطع</span>
+                    <span class="w2a-subgroup-count"><i class="fa fa-film" aria-hidden="true"></i> {{ (int) ($itemCounts !== null ? ($itemCounts[(int) $group->id] ?? 0) : $group->anasheed) }} مقطع</span>
                 </span>
             </span>
             <span class="w2a-reciter-meta">

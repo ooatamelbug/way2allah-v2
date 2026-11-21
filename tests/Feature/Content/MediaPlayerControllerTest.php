@@ -239,18 +239,24 @@ it('POST /media-player: a SQL-injection-shaped id parameter does not execute inj
     expect(DB::connection('main')->table('nuke_islamic_khotab')->count())->toBe(1);
 });
 
-it('MediaPlayerService::play(): returns null for the confirmed-material-but-deliberately-unimplemented obsolete formats (rm/rmvb/wmv/avi/asf), pending a product decision — not silently faked', function () {
+// B2 / F05-2 Part 2 (owner-approved Option B, decision-log #144) supersedes the former "null, pending a product
+// decision": still never a (faked) player, but the approved explanation. These relative links cannot be served by the
+// download route, so no download is offered. Formats outside the approved list (e.g. asf) keep returning null.
+it('MediaPlayerService::play(): never renders a player for the obsolete formats (rm/rmvb/wmv/wma, and asf since F07-A #147) — the approved Option B explanation instead', function () {
     DB::connection('main')->table('nuke_islamic_khotab')->insert([
         ['id' => 1, 'author' => 1, 'title' => 'RM', 'vedio' => 1, 'hidden' => 0, 'link' => 'a.rm'],
         ['id' => 2, 'author' => 1, 'title' => 'RMVB', 'vedio' => 1, 'hidden' => 0, 'link' => 'a.rmvb'],
         ['id' => 3, 'author' => 1, 'title' => 'WMV', 'vedio' => 1, 'hidden' => 0, 'link' => 'a.wmv'],
         ['id' => 4, 'author' => 1, 'title' => 'WMA audio', 'vedio' => 0, 'hidden' => 0, 'link' => 'a.wma'],
+        ['id' => 5, 'author' => 1, 'title' => 'ASF', 'vedio' => 1, 'hidden' => 0, 'link' => 'a.asf'],
     ]);
 
     $service = app(MediaPlayerService::class);
 
-    foreach ([1, 2, 3, 4] as $id) {
-        expect($service->play('khotab', $id))->toBeNull();
+    foreach ([1, 2, 3, 4, 5] as $id) {
+        expect($service->play('khotab', $id))
+            ->toContain(MediaPlayerService::UNSUPPORTED_FORMAT_MESSAGE.' '.MediaPlayerService::UNSUPPORTED_FORMAT_NO_DOWNLOAD)
+            ->not->toContain('<video')->not->toContain('<audio')->not->toContain('<embed')->not->toContain('<object');
     }
 });
 

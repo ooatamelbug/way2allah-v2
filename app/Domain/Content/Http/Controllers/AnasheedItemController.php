@@ -13,9 +13,12 @@ use App\Domain\Content\Services\GeoIpLookup;
 use App\Domain\Content\Services\SendToFriend\SendToFriendInput;
 use App\Domain\Content\Services\SendToFriend\SendToFriendMailer;
 use App\Domain\Content\Services\SendToFriend\SendToFriendRateLimiter;
+use App\Support\Downloads\DownloadRejectionContext;
+use App\Support\Downloads\ProxiedDownloadResponder;
+use App\Support\Downloads\Telemetry\DownloadTelemetryContext;
+use App\Support\Http\AdminViewer;
 use App\Support\Media\ArchiveOrgLink;
 use Illuminate\Contracts\View\View;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -47,6 +50,9 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class AnasheedItemController
 {
+    /** F08 / B4: who may open a hidden Variety item (the key that governs «تعديل المادة» and the toggle). */
+    public const HIDDEN_PREVIEW_PERMISSION = 'anasheed.editanasheed';
+
     /** OLD `Top10()`'s `$blocktitle` switch on the department id; anything else → «جديد الأناشيد». */
     private const DEPARTMENT_RECENT_TITLES = [
         98 => 'جديد الأناشيد',
@@ -88,9 +94,15 @@ class AnasheedItemController
      * as SOURCE_UNRECOVERABLE/deliberately dropped elsewhere in this
      * project, applied consistently here, not re-decided).
      */
-    public function show(int $anasheed, ContentSidebarWidget $sidebar, ?int $page = null): View
+    public function show(int $anasheed, ContentSidebarWidget $sidebar, AdminViewer $contextual, ?int $page = null): View
     {
-        $anasheedItem = AnasheedItem::with(['mirrors.advanced', 'group'])->findOrFail($anasheed);
+        // F08 / B4 (owner-approved; supersedes visitor parity A6): a hidden item is a 404 for visitors AND for
+        // administrators without `anasheed.editanasheed` (owner review, 2026-11-15). Holders (and super-admins) still
+        // open it — OLD's suppressed details plus a notice — and that response is private.
+        $admin = $contextual->can(self::HIDDEN_PREVIEW_PERMISSION);
+
+        $anasheedItem = AnasheedItem::query()->when(! $admin, fn ($query) => $query->where('hidden', 0))
+            ->with(['mirrors.advanced', 'group'])->findOrFail($anasheed);
 
         $pageTitle = $anasheedItem->group
             ? ' - '.$anasheedItem->group->title.' - '.$anasheedItem->title
@@ -102,6 +114,9 @@ class AnasheedItemController
         // for everyone, admins included; the chrome, the admin panel, the sidebar and the hit counter
         // stay (visitor parity A6, 2026-11-04).
         $isHidden = (int) $anasheedItem->hidden !== 0;
+        if ($isHidden) {
+            $contextual->markRendered();
+        }
 
         $comments = null;
         if (! $isHidden && $anasheedItem->comments > 0) {
@@ -129,25 +144,40 @@ class AnasheedItemController
      * A6 — a hidden item is not served: OLD hid its details (the only page linking here), and its
      * playlist, mirror player and embed codes all refuse hidden items; `getit()` alone lacked the check.
      */
-    public function download(int $anasheed): RedirectResponse
+    public function download(int $anasheed, Request $request, ProxiedDownloadResponder $responder): Response
     {
-        $anasheedItem = AnasheedItem::select(['id', 'link'])->where('hidden', 0)->findOrFail($anasheed);
+        $anasheedItem = AnasheedItem::select(['id', 'link', 'linksize', 'title'])->where('hidden', 0)->findOrFail($anasheed);
+        $link = str_replace('http:', 'https:', ArchiveOrgLink::normalize((string) $anasheedItem->link));
 
-        $anasheedItem->incrementDownloadCount();
-
-        return redirect(str_replace('http:', 'https:', ArchiveOrgLink::normalize((string) $anasheedItem->link)));
+        // F04 (owner-approved 2026-11-17): «حفظ المادة» downloads the file — the Khotab pattern through the shared,
+        // capacity-protected proxy (ProxiedDownloadResponder). HEAD: headers only, no counter.
+        return $responder->respond($request, $link,
+            new DownloadTelemetryContext('anasheed', 'anasheed_item', (int) $anasheedItem->id, 'primary'),
+            fn () => $anasheedItem->incrementDownloadCount(),
+            fn () => new DownloadRejectionContext(module: 'anasheed', resourceType: 'anasheed_item', resourceId: (int) $anasheedItem->id,
+                variant: 'primary', resolvedDownloadUrl: $link, storedSize: (int) $anasheedItem->linksize, resourceTitle: $anasheedItem->title),
+            $anasheedItem->getConnectionName());
     }
 
-    /** As `download()`, for OLD `getmirror()`: normalised link; a hidden item's mirrors are not served (A6). */
-    public function downloadMirror(int $anasheed, int $mirror): RedirectResponse
+    /**
+     * As `download()`, for OLD `getmirror()`: normalised link; a hidden item's mirrors are not served (A6), and —
+     * B2 / F07-B2 (decision-log #148) — neither is a mirror whose own `hidden` flag is set, as the player already
+     * refuses it. (No admin path sets that flag today; 0 such rows locally.)
+     */
+    public function downloadMirror(int $anasheed, int $mirror, Request $request, ProxiedDownloadResponder $responder): Response
     {
-        abort_unless(AnasheedItem::whereKey($anasheed)->where('hidden', 0)->exists(), 404);
+        $parentTitle = AnasheedItem::whereKey($anasheed)->where('hidden', 0)->value('title');
+        abort_if($parentTitle === null, 404);
 
-        $mirrorModel = AnasheedMirror::where('khid', $anasheed)->findOrFail($mirror);
+        $mirrorModel = AnasheedMirror::where('khid', $anasheed)->where('hidden', 0)->findOrFail($mirror);
+        $link = str_replace('http:', 'https:', ArchiveOrgLink::normalize((string) $mirrorModel->link));
 
-        $mirrorModel->incrementDownloadCount();
-
-        return redirect(str_replace('http:', 'https:', ArchiveOrgLink::normalize((string) $mirrorModel->link)));
+        return $responder->respond($request, $link,
+            new DownloadTelemetryContext('anasheed', 'anasheed_item', $anasheed, 'mirror', (int) $mirrorModel->id),
+            fn () => $mirrorModel->incrementDownloadCount(),
+            fn () => new DownloadRejectionContext(module: 'anasheed', resourceType: 'anasheed_item', resourceId: $anasheed, variant: 'mirror',
+                variantId: (int) $mirrorModel->id, resolvedDownloadUrl: $link, storedSize: (int) $mirrorModel->linksize, resourceTitle: (string) $parentTitle),
+            $mirrorModel->getConnectionName());
     }
 
     /**
@@ -158,6 +188,9 @@ class AnasheedItemController
      */
     public function storeComment(int $anasheed, Request $request, GeoIpLookup $geoIp): string
     {
+        // F08 / B4: no comment on a hidden (or missing) item.
+        abort_unless(AnasheedItem::whereKey($anasheed)->where('hidden', 0)->exists(), 404);
+
         $nickname = trim((string) $request->input('user_nickname'));
         $body = trim((string) $request->input('user_comment'));
 
@@ -234,7 +267,8 @@ class AnasheedItemController
             return '2';
         }
 
-        $anasheedItem = AnasheedItem::with('group')->findOrFail($anasheed);
+        // F08 / B4: a hidden item is not mailed out.
+        $anasheedItem = AnasheedItem::with('group')->where('hidden', 0)->findOrFail($anasheed);
 
         if (! $limiter->attempt((string) $request->ip(), $friendEmail)) {
             return response(SendToFriendRateLimiter::REFUSED_MESSAGE, 429);

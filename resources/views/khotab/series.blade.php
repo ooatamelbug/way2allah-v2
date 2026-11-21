@@ -50,9 +50,11 @@
 
         <aside class="col-lg-3 col-md-4 col-sm-5 nopadding flex flex-column gap-5" aria-label="الشريط الجانبي">
             {{-- G-13-03: series.php:118-126 — "الملف الشخصي" box, the series'
-                 own author (series.php:31's $Series->author_id), unconditional
-                 get_author_img() (no author_image DB-column check, unlike
-                 author.php/authors.php). --}}
+                 own author (series.php:31's $Series->author_id). Gen 2 called
+                 get_author_img() unconditionally; F06 (owner-approved visitor-
+                 parity deviation, 2026-11-14) resolves it through
+                 displayImageUrl() — author_image first, then the same
+                 get_author_img() fallbacks — so an uploaded image shows here. --}}
             <div class="col-md-12 col-sm-12">
                 <div class="portlet box blue">
                     <div class="portlet-title">
@@ -60,7 +62,7 @@
                     </div>
                     <div class="portlet-body">
                         <div class="profile-userpic">
-                            <img src="{{ $seriesModel->author?->fallbackImageUrl() }}" alt="">
+                            <img src="{{ $seriesModel->author?->displayImageUrl() }}" alt="">
                         </div>
                     </div>
                 </div>

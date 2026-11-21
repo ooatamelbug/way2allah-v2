@@ -3,6 +3,7 @@
 namespace App\Domain\Identity\Guards;
 
 use App\Domain\Admin\Models\AdminUser;
+use App\Domain\Admin\Support\AdminDeactivation;
 use App\Domain\Identity\Services\LegacyPasswordVerifier;
 use Illuminate\Auth\GuardHelpers;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -43,6 +44,13 @@ class AdminGuard implements StatefulGuard
         $id = $this->request->session()->get(self::SESSION_KEY);
 
         $admin = $id === null ? null : AdminUser::on('main')->find($id);
+
+        // F02: a deactivated admin's existing session loses access on its next request.
+        if ($admin !== null && AdminDeactivation::isDeactivated((int) $admin->getKey())) {
+            $this->request->session()->forget(self::SESSION_KEY);
+            $admin = null;
+        }
+
         $this->user = $admin;
 
         return $admin;
@@ -141,6 +149,11 @@ class AdminGuard implements StatefulGuard
         $admin = AdminUser::on('main')->where('aid', $credentials['aid'])->first();
 
         if ($admin === null) {
+            return null;
+        }
+
+        // F02: refused before any credential check (deactivation also neutralises the stored credentials).
+        if (AdminDeactivation::isDeactivated((int) $admin->getKey())) {
             return null;
         }
 

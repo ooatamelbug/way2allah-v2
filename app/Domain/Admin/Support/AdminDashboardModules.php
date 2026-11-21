@@ -169,6 +169,12 @@ class AdminDashboardModules
         ['label' => 'الاسطوانات الدعوية', 'route' => 'admin.cds.index', 'permissions' => ['w2acd.managecds'], 'icon' => 'icon-disc'],
         // OLD Admin Migration Phase 7 — Mobile Downloads.
         ['label' => 'قسم الموبايل', 'route' => 'admin.mobile.dashboard', 'permissions' => ['mobile.managedownloads'], 'icon' => 'icon-screen-smartphone'],
+        // F01 / B6a — OLD advertising administration; OLD's own single menu entry
+        // (`modules/ads/admin/links.php`: «الإعلانات»). Separate from Advfiles («ملفات الرئيسية»).
+        ['label' => 'الإعلانات', 'route' => 'admin.ads.index', 'permissions' => ['ads.manageads'], 'icon' => 'icon-badge'],
+        // F01 / B6b — OLD's own menu labels (`modules/banners_ads/admin/links.php`, `modules/report_ads/admin/links.php`).
+        ['label' => 'إعلانات بنرات المواد', 'route' => 'admin.banners_ads.index', 'permissions' => ['banners_ads.managebanners'], 'icon' => 'icon-picture'],
+        ['label' => 'الإبلاغ عن اعلانات غير لائقة', 'route' => 'admin.report_ads.index', 'permissions' => ['report_ads.managereports'], 'icon' => 'icon-flag'],
         [
             'label' => 'التلاوات', 'icon' => 'icon-book-open',
             'children' => [

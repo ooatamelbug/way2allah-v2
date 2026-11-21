@@ -19,8 +19,12 @@ use App\Domain\Content\Support\KhotabBanner;
 use App\Domain\Content\Support\MediaUrl;
 use App\Support\Downloads\DownloadCapacityGuard;
 use App\Support\Downloads\DownloadRejectionContext;
+use App\Support\Downloads\ExternalMediaLink;
 use App\Support\Downloads\ProxiedDownloadStreamer;
+use App\Support\Downloads\Telemetry\DownloadTelemetry;
+use App\Support\Downloads\Telemetry\DownloadTelemetryContext;
 use App\Support\Http\AdminViewer;
+use App\Support\Media\ArchiveOrgLink;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -203,8 +207,20 @@ class KhotabItemController
      */
     public function download(int $khotab, Request $request, DownloadCapacityGuard $guard, ProxiedDownloadStreamer $streamer, AdminViewer $contextual): Response
     {
-        $khotabItem = KhotabItem::select(['id', 'link', 'linksize', 'hidden'])->findOrFail($khotab);
+        $khotabItem = KhotabItem::select(['id', 'link', 'linksize', 'hidden', 'title'])->findOrFail($khotab);
         abort_if((int) $khotabItem->hidden === 1 && ! $contextual->active(), 404);
+
+        // F04 fix (owner-approved 2026-11-17): the proxy fetches the same normalised archive.org URL the player uses
+        // (ArchiveOrgLink, F05-1) — a link pinned to a retired storage node answers 500 as stored. Any other link
+        // (other hosts, local paths) is unchanged; the stored value is never modified.
+        $link = ArchiveOrgLink::normalize((string) $khotabItem->link);
+
+        // HEAD (owner-approved correction, 2026-11-11): no slot, no downcount, no source contact — see
+        // ProxiedDownloadStreamer::head(). Before it, a HEAD took a slot and was counted as a download.
+        if ($request->isMethod('HEAD')) {
+            return $streamer->head($link, app(DownloadTelemetry::class)->transfer($request,
+                new DownloadTelemetryContext('khotab', 'khotab_item', (int) $khotabItem->id, 'primary')));
+        }
 
         // Global download-capacity pool (DownloadCapacityGuard): no free slot →
         // immediate 503, before the counter and before any file or network
@@ -217,23 +233,59 @@ class KhotabItemController
                 resourceType: 'khotab_item',
                 resourceId: (int) $khotabItem->id,
                 variant: 'primary',
-                resolvedDownloadUrl: $khotabItem->link,
+                resolvedDownloadUrl: $link,
                 storedSize: (int) $khotabItem->linksize,
+                resourceTitle: $khotabItem->title,
             ));
         }
 
         $khotabItem->incrementDownloadCount();
 
+        // Phase 3A telemetry (off by default): a plain tracker — it holds neither the slot nor the record.
+        $telemetry = app(DownloadTelemetry::class)->transfer($request, new DownloadTelemetryContext('khotab', 'khotab_item', (int) $khotabItem->id, 'primary'));
+        $telemetry->accepted();
+
         // Plain locals only from here on — see ProxiedDownloadStreamer. The
         // connection name is read off the model rather than hardcoded, so it
         // stays correct if the model's connection ever changes.
-        return $streamer->stream($slot, $khotabItem->link, $khotabItem->getConnectionName());
+        return $streamer->stream($slot, $link, $khotabItem->getConnectionName(), $telemetry);
     }
 
     /** `khotab/functions.php:957-991`'s `download_khotab()`, mirror branch — increments the mirror's own `hits`, not the item's `downcount`. */
     public function downloadMirror(int $khotab, int $mirror, Request $request, DownloadCapacityGuard $guard, ProxiedDownloadStreamer $streamer): Response
     {
-        $mirrorModel = Mirror::where('khid', $khotab)->findOrFail($mirror);
+        // The parent item's title rides along in the SAME query (a primary-key subselect), so a refusal records it
+        // without any extra query (Phase 3D origin tracking).
+        $mirrorModel = Mirror::where('khid', $khotab)
+            ->select('nuke_islamic_mirror.*')
+            ->addSelect(['parent_title' => KhotabItem::select('title')->whereColumn('nuke_islamic_khotab.id', 'nuke_islamic_mirror.khid')->limit(1)])
+            ->findOrFail($mirror);
+
+        // External media (owner-approved policy, Phase 3B.1): a YouTube / SoundCloud PAGE link is answered with a 302
+        // to its rebuilt https URL — no slot, no server-side fetch, never a binary download. GET counts the mirror's
+        // `hits` once, as legacy counted every mirror click; HEAD gets the same 302 and counts nothing.
+        $media = ExternalMediaLink::classify($mirrorModel->link);
+        if ($media !== null) {
+            $telemetry = app(DownloadTelemetry::class)->transfer($request,
+                new DownloadTelemetryContext('khotab', 'khotab_item', $khotab, 'mirror', (int) $mirrorModel->id));
+            if ($request->isMethod('HEAD')) {
+                $telemetry->head();
+            } else {
+                $mirrorModel->incrementDownloadCount();
+                $telemetry->redirected($media['host'], $media['kind']);
+            }
+
+            return redirect()->away($media['url'], 302, ['Cache-Control' => 'no-store, private']);
+        }
+
+        // F04 fix: the normalised archive.org URL, as download() and the player (external media is handled above).
+        $link = ArchiveOrgLink::normalize((string) $mirrorModel->link);
+
+        // HEAD: no slot, no `hits`, no source contact (see download()).
+        if ($request->isMethod('HEAD')) {
+            return $streamer->head($link, app(DownloadTelemetry::class)->transfer($request,
+                new DownloadTelemetryContext('khotab', 'khotab_item', $khotab, 'mirror', (int) $mirrorModel->id)));
+        }
 
         // Same global pool as download() and every other proxied download.
         $slot = $guard->tryAcquire();
@@ -244,14 +296,18 @@ class KhotabItemController
                 resourceId: $khotab,
                 variant: 'mirror',
                 variantId: (int) $mirrorModel->id,
-                resolvedDownloadUrl: $mirrorModel->link,
+                resolvedDownloadUrl: $link,
                 storedSize: (int) $mirrorModel->linksize,
+                resourceTitle: $mirrorModel->getAttribute('parent_title'),
             ));
         }
 
         $mirrorModel->incrementDownloadCount();
 
-        return $streamer->stream($slot, $mirrorModel->link, $mirrorModel->getConnectionName());
+        $telemetry = app(DownloadTelemetry::class)->transfer($request, new DownloadTelemetryContext('khotab', 'khotab_item', $khotab, 'mirror', (int) $mirrorModel->id));
+        $telemetry->accepted();
+
+        return $streamer->stream($slot, $link, $mirrorModel->getConnectionName(), $telemetry);
     }
 
     /**
@@ -269,7 +325,9 @@ class KhotabItemController
         if ($khotabItem->pdf > 0) {
             // OLD getpdf(): `pdf` is also the transcript's download count —
             // `pdf = pdf + 1` on each successful request (owner, 2026-10-22).
-            KhotabItem::query()->whereKey($khotabItem->id)->where('pdf', '>', 0)->increment('pdf');
+            if (! request()->isMethod('HEAD')) {   // HEAD (Phase 3B.1): same redirect, no counter.
+                KhotabItem::query()->whereKey($khotabItem->id)->where('pdf', '>', 0)->increment('pdf');
+            }
 
             return redirect(MediaUrl::asset($khotabItem->pdfPath()));
         }

@@ -21,6 +21,8 @@ function useInMemoryMainConnectionForPermissionController(): void
 {
     InMemoryConnection::setup('main', [
         'nuke_authors' => MainSchema::nukeAuthors(),
+        // F02 / owner decision 16: permission and password edits are now audited.
+        'admin_audit_log' => MainSchema::adminAuditLog(),
     ]);
 }
 

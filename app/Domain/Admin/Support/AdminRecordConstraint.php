@@ -19,6 +19,10 @@ use App\Domain\Admin\Models\AdminUser;
  * resolver (`AdminRecordAuthorizer`), and **zero registered
  * implementations**.
  *
+ * **Superseded 2026-11-17:** the owner now requires strict OLD parity, so the Khotab audio / video scope IS
+ * reproduced by `Constraints\KhotabMediaScopeConstraint` (Spatie keys `khotab.media_audio` / `khotab.media_video`;
+ * still no runtime read of the legacy tables). The original note follows.
+ *
  * **No Mirror constraint will be registered.** Decision D1b' is closed
  * (owner, 2026-10-12): OLD's Khotab audio-vs-video moderator division is
  * **not** reproduced. Mirror authorization is flat — `khotab.addmirror`,

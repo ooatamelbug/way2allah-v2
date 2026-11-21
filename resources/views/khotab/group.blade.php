@@ -84,7 +84,9 @@
                     </div>
                     <div class="portlet-body ">
                         @if ($series->isNotEmpty())
+                            {{-- B2 / F03-B: an admin with khotab.editseries also gets the hidden («++مخفي++») and empty («فارغة») series. --}}
                             <x-content.media-collection-grid :items="$series" secondary="channel"
+                                :mark-hidden="$adminSeries ?? false" :mark-empty="$adminSeries ?? false"
                                 :row-controls="$contextualRows ? fn ($row) => [\App\Domain\Admin\Contextual\Controls\KhotabGroupControls::forSeries((int) $row->id)] : null" />
                         @else
                             <h5>لا توجد سلاسل مطابقة بقاعدة بيانات الموقع</h5>
@@ -126,12 +128,12 @@
 
         <div class="col-lg-3 col-md-4 col-sm-5 nopadding flex flex-column gap-5">
             {{--
-                group.php:84-95's "الملف الشخصي" box — get_author_img()
-                called directly, no author_image priority check (confirmed
-                by direct re-read: group.php never wraps this in an
-                author_image-first check, unlike khotab/author.php:104) —
-                fallbackImageUrl() is the correct match here, not
-                displayImageUrl().
+                group.php:84-95's "الملف الشخصي" box. Gen 2 called
+                get_author_img() directly, with no author_image priority
+                check (unlike khotab/author.php:104). F06 (owner-approved
+                visitor-parity deviation, 2026-11-14) resolves it through
+                displayImageUrl() — author_image first, then the same
+                get_author_img() fallbacks — so an uploaded image shows here.
             --}}
             <div id="" class="col-md-12 col-sm-12">
                 <div class="portlet box blue">
@@ -140,7 +142,7 @@
                     </div>
                     <div class="portlet-body ">
                         <div class="profile-userpic">
-                            <img src="{{ $authorModel?->fallbackImageUrl() }}" class="img-responsive" alt="">
+                            <img src="{{ $authorModel?->displayImageUrl() }}" class="img-responsive" alt="">
                         </div>
                     </div>
                 </div>

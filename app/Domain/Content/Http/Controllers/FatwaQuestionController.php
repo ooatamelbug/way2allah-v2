@@ -15,12 +15,15 @@ use App\Domain\Content\Services\SendToFriend\SendToFriendInput;
 use App\Domain\Content\Services\SendToFriend\SendToFriendMailer;
 use App\Domain\Content\Services\SendToFriend\SendToFriendRateLimiter;
 use App\Domain\Content\Support\FatwaPipeIds;
+use App\Support\Downloads\DownloadRejectionContext;
+use App\Support\Downloads\ProxiedDownloadResponder;
+use App\Support\Downloads\Telemetry\DownloadTelemetryContext;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 /**
  * Replaces `fatawa/single.php` ("one_question" op), `fatawa/answer.php` /
@@ -243,13 +246,20 @@ class FatwaQuestionController
      * than shared/extracted, since that controller belongs to an unrelated
      * feature and was out of this fix's approved scope.
      */
-    public function download(int $question): RedirectResponse
+    public function download(int $question, Request $request, ProxiedDownloadResponder $responder): SymfonyResponse
     {
         $fatwaQuestion = FatwaQuestion::findOrFail($question);
+        $link = $this->fixArchiveLinks($fatwaQuestion->media_link ?? '');
 
-        $fatwaQuestion->increment('num_download');
-
-        return redirect()->away($this->fixArchiveLinks($fatwaQuestion->media_link ?? '') ?: '/');
+        // F04 (owner-approved 2026-11-17): the Khotab pattern through the shared protected proxy. An empty link still
+        // goes to the home page, counted, as before.
+        return $responder->respond($request, $link,
+            new DownloadTelemetryContext('fatawa', 'fatwa_question', (int) $fatwaQuestion->id, 'primary'),
+            fn () => $fatwaQuestion->increment('num_download'),
+            fn () => new DownloadRejectionContext(module: 'fatawa', resourceType: 'fatwa_question', resourceId: (int) $fatwaQuestion->id,
+                variant: 'primary', resolvedDownloadUrl: $link, resourceTitle: $fatwaQuestion->question_text),
+            $fatwaQuestion->getConnectionName(),
+            fallbackAway: true);
     }
 
     /**

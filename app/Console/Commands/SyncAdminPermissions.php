@@ -32,7 +32,8 @@ class SyncAdminPermissions extends Command
                 $r['id'],
                 $r['aid'],
                 $r['super_admin'] ? 'yes' : 'no',
-                $r['permissions'] === [] ? '—' : implode(', ', $r['permissions']),
+                // F02: a deactivated admin is skipped (grants kept untouched), not "no permissions".
+                isset($r['skipped']) ? 'skipped: deactivated (grants unchanged)' : ($r['permissions'] === [] ? '—' : implode(', ', $r['permissions'])),
             ])->all()
         );
 

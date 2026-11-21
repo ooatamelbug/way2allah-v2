@@ -75,6 +75,10 @@ it('show: renders premium subgroup, download, and searchable media-card sections
         ['id' => 2, 'title' => 'Sub Group', 'parent_id' => 1, 'child' => 1, 'anasheed' => 5, 'hits' => 9, 'des' => 'A comment'],
     ]);
     DB::connection('main')->table('nuke_anasheed_anasheed')->insert(['id' => 1, 'title' => 'Group Item', 'group_id' => 1]);
+    // F08 / B4 (2026-11-15): sub-group cards show the group's publicly visible items, so «5 مقطع» needs 5 real rows.
+    foreach ([1, 2, 3, 4, 5] as $n) {
+        DB::connection('main')->table('nuke_anasheed_anasheed')->insert(['id' => 100 + $n, 'title' => 'Sub item '.$n, 'group_id' => 2, 'hidden' => 0]);
+    }
 
     $content = $this->get('/var-group-1.htm')->assertOk()->getContent();
 

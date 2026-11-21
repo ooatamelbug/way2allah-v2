@@ -3,6 +3,7 @@
 namespace App\Domain\Content\Services;
 
 use App\Domain\Content\Models\Channel;
+use App\Domain\Content\Support\KhotabCover;
 use App\Domain\Content\Support\MediaPathResolver;
 use App\Domain\Content\Support\MediaUrl;
 use App\Support\Performance\RequestMetrics;
@@ -166,7 +167,8 @@ class ContentSidebarWidget
     /**
      * OLD `Top10()` (`modules/Anasheed/index.php`, visitor parity A12, 2026-11-04): items whose `group_id`
      * is one of the department's direct sub-groups (`$groupIds`; empty = no filter, as OLD did when the
-     * department had none), `hits DESC`, six rows; hidden items listed, as OLD did. OLD printed `hits` as
+     * department had none), `hits DESC`, six rows. F08 / B4: hidden items are no longer listed (OLD listed them).
+     * OLD printed `hits` as
      * «مرات التحميل», so `hits` is the displayed number too (owner, 2026-11-04).
      *
      * @param  list<int>  $groupIds
@@ -192,7 +194,7 @@ class ContentSidebarWidget
      */
     private function anasheedDepartmentQuery(array $columns, array $groupIds, string $orderColumn): Collection
     {
-        $query = DB::connection('main')->table('nuke_anasheed_anasheed')->select($columns);
+        $query = DB::connection('main')->table('nuke_anasheed_anasheed')->select($columns)->where('hidden', 0);   // F08 / B4
 
         if ($groupIds !== []) {
             $query->whereIn('group_id', $groupIds);
@@ -1083,6 +1085,12 @@ class ContentSidebarWidget
      */
     private function topitemsThumb(int $frame, int $id, ?int $authorId = null): string
     {
+        // F10 / B5: a custom cover first; without one, the existing resolution below, unchanged. Computed after the
+        // (cached) rows are read, so a new or removed cover shows at once.
+        if (($cover = KhotabCover::url($id)) !== null) {
+            return $cover;
+        }
+
         if ($frame === 1) {
             $rel = MediaPathResolver::path('khotab_frames', $id, 'jpg');
             if (file_exists(MediaPathResolver::absolute($rel))) {
@@ -1097,8 +1105,12 @@ class ContentSidebarWidget
         // (Gen 2's broken string, described above, is no longer reproduced.)
         if ($authorId !== null && $authorId > 0) {
             $rel = MediaPathResolver::path('authors', $authorId, 'jpg');
-            if (is_file(rtrim((string) config('admin_khotab.media_root'), '/').'/'.substr($rel, strlen('media/')))) {
-                return MediaUrl::asset($rel);
+            $file = rtrim((string) config('admin_khotab.media_root'), '/').'/'.substr($rel, strlen('media/'));
+            clearstatcache(true, $file);
+            if (is_file($file)) {
+                // Versioned by mtime (as `author_image` after an upload): «تعديل بيانات الداعية» replaces this file
+                // under the same name, and the unversioned URL kept the old photo in browsers (feedback 2026-11-18).
+                return MediaUrl::withVersion(MediaUrl::asset($rel), (int) filemtime($file));
             }
         }
 

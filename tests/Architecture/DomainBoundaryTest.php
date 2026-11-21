@@ -38,3 +38,12 @@ arch('Pages controllers must not query Eloquent models directly')
 arch('the Content domain must not depend on the Admin domain\'s internals')
     ->expect('App\Domain\Content')
     ->not->toUse('App\Domain\Admin');
+
+// F01 / B6c-1: the strict stored-URL rule is shared by Admin (B6a/B6b) and Content (B6c); it must depend on neither.
+arch('the shared SafeExternalUrl rule depends on no domain')
+    ->expect('App\Support\Http\SafeExternalUrl')
+    ->not->toUse('App\Domain');
+
+arch('the Admin domain does not depend on the public advertising foundation')
+    ->expect('App\Domain\Admin')
+    ->not->toUse('App\Domain\Content\Ads');

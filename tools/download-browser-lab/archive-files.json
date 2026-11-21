@@ -1,0 +1,15 @@
+{
+  "_note": "Public archive.org files used only as real-world sources for B7a (no project data). md5/size from https://archive.org/metadata/{item} on 2026-11-14.",
+  "mp3": {
+    "url": "https://archive.org/download/letter-to-saint-nicetius/Letter_to_Saint_Nicetius.mp3",
+    "name": "Letter_to_Saint_Nicetius.mp3",
+    "size": 3207590,
+    "md5": "877197a6a7bc2ce80120c1ce4717fbad"
+  },
+  "mp4": {
+    "url": "https://archive.org/download/firetruck_202511/Firetruck.ia.mp4",
+    "name": "Firetruck.ia.mp4",
+    "size": 2931539,
+    "md5": "4a382b83b7cf3d18325abf0e8488f2d9"
+  }
+}

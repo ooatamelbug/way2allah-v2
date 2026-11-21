@@ -3,6 +3,7 @@
 namespace App\Domain\Content\Http\Controllers;
 
 use App\Domain\Content\Services\ContentListingService;
+use App\Domain\Content\Support\KhotabCover;
 use App\Domain\Content\Support\MediaPathResolver;
 use App\Domain\Content\Support\MediaUrl;
 use App\Domain\Engagement\Models\Poll;
@@ -111,6 +112,11 @@ class HomeController
 
     private function bucketedThumb(int $id, int $frame, ?int $authorId): string
     {
+        // F10 / B5: a custom cover first; without one, the existing resolution below, unchanged.
+        if (($cover = KhotabCover::url($id)) !== null) {
+            return $cover;
+        }
+
         if ($frame === 1) {
             $rel = MediaPathResolver::path('khotab_frames', $id, 'jpg');
             if (file_exists(MediaPathResolver::absolute($rel))) {
@@ -122,8 +128,11 @@ class HomeController
 
         if ($authorId !== null) {
             $rel = MediaPathResolver::path('authors', $authorId, 'jpg');
-            if (file_exists(MediaPathResolver::absolute($rel))) {
-                return MediaUrl::asset($rel);
+            $file = MediaPathResolver::absolute($rel);
+            clearstatcache(true, $file);
+            if (file_exists($file)) {
+                // Versioned by mtime: the author image is replaced in place by «تعديل بيانات الداعية» (feedback 2026-11-18).
+                return MediaUrl::withVersion(MediaUrl::asset($rel), (int) filemtime($file));
             }
         }
 

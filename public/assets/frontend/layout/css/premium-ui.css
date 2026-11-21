@@ -6732,6 +6732,18 @@ button.mobi-toggler {
     border: 1px solid var(--w2a-border) !important;
 }
 
+/* Khotab feedback 2026-11-18: a mirror in a format browsers cannot play shows this note instead of «مشاهدة». */
+.w2a-quality-download-only {
+    display: inline-flex !important;
+    align-items: center !important;
+    min-height: 44px !important;
+    gap: 6px !important;
+    padding: 9px 4px !important;
+    color: var(--w2a-ink-700, #334155) !important;
+    font-size: 0.92em !important;
+    font-weight: 600 !important;
+}
+
 #the_main_player {
     display: none;
     margin-bottom: 24px !important;

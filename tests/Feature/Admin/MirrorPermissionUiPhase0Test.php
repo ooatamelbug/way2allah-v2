@@ -22,6 +22,8 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     InMemoryConnection::setup('main', [
         'nuke_authors' => MainSchema::nukeAuthors(),
+        // F02 / owner decision 16: permission edits are now audited.
+        'admin_audit_log' => MainSchema::adminAuditLog(),
     ]);
 
     (new AdminPermissionSeeder)->run();

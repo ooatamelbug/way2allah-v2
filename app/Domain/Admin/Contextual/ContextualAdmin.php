@@ -44,6 +44,13 @@ class ContextualAdmin implements AdminViewer
         return $this->admin() !== null;
     }
 
+    public function can(string $permission): bool
+    {
+        $admin = $this->admin();
+
+        return $admin !== null && ($admin->hasRole('super-admin') || $admin->hasAnyPermission([$permission]));
+    }
+
     public function adminId(): ?int
     {
         $admin = $this->admin();

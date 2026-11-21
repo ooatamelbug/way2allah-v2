@@ -275,6 +275,45 @@ class ContentListingService
             ->get();
     }
 
+    /**
+     * B2 / F03-B (owner-approved 2026-11-16, decision-log #146) — a group page's series as an AUTHORIZED administrator
+     * sees them (`khotab.editseries` or super-admin; the caller decides): the visitor list of
+     * {@see seriesByAuthorAndGroup()} plus the group's hidden series and the series whose stored `count` is ≤ 0 —
+     * same columns, same `lastupdate DESC` order, plus `hidden`, `matching_items` and `is_empty`.
+     *
+     * `is_empty` describes what the administrator would see on opening the series (`khotab-series-{id}`): the series
+     * page lists items with the series' author, media type, series id and group, hidden items included for an admin
+     * ({@see khotabItemsDefault()}). It is computed by ONE aggregate over those same columns
+     * (`idx_khotab_author_listing (author, vedio, ser_id, group_id)`), never from the stored `count` — that counter is
+     * known to be wrong for some series (F03-A) and is neither trusted nor changed here.
+     */
+    public function adminSeriesByAuthorAndGroup(int $authorId, int $groupId, bool $video): Collection
+    {
+        $series = DB::connection('main')->table('nuke_islamic_series as ser')
+            ->leftJoin('nuke_sat_channels as ch', 'ser.channel_id', '=', 'ch.id')
+            ->where('ser.author_id', $authorId)
+            ->where('ser.group_id', $groupId)
+            ->where('ser.vedio', (int) $video)
+            ->orderByDesc('ser.lastupdate')
+            ->select(['ser.id', 'ser.channel_id', 'ser.title', 'ser.time', 'ser.lastupdate', 'ser.count', 'ch.title as channel', 'ser.hidden'])
+            ->get();
+
+        $ids = $series->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $matching = $ids === [] ? collect() : DB::connection('main')->table('nuke_islamic_khotab')
+            ->where('author', $authorId)
+            ->where('vedio', (int) $video)
+            ->whereIn('ser_id', $ids)
+            ->where('group_id', $groupId)
+            ->groupBy('ser_id')
+            ->selectRaw('ser_id, COUNT(*) AS n')
+            ->pluck('n', 'ser_id');
+
+        return $series->each(function (object $row) use ($matching) {
+            $row->matching_items = (int) ($matching[$row->id] ?? 0);
+            $row->is_empty = $row->matching_items === 0;
+        });
+    }
+
     /** categories/functions.php ListSeries() — filter by category (junction table) + group, includes author, no hidden override. */
     public function seriesByCategoryAndGroup(int $categoryId, int $groupId, bool $video): Collection
     {
@@ -574,6 +613,36 @@ class ContentListingService
             ->orderBy('an.weight')
             ->select(['an.id', 'an.title', 'an.link'])
             ->get();
+    }
+
+    /**
+     * F08 / B4 (owner-approved 2026-11-15) — the number of PUBLICLY VISIBLE items directly in each group, for the
+     * sub-group cards on `var-group-{id}` (OLD `ListGroup()` printed the stored `nuke_anasheed_groups.anasheed`
+     * counter, which counts hidden items too and has drifted). Same scope as the group page's own list
+     * (`group_id = X`, no 98 / 16 merge) and the same visibility rule (`hidden = 0`). ONE aggregate query for all the
+     * displayed groups; groups with no visible item are 0. The stored counters are not read or written.
+     *
+     * @param  list<int>  $groupIds
+     * @return array<int, int> group id ⇒ visible item count
+     */
+    public function anasheedVisibleItemCountsByGroup(array $groupIds): array
+    {
+        $counts = array_fill_keys($groupIds, 0);
+        if ($groupIds === []) {
+            return $counts;
+        }
+
+        $rows = DB::connection('main')->table('nuke_anasheed_anasheed')
+            ->whereIn('group_id', $groupIds)
+            ->where('hidden', 0)
+            ->groupBy('group_id')
+            ->selectRaw('group_id, COUNT(*) AS visible_items')
+            ->get();
+        foreach ($rows as $row) {
+            $counts[(int) $row->group_id] = (int) $row->visible_items;
+        }
+
+        return $counts;
     }
 
     /**
@@ -1341,6 +1410,12 @@ class ContentListingService
         // Everything legacy omitted stays omitted: still **no `hidden = 0`
         // filter**, and still plain `name ASC` rather than `BINARY name ASC`
         // — this branch's own confirmed, narrower rules.
+        //
+        // F06 (owner-approved visitor-parity deviation, 2026-11-14): the view
+        // now resolves the photo through `Author::displayImageUrl()`, so
+        // `author_image` is selected as well — and named in GROUP BY for the
+        // same MariaDB reason as above. It is a column of the primary-keyed
+        // row, so groups, counts and order are unchanged.
         return Author::query()
             ->join('nuke_fatwa_questions', 'nuke_fatwa_questions.auther_id', '=', 'nuke_islamic_authors.id')
             ->groupBy(
@@ -1348,6 +1423,7 @@ class ContentListingService
                 'nuke_islamic_authors.name',
                 'nuke_islamic_authors.prename',
                 'nuke_islamic_authors.des',
+                'nuke_islamic_authors.author_image',
             )
             ->orderBy('nuke_islamic_authors.name')
             ->select([
@@ -1356,6 +1432,7 @@ class ContentListingService
                 'nuke_islamic_authors.prename',
                 DB::raw('COUNT(nuke_fatwa_questions.id) as count'),
                 'nuke_islamic_authors.des',
+                'nuke_islamic_authors.author_image',
             ])
             ->get();
     }
@@ -2334,6 +2411,7 @@ class ContentListingService
             ->from('nuke_anasheed_anasheed as an')
             ->leftJoin('nuke_anasheed_groups as gr', 'an.group_id', '=', 'gr.id')
             ->inParent($parentId)
+            ->where('an.hidden', 0)   // F08 / B4
             ->orderByDesc('an.id')
             ->limit($limit)
             ->select(['an.id', 'an.title', 'an.frame', 'gr.title as group_title'])
@@ -2355,6 +2433,7 @@ class ContentListingService
     {
         return DB::connection('main')->table('nuke_anasheed_anasheed as an')
             ->join('nuke_anasheed_advanced as ad', 'ad.id', '=', 'an.id')
+            ->where('an.hidden', 0)   // F08 / B4
             ->orderByDesc('an.lastvisit')
             ->limit($limit)
             ->select(['an.id', 'an.title', 'an.frame'])

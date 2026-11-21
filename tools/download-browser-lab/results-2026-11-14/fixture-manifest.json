@@ -1,0 +1,32 @@
+{
+  "small.mp3": {
+    "size": 960932,
+    "type": "audio/mpeg",
+    "sha256": "890d6124ccdadf783cafe2c8c154dbd0cba9e482271a5d1e196472f69c2631f3"
+  },
+  "small.mp4": {
+    "size": 216905,
+    "type": "video/mp4",
+    "sha256": "7f6022edaa945d49b60f9b0d87225076c9be8ded3868ddde6dfcf983af443ea0"
+  },
+  "big50.mp3": {
+    "size": 52428800,
+    "type": "audio/mpeg",
+    "sha256": "f596fbd9f0e2f1c3e681341e7efc790b894e6ef1814f15fab8a8fbf686dbe49c"
+  },
+  "big50.mp4": {
+    "size": 52428800,
+    "type": "video/mp4",
+    "sha256": "f596fbd9f0e2f1c3e681341e7efc790b894e6ef1814f15fab8a8fbf686dbe49c"
+  },
+  "big400.mp3": {
+    "size": 419430400,
+    "type": "audio/mpeg",
+    "sha256": "cfe279e7a17edd747af69564cc93eb2c0a06dc5aff905d2f138b7d0e598cf94b"
+  },
+  "big400.mp4": {
+    "size": 419430400,
+    "type": "video/mp4",
+    "sha256": "cfe279e7a17edd747af69564cc93eb2c0a06dc5aff905d2f138b7d0e598cf94b"
+  }
+}

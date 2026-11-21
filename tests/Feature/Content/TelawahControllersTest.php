@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\DB;
 use Tests\Support\Fixtures\MainSchema;
 use Tests\Support\InMemoryConnection;
+use Tests\Support\ProxiedDownloadProbe;
 
 function useInMemoryMainConnectionForTelawah(): void
 {
@@ -161,12 +162,11 @@ it('authors index: breadcrumb — التلاوات is a real (empty-href) link, 
         ->toContain('<li>قائمة القراء<i class=""></i></li>');
 });
 
-it('item download: redirects to the raw link (no https rewrite, unlike anasheed) and increments downcount', function () {
+it('item download (F04): the protected proxy fetches the raw link (no https rewrite, unlike anasheed); a refused download is not counted', function () {
     DB::connection('main')->table('nuke_telawah_telawah')->insert([
         'id' => 1, 'title' => 'A Recitation', 'link' => 'http://example.com/a.mp3', 'downcount' => 1,
     ]);
 
-    $this->get('/recite-download-1.htm')->assertRedirect('http://example.com/a.mp3');
-
-    expect(DB::connection('main')->table('nuke_telawah_telawah')->find(1)->downcount)->toBe(2);
+    expect(ProxiedDownloadProbe::resolvedLink('/recite-download-1.htm'))->toBe('http://example.com/a.mp3')
+        ->and(DB::connection('main')->table('nuke_telawah_telawah')->find(1)->downcount)->toBe(1);
 });

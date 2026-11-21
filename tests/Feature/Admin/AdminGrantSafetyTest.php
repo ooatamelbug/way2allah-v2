@@ -28,7 +28,8 @@ use Tests\Support\InMemoryConnection;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    InMemoryConnection::setup('main', ['nuke_authors' => MainSchema::nukeAuthors()]);
+    // `admin_audit_log`: adding an admin is audited (`create_admin`) since administrator management (2026-11-17).
+    InMemoryConnection::setup('main', ['nuke_authors' => MainSchema::nukeAuthors(), 'admin_audit_log' => MainSchema::adminAuditLog()]);
     InMemoryConnection::setup('vbulletin', ['user' => VbulletinSchema::user()]);
     Cache::flush();
 });
@@ -67,7 +68,7 @@ function agsAudit(array $options = []): array
 
 // ================================================================ creation
 
-it('creates an admin normally: row saved, no grants, redirect to the permission editor', function () {
+it('creates an admin normally: row saved, no grants, and (F02-UI) an add-only operator is redirected to a page it can open, not the super-admin permission editor', function () {
     $this->actingAs(agsOperator(), 'admin');
     agsForumUser(99, 'newstaff');
 
@@ -76,7 +77,9 @@ it('creates an admin normally: row saved, no grants, redirect to the permission 
     $created = AdminUser::on('main')->where('uid', 99)->first();
     expect($created)->not->toBeNull()->and($created->aid)->toBe('newstaff')
         ->and(str_starts_with((string) $created->password, '$2y$'))->toBeTrue();
-    $response->assertRedirect(route('admin.permissions.edit', $created));
+    // agsOperator() holds only authors.addstuff; the super-admin-only editor would answer 403
+    // (AdminStaffPermissionControlsTest covers the super-admin redirect to the editor).
+    $response->assertRedirect(route('admin.staff.create'));
     expect(DB::table('model_has_permissions')->where('model_id', $created->id)->count())->toBe(0);
 });
 

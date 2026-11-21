@@ -3,6 +3,10 @@
 @section('title', 'صلاحيات: '.$admin->aid)
 
 @section('content')
+    @if ($isDeactivated ?? false)
+        {{-- F02: edits of a deactivated admin are refused server-side (PermissionController). --}}
+        <div class="alert alert-danger">هذا المشرف معطّل. تعديل الصلاحيات وتعيين كلمة المرور غير متاحين؛ استخدم «إعادة تفعيل» من قائمة المشرفين.</div>
+    @endif
     {{--
         CONFIRMED_PAGE_MARKUP_GAP, fixed (AdminCP Final Page-Level
         Visual-Parity Closure, 2026-08-22): legacy `authors/edit_author.php`
@@ -81,7 +85,16 @@
         own docblock for the 2 documented non-legacy-sourced exceptions).
         Grants/authorization logic in `PermissionController` is unchanged.
     --}}
-    <form method="post" action="{{ route('admin.permissions.update', $admin) }}">
+    {{-- Readability fix (2026-11-18): Metronic colours `.has-error` / `.has-success` md-checkbox LABEL text with pale
+         tints made for coloured backgrounds (#fbe1e3 / #abe7ed — contrast 1.24 / 1.36 on white). Scoped to this
+         editor: darker shades of the same red / teal (7.25 / 6.27). Box borders, layout, RTL and behaviour unchanged. --}}
+    @push('styles')
+        <style>
+            .w2a-permission-editor .md-checkbox.has-error label { color: #a12a35; }
+            .w2a-permission-editor .md-checkbox.has-success label { color: #1a6a72; }
+        </style>
+    @endpush
+    <form method="post" action="{{ route('admin.permissions.update', $admin) }}" class="w2a-permission-editor">
         @csrf
         @method('PUT')
         @foreach ($permissionsByModule as $module => $permissions)
@@ -118,6 +131,78 @@
             <button type="submit" class="btn green-haze">حفظ التعديلات</button>
         </div>
     </form>
+
+    {{-- Administrator management (OLD mod_authors → modifyadmin parity, 2026-11-17): profile and the super-admin
+         role. The name is read-only, as in OLD; the login name is renamable by owners once `admin_rename.enabled` is on. Controls render only when AdminManagementPolicy would allow them; the actions enforce it again. --}}
+    <div class="col-md-12">
+        <div class="portlet light">
+            <div class="portlet-title">
+                <div class="caption">
+                    <i class="icon-user"></i>
+                    <span class="caption-subject bold uppercase"> بيانات المشرف</span>
+                    @if ($isOwner ?? false)
+                        <span class="label label-primary">مالك</span>
+                    @endif
+                    @if ($isLaravelSuperAdmin ?? false)
+                        <span class="label label-success">مشرف عام</span>
+                    @endif
+                </div>
+            </div>
+            <div class="portlet-body form">
+                <p>الكنية (اسم الدخول): {{ $admin->aid }}</p>
+                @if (($canRename ?? false) && ! ($isDeactivated ?? false))
+                    {{-- OLD UpdateAuthor `aid`: owners only, enabled after OLD's retirement (config/admin_rename.php). --}}
+                    <form method="post" action="{{ route('admin.staff.rename', $admin) }}" onsubmit="return confirm('تعديل اسم الدخول؟ سيدخل المشرف بالاسم الجديد.');">
+                        @csrf
+                        @method('PUT')
+                        <div class="form-group">
+                            <label>اسم الدخول الجديد</label>
+                            <input type="text" name="aid" maxlength="25" class="form-control" required value="{{ old('aid', $admin->aid) }}">
+                        </div>
+                        <button type="submit" class="btn btn-warning">تعديل اسم الدخول</button>
+                    </form>
+                @endif
+                <p>الإسم: {{ $admin->name }}</p>
+                @if (($manageRefusal ?? null) === null && ! ($isDeactivated ?? false))
+                    <form method="post" action="{{ route('admin.staff.profile', $admin) }}">
+                        @csrf
+                        @method('PUT')
+                        <div class="form-group">
+                            <label>البريد الالكتروني</label>
+                            <input type="email" name="email" maxlength="255" class="form-control" required value="{{ old('email', $admin->email) }}">
+                        </div>
+                        <div class="form-group">
+                            <label>الرابط</label>
+                            <input type="url" name="url" maxlength="255" class="form-control" value="{{ old('url', $admin->getAttribute('url')) }}">
+                        </div>
+                        <button type="submit" class="btn btn-primary">حفظ البيانات</button>
+                    </form>
+                @else
+                    <p>البريد الالكتروني: {{ $admin->email }}</p>
+                    @if (($manageRefusal ?? null) !== null)
+                        <p class="font-red">{{ $manageRefusal }}</p>
+                    @endif
+                @endif
+
+                @if (($canChangeRole ?? false) && ! ($isDeactivated ?? false))
+                    <hr>
+                    @if ($isLaravelSuperAdmin ?? false)
+                        <form method="post" action="{{ route('admin.staff.super-admin.demote', $admin) }}" onsubmit="return confirm('سحب صلاحية المشرف العام؟');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn red">سحب صلاحية المشرف العام</button>
+                        </form>
+                    @else
+                        <form method="post" action="{{ route('admin.staff.super-admin.promote', $admin) }}" onsubmit="return confirm('ترقية هذا المشرف إلى مشرف عام بكل الصلاحيات؟');">
+                            @csrf
+                            <button type="submit" class="btn green">ترقية إلى مشرف عام</button>
+                        </form>
+                    @endif
+                    <span class="help-block">يغيّر صلاحية لوحة التحكم الجديدة فقط؛ علامة «الإدارة العليا» في الأنظمة القديمة لا تتغير.</span>
+                @endif
+            </div>
+        </div>
+    </div>
 
     <div class="col-md-12">
         <div class="portlet light">

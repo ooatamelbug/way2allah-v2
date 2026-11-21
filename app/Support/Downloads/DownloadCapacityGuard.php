@@ -2,6 +2,8 @@
 
 namespace App\Support\Downloads;
 
+use App\Support\Downloads\Telemetry\DownloadTelemetry;
+use App\Support\Downloads\Telemetry\DownloadTelemetryContext;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
@@ -91,7 +93,8 @@ final class DownloadCapacityGuard
 
         for ($i = 0; $i < $max; $i++) {
             $number = (($start + $i) % $max) + 1;
-            $handle = @fopen(sprintf('%s/slot-%03d.lock', $directory, $number), 'c');
+            $path = sprintf('%s/slot-%03d.lock', $directory, $number);
+            $handle = @fopen($path, 'c');
 
             if ($handle === false) {
                 $openFailures++;
@@ -100,6 +103,10 @@ final class DownloadCapacityGuard
             }
 
             if (flock($handle, LOCK_EX | LOCK_NB)) {
+                // Phase 3B monitoring: the slot file's mtime marks when this slot was taken, so a read-only monitor
+                // can report long-running holders. Best effort; it never affects acquiring or holding the slot.
+                @touch($path);
+
                 return DownloadSlot::held($handle);
             }
 
@@ -127,6 +134,15 @@ final class DownloadCapacityGuard
     public function refuse(Request $request, DownloadRejectionContext $context): Response
     {
         $this->recorder->record($request, $context, $this->activeAtRefusal, self::limit(), self::retryAfter());
+
+        // Phase 3A telemetry (off by default; never throws, never touches the database).
+        try {
+            app(DownloadTelemetry::class)->emit($request, 'capacity_rejected',
+                new DownloadTelemetryContext($context->module, $context->resourceType, $context->resourceId, $context->variant, $context->variantId),
+                ['st' => 'rejected', 'pa' => $this->activeAtRefusal, 'pl' => self::limit()]);
+        } catch (Throwable) {
+            // telemetry must never affect the refusal
+        }
 
         return $this->rejection();
     }

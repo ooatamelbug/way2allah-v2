@@ -30,6 +30,10 @@ class MainSchema
             $table->boolean('radminsuper')->default(false);
             // Task 6.8 addition — backup.php's API-key column.
             $table->string('API')->nullable();
+            // Administrator management (2026-11-17): real columns the add / profile flows write
+            // (`url` NOT NULL DEFAULT '', `thumb` NOT NULL in the real table).
+            $table->string('url')->nullable();
+            $table->text('thumb')->nullable();
             // NOT added here: `permissions` (the raw serialized blob
             // `backupCategoryPermissions()` reads). Confirmed real legacy
             // column, but deliberately excluded from this SHARED fixture —
@@ -1369,6 +1373,24 @@ class MainSchema
     }
 
     /**
+     * F02 — the test stand-in for `create_admin_account_states_table` (skipped
+     * under tests); `AdminAccountStateSchemaDriftTest` keeps the two in column
+     * agreement.
+     */
+    public static function adminAccountStates(): \Closure
+    {
+        return function (Blueprint $table) {
+            $table->unsignedInteger('admin_id')->primary();
+            $table->unsignedInteger('deactivated_at')->nullable();
+            $table->unsignedInteger('deactivated_by')->nullable();
+            $table->string('reason', 255)->nullable();
+            $table->unsignedInteger('reactivated_at')->nullable();
+            $table->unsignedInteger('reactivated_by')->nullable();
+            $table->unsignedInteger('updated_at');
+        };
+    }
+
+    /**
      * Global download capacity telemetry (2026-10-22) — the test stand-in for
      * `create_download_rejections_table` (skipped under tests, like the audit
      * log); `DownloadRejectionSchemaDriftTest` keeps the two in column
@@ -1401,6 +1423,8 @@ class MainSchema
             $table->unsignedInteger('download_limit');
             $table->unsignedSmallInteger('retry_after_seconds');
             $table->string('request_id', 36)->nullable();
+            // Phase 3D (2026_11_11_300000): the material's title at refusal time.
+            $table->string('resource_title', 255)->nullable();
         };
     }
 

@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>B7a lab page</title>
+</head>
+<body>
+<!--
+  B7a prototype ONLY. It is not part of the application, and B7b is not implemented.
+
+  It mirrors the proposal in docs/reports/admincp-feedback-implementation-plan.md §F04.4:
+  - «حفظ المادة» keeps today's href (the redirect route) as its no-JS and fallback behaviour;
+  - with data-direct-url (an archive.org-style, CORS-enabled URL), the click is handled in JS:
+    fetch → stream into memory → Blob → <a download> on a blob: URL.
+  Any failure before the bytes are complete falls back to the href (fallback) or reports failure
+  (interrupted / cancelled / short). A fallback is never reported as a forced download.
+-->
+<a id="save" class="btn">حفظ المادة</a>
+<button id="cancel" type="button">إلغاء</button>
+<button id="play" type="button">تشغيل</button>
+<div id="player"></div>
+<output id="status">idle</output>
+<output id="progress">0</output>
+<script>
+(function () {
+    const q = new URLSearchParams(location.search);
+    const save = document.getElementById('save');
+    save.href = q.get('route') || '#';
+    if (q.get('direct')) save.dataset.directUrl = q.get('direct');
+    save.dataset.filename = q.get('name') || 'file';
+    if (q.get('cap')) save.dataset.cap = q.get('cap');
+
+    // The play button reproduces how the app's player is created (an element with the media URL as src).
+    document.getElementById('play').addEventListener('click', function () {
+        const kind = q.get('kind') === 'video' ? 'video' : 'audio';
+        const el = document.createElement(kind);
+        el.controls = true;
+        el.muted = true; // headless autoplay policy; the harness only checks that playback progresses
+        el.src = q.get('play') || q.get('direct') || '';
+        document.getElementById('player').replaceChildren(el);
+        el.play().catch(function (e) { el.dataset.playError = e.name; });
+    });
+
+    if (q.get('save') === '0') return; // baseline: today's behaviour, no save module
+
+    const status = (s) => { document.getElementById('status').value = s; document.getElementById('status').textContent = s; };
+    let controller = null;
+    document.getElementById('cancel').addEventListener('click', function () { if (controller) controller.abort(); });
+
+    function fallback(reason) {
+        status('fallback:' + reason);
+        location.href = save.href; // exactly today's behaviour
+    }
+
+    save.addEventListener('click', async function (ev) {
+        const url = save.dataset.directUrl;
+        if (!url || !window.fetch || !window.ReadableStream) return; // no JS path: the browser follows the href
+        ev.preventDefault();
+        const cap = Number(save.dataset.cap || 0);
+        controller = new AbortController();
+        status('fetching');
+        let res;
+        try {
+            res = await fetch(url, { mode: 'cors', credentials: 'omit', cache: 'no-store', signal: controller.signal });
+        } catch (e) {
+            return e.name === 'AbortError' ? status('failed:cancelled') : fallback('fetch-error');
+        }
+        if (!res.ok || !res.body) return fallback('http-' + res.status);
+        const expected = Number(res.headers.get('content-length') || 0);
+        if (cap && expected > cap) { controller.abort(); return fallback('over-cap'); }
+
+        const reader = res.body.getReader();
+        const chunks = [];
+        let received = 0;
+        try {
+            for (;;) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                chunks.push(value);
+                received += value.byteLength;
+                document.getElementById('progress').value = String(received);
+                document.getElementById('progress').textContent = String(received);
+            }
+        } catch (e) {
+            chunks.length = 0;
+            return status(e.name === 'AbortError' ? 'failed:cancelled' : 'failed:interrupted');
+        }
+        if (expected && received !== expected) { chunks.length = 0; return status('failed:short'); }
+
+        const blob = new Blob(chunks, { type: res.headers.get('content-type') || 'application/octet-stream' });
+        chunks.length = 0;
+        const href = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = href;
+        a.download = save.dataset.filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        status('saved:' + received);
+        setTimeout(function () { URL.revokeObjectURL(href); }, 30000);
+    });
+})();
+</script>
+</body>
+</html>

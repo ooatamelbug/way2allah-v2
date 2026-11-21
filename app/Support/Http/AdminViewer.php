@@ -17,6 +17,12 @@ interface AdminViewer
     /** True when a signed-in administrator is viewing; false for a visitor, without touching the database. */
     public function active(): bool;
 
+    /**
+     * True when a signed-in administrator holds $permission (guard `admin`); super-admins always. False for a visitor,
+     * without touching the database. The same rule as `EnsureAdminHasPermission` (F08 / B4: hidden-item preview).
+     */
+    public function can(string $permission): bool;
+
     /** The viewing administrator's id, or null for a visitor. */
     public function adminId(): ?int;
 

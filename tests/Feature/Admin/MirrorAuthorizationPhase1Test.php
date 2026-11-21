@@ -4,7 +4,6 @@ use App\Domain\Admin\Actions\Mirrors\DeleteKhotabMirrorAction;
 use App\Domain\Admin\Actions\Mirrors\InsertAnasheedMirrorAction;
 use App\Domain\Admin\Actions\Mirrors\InsertKhotabMirrorAction;
 use App\Domain\Admin\Actions\Mirrors\MoveKhotabMirrorAction;
-use App\Domain\Admin\Support\AdminRecordAuthorizer;
 use App\Domain\Content\Models\AnasheedItem;
 use App\Domain\Content\Models\KhotabItem;
 use App\Domain\Content\Models\Mirror;
@@ -110,16 +109,19 @@ it('gates Khotab re-parent with editmirror and nothing else', function () {
     expect(DB::table('permissions')->where('name', 'like', '%movemirror%')->exists())->toBeFalse();
 });
 
-it('applies no audio/vedio constraint: editmirror covers audio and video items alike', function () {
-    $this->actingAs(H::admin(['khotab.editmirror']), 'admin');
-
+it('applies OLD\'s audio/vedio scope (owner 2026-11-17, superseding D1b\'): both sections cover both; one section only its own', function () {
     $audio = H::khotabMirror(H::khotabItem(['vedio' => 0]));
     $video = H::khotabMirror(H::khotabItem(['vedio' => 1]));
 
+    // No explicit section → the harness gives both (a pre-scope both-sections moderator).
+    $this->actingAs(H::admin(['khotab.editmirror']), 'admin');
     $this->put(route('admin.mirrors.khotab.update', $audio), ['comment' => 'a', 'vedio' => '0'])->assertRedirect();
     $this->put(route('admin.mirrors.khotab.update', $video), ['comment' => 'v', 'vedio' => '1'])->assertRedirect();
 
-    expect(app(AdminRecordAuthorizer::class)->constraints())->toBe([]);
+    app('auth')->forgetGuards();
+    $this->actingAs(H::admin(['khotab.editmirror', 'khotab.media_audio'], 'audio-only'), 'admin');
+    $this->put(route('admin.mirrors.khotab.update', $audio), ['comment' => 'a2', 'vedio' => '0'])->assertRedirect();
+    $this->put(route('admin.mirrors.khotab.update', $video), ['comment' => 'v2', 'vedio' => '1'])->assertForbidden();
 });
 
 it('keeps Khotab and Anasheed permissions independent', function () {

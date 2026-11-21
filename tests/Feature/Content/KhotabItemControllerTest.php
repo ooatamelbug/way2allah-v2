@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Mail;
 use Tests\Support\Fixtures\MainSchema;
 use Tests\Support\InMemoryConnection;
+use Tests\Support\LocalHttpSource;
 
 function useInMemoryMainConnectionForKhotabItemController(): void
 {
@@ -226,22 +227,27 @@ it('show: on an AUDIO item, the sidebar shows audio items, not video', function 
     $response->assertOk()->assertSee('Other Audio')->assertDontSee('Some Video Item');
 });
 
-it('show: G-13-03 — the profile-photo box ignores author_image, matching item.php\'s unconditional get_author_img() (unlike author.php/authors.php)', function () {
-    // Author id deliberately far outside any real bucket in the now-populated
+it('show: G-13-03 / F06 — the profile-photo box prefers author_image, then falls back to get_author_img() (owner-approved deviation from item.php)', function () {
+    // Author ids deliberately far outside any real bucket in the now-populated
     // media library (authors/ only has bucket 0/), so this can't collide with
     // a genuine media/authors/sq/{id}.png and silently take the "real file" branch.
     DB::connection('main')->table('nuke_islamic_authors')->insert([
-        'id' => 999999, 'name' => 'Author Name', 'prename' => 'Sheikh', 'author_image' => 'https://example.com/custom.png',
+        ['id' => 999999, 'name' => 'Author Name', 'prename' => 'Sheikh', 'author_image' => 'https://example.com/custom.png'],
+        ['id' => 999998, 'name' => 'No Image', 'prename' => 'Sheikh', 'author_image' => null],
     ]);
     DB::connection('main')->table('nuke_islamic_khotab')->insert([
-        'id' => 1, 'author' => 999999, 'title' => 'Item', 'vedio' => 1, 'hidden' => 0,
+        ['id' => 1, 'author' => 999999, 'title' => 'Item', 'vedio' => 1, 'hidden' => 0],
+        ['id' => 2, 'author' => 999998, 'title' => 'Item 2', 'vedio' => 1, 'hidden' => 0],
     ]);
 
     $content = $this->get('/khotab-item-1.htm')->assertOk()->getContent();
 
     expect($content)->toContain('الملف الشخصي')
-        ->and($content)->not->toContain('https://example.com/custom.png')
-        ->and($content)->toContain('/media/authors/no_author_image.png');
+        ->and($content)->toContain('<img src="https://example.com/custom.png" alt="">');
+
+    // No author_image: the unchanged get_author_img() fallback chain.
+    expect($this->get('/khotab-item-2.htm')->assertOk()->getContent())
+        ->toContain('<img src="/media/authors/no_author_image.png" alt="">');
 });
 
 it('show: G-13-01 — sidebar rows render a real <img> thumbnail, not plain text-only links', function () {
@@ -927,16 +933,23 @@ it('storeComment: returns "3" when the comment body is missing', function () {
  * ====================================================================
  * MariaDB connection-exhaustion fix (production incident, 2026-09-27)
  * ====================================================================
- * `streamFile()` now calls `DB::disconnect(<the model's own connection>)` as
- * the first statement inside the `streamDownload` callback — i.e. after the
- * record is loaded, after the counter is incremented, and immediately before
- * `fopen()`.
+ * `ProxiedDownloadStreamer` calls `DB::disconnect(<the model's own
+ * connection>)` as the first statement inside the `streamDownload` callback —
+ * after the record is loaded and the counter incremented, and before the copy
+ * loop sends the first byte.
  *
  * Why it matters: Laravel holds the request's PDO handle for the whole
  * request, so each in-flight download pinned one MariaDB connection, idle in
  * `Sleep`, for the entire transfer (a real example measured 20-60+ min for a
  * 1.26 GiB file). 287 concurrent downloads against `max_connections = 300`
  * exhausted the server for every application on it, vBulletin included.
+ *
+ * Source validation (2026-11-10, owner-approved): a remote source is now
+ * opened and its final HTTP status checked BEFORE the response headers are
+ * sent — and the connection is released before that open too, so a dead host
+ * cannot pin it; the callback releases again before the first byte. These
+ * tests use a REAL local HTTP server: PHP's native http wrapper is what
+ * supplies the status line the streamer validates.
  *
  * NOTE for these tests: the test connection is SQLite `:memory:`, so
  * disconnecting genuinely destroys the database. That is why assertions about
@@ -947,109 +960,77 @@ it('storeComment: returns "3" when the comment body is missing', function () {
  * file, so the worker stays occupied. Tracked separately.
  */
 
-/** Replaces the built-in http:// wrapper so we can observe state at fopen/read time. */
-class DownloadDisconnectProbeWrapper
+/**
+ * Send a streamed response's body, recording whether `main` is still connected
+ * at the moment the FIRST byte reaches the output (an output handler with a
+ * chunk size of 1 runs on every write).
+ *
+ * @return array{0: string, 1: bool|null} the body, and whether the PDO was already released at the first byte
+ */
+function streamRecordingReleaseAtFirstByte(object $response): array
 {
-    public static string $body = '';
-
-    /** @var array<string, bool|null> */
-    public static array $observed = [];
-
-    /** @var resource|null */
-    public $context;
-
-    private int $position = 0;
-
-    public function stream_open(string $path, string $mode, int $options, ?string &$openedPath): bool
-    {
-        // fopen() time — the disconnect must already have happened.
-        self::$observed['pdo_null_at_open'] = DB::connection('main')->getRawPdo() === null;
-        $this->position = 0;
-
-        return true;
-    }
-
-    public function stream_read(int $count): string
-    {
-        if (! isset(self::$observed['pdo_null_at_first_read'])) {
-            self::$observed['pdo_null_at_first_read'] = DB::connection('main')->getRawPdo() === null;
+    $releasedAtFirstByte = null;
+    $body = '';
+    ob_start(function (string $buffer) use (&$releasedAtFirstByte, &$body): string {
+        if ($buffer !== '' && $releasedAtFirstByte === null) {
+            $releasedAtFirstByte = DB::connection('main')->getRawPdo() === null;
         }
+        $body .= $buffer;
 
-        $chunk = substr(self::$body, $this->position, $count);
-        $this->position += strlen($chunk);
-
-        return $chunk;
-    }
-
-    public function stream_eof(): bool
-    {
-        return $this->position >= strlen(self::$body);
-    }
-
-    public function stream_stat(): array
-    {
-        return [];
-    }
-
-    public function stream_close(): void {}
-}
-
-function withHttpWrapperProbe(string $body, callable $callback): void
-{
-    DownloadDisconnectProbeWrapper::$body = $body;
-    DownloadDisconnectProbeWrapper::$observed = [];
-
-    stream_wrapper_unregister('http');
-    stream_wrapper_register('http', DownloadDisconnectProbeWrapper::class);
-
+        return '';
+    }, 1);
     try {
-        $callback();
+        $response->baseResponse->sendContent();
     } finally {
-        stream_wrapper_restore('http');
+        ob_end_clean();
     }
+
+    return [$body, $releasedAtFirstByte];
 }
 
-it('download: the DB connection is already released when fopen() runs and when the first chunk is read', function () {
-    DB::connection('main')->table('nuke_islamic_khotab')->insert([
-        'id' => 1, 'title' => 'Item', 'link' => 'http://media.example.com/a.mp4', 'linksize' => 9, 'downcount' => 0,
-    ]);
+it('download: a remote source is opened only after the DB connection is released, and nothing reconnects before the first byte', function () {
+    $source = LocalHttpSource::start([LocalHttpSource::ok('some-bytes')]);
+    try {
+        DB::connection('main')->table('nuke_islamic_khotab')->insert([
+            'id' => 1, 'title' => 'Item', 'link' => $source->url('/a.mp4'), 'linksize' => 9, 'downcount' => 0,
+        ]);
+        expect(DB::connection('main')->getRawPdo())->not->toBeNull();
 
-    // The insert above established the connection.
-    expect(DB::connection('main')->getRawPdo())->not->toBeNull();
+        $response = $this->get('/khotab-download-1.htm')->assertOk()->assertHeader('Content-Length', '10');
+        expect(DB::connection('main')->getRawPdo())->toBeNull()   // released before the remote open, not reconnected
+            ->and($source->requests())->toBe(['GET /a.mp4 HTTP/1.1']);
 
-    withHttpWrapperProbe('some-bytes', function () {
-        $response = $this->get('/khotab-download-1.htm');
-        $response->assertOk();
-
-        expect($response->streamedContent())->toBe('some-bytes');
-    });
-
-    expect(DownloadDisconnectProbeWrapper::$observed['pdo_null_at_open'])->toBeTrue()
-        ->and(DownloadDisconnectProbeWrapper::$observed['pdo_null_at_first_read'])->toBeTrue();
+        [$body, $releasedAtFirstByte] = streamRecordingReleaseAtFirstByte($response);
+        expect($body)->toBe('some-bytes')->and($releasedAtFirstByte)->toBeTrue();
+    } finally {
+        $source->stop();
+    }
 });
 
-it('downloadMirror: the DB connection is already released when fopen() runs', function () {
-    DB::connection('main')->table('nuke_islamic_khotab')->insert(['id' => 1, 'title' => 'Item']);
-    DB::connection('main')->table('nuke_islamic_mirror')->insert([
-        'id' => 1, 'khid' => 1, 'link' => 'http://media.example.com/m.mp4', 'hits' => 0,
-    ]);
+it('downloadMirror: the DB connection is already released when the first byte is sent', function () {
+    $source = LocalHttpSource::start([LocalHttpSource::ok('mirror-bytes')]);
+    try {
+        DB::connection('main')->table('nuke_islamic_khotab')->insert(['id' => 1, 'title' => 'Item']);
+        DB::connection('main')->table('nuke_islamic_mirror')->insert([
+            'id' => 1, 'khid' => 1, 'link' => $source->url('/m.mp4'), 'hits' => 0,
+        ]);
 
-    withHttpWrapperProbe('mirror-bytes', function () {
-        $response = $this->get('/khotab-mirror-1-1.htm');
-        $response->assertOk();
+        $response = $this->get('/khotab-mirror-1-1.htm')->assertOk();
 
-        expect($response->streamedContent())->toBe('mirror-bytes');
-    });
-
-    expect(DownloadDisconnectProbeWrapper::$observed['pdo_null_at_open'])->toBeTrue();
+        [$body, $releasedAtFirstByte] = streamRecordingReleaseAtFirstByte($response);
+        expect($body)->toBe('mirror-bytes')->and($releasedAtFirstByte)->toBeTrue();
+    } finally {
+        $source->stop();
+    }
 });
 
 it('download: no database query is issued during the streaming callback', function () {
-    DB::connection('main')->table('nuke_islamic_khotab')->insert([
-        'id' => 1, 'title' => 'Item', 'link' => 'http://media.example.com/a.mp4', 'linksize' => 9, 'downcount' => 0,
-    ]);
+    $source = LocalHttpSource::start([LocalHttpSource::ok('payload')]);
+    try {
+        DB::connection('main')->table('nuke_islamic_khotab')->insert([
+            'id' => 1, 'title' => 'Item', 'link' => $source->url('/a.mp4'), 'linksize' => 9, 'downcount' => 0,
+        ]);
 
-    withHttpWrapperProbe('payload', function () {
         $response = $this->get('/khotab-download-1.htm');
         $response->assertOk();
 
@@ -1062,7 +1043,9 @@ it('download: no database query is issued during the streaming callback', functi
 
         expect($response->streamedContent())->toBe('payload');
         expect($queriesDuringStream)->toBe([]);
-    });
+    } finally {
+        $source->stop();
+    }
 });
 
 it('download: still increments downcount before the stream is sent (counter semantics unchanged)', function () {

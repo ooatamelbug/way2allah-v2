@@ -5,6 +5,7 @@ namespace App\Domain\Content\Http\Controllers;
 use App\Domain\Content\Models\KhotabGroup;
 use App\Domain\Content\Services\ContentListingService;
 use App\Domain\Content\Services\ContentSidebarWidget;
+use App\Support\Http\AdminViewer;
 use Illuminate\Contracts\View\View;
 
 /**
@@ -26,14 +27,27 @@ use Illuminate\Contracts\View\View;
  */
 class KhotabGroupController
 {
-    public function show(int $group, ContentListingService $listing, ContentSidebarWidget $sidebar): View
+    /** B2 / F03-B: who sees the group's hidden and empty series (super-admins pass too). */
+    public const ADMIN_SERIES_PERMISSION = 'khotab.editseries';
+
+    public function show(int $group, ContentListingService $listing, ContentSidebarWidget $sidebar, AdminViewer $contextual): View
     {
         $groupModel = KhotabGroup::where('hidden', 0)->with('author')->findOrFail($group);
 
         $video = (bool) $groupModel->vedio;
         $authorModel = $groupModel->author;
 
-        $series = $listing->seriesByAuthorAndGroup($groupModel->author_id, $group, $video);
+        // B2 / F03-B (decision-log #146): an administrator holding `khotab.editseries` (or a super-admin) also sees the
+        // group's hidden and empty series, marked, so a just-created series stays reachable (OLD ListSeries()'s admin
+        // branch). The decision comes from the admin session only — no request parameter — and that response is
+        // private (`markRendered()` → `no-store, private`). Everyone else: exactly the visitor list.
+        $adminSeries = $contextual->can(self::ADMIN_SERIES_PERMISSION);
+        if ($adminSeries) {
+            $series = $listing->adminSeriesByAuthorAndGroup($groupModel->author_id, $group, $video);
+            $contextual->markRendered();
+        } else {
+            $series = $listing->seriesByAuthorAndGroup($groupModel->author_id, $group, $video);
+        }
         $items = $listing->khotabItemsDefault($groupModel->author_id, 0, $group, $video);
         $mostDownloaded = $sidebar->khotabMostDownloadedByAuthor($groupModel->author_id, $video);
         $mostRecent = $sidebar->khotabMostRecentByAuthor($groupModel->author_id, $video);
@@ -57,6 +71,6 @@ class KhotabGroupController
             ['title' => 'مجموعة '.$groupModel->title, 'url' => ''],
         ];
 
-        return view('khotab.group', compact('groupModel', 'authorModel', 'authorName', 'series', 'items', 'mostDownloaded', 'mostRecent', 'randomFeatured', 'breadcrumbTrail'));
+        return view('khotab.group', compact('groupModel', 'authorModel', 'authorName', 'series', 'adminSeries', 'items', 'mostDownloaded', 'mostRecent', 'randomFeatured', 'breadcrumbTrail'));
     }
 }

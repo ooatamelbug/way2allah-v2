@@ -1,0 +1,5 @@
+#!/bin/sh
+# One php-cgi process per mod_fcgid slot (like cPanel's fcgid handler); no PHP_FCGI_CHILDREN (mod_fcgid manages processes).
+PHP_FCGI_MAX_REQUESTS=500
+export PHP_FCGI_MAX_REQUESTS
+exec /usr/bin/php-cgi8.3

@@ -45,7 +45,7 @@
                         <div class="caption"><i class="fa fa-sitemap"></i> قائمة الأقسام الفرعية: {{ $groupModel->title }}</div>
                     </div>
                     <div class="portlet-body">
-                        <x-content.anasheed-subgroup-grid :groups="$subGroups" />
+                        <x-content.anasheed-subgroup-grid :groups="$subGroups" :item-counts="$subGroupItemCounts ?? null" />
                     </div>
                 </div>
             </div>
@@ -101,7 +101,7 @@
                     <div class="portlet-body">
                         {{-- OLD ListAnasheed() calls pagination() above and below the items (visitor parity A11, 2026-11-04). --}}
                         {{ $items->onEachSide(1)->links('components.content.premium-pagination') }}
-                        <x-content.anasheed-media-grid :items="$items" />
+                        <x-content.anasheed-media-grid :items="$items" :show-hidden-marker="$showHiddenMarker ?? false" />
                         {{ $items->onEachSide(1)->links('components.content.premium-pagination') }}
                     </div>
                 </div>

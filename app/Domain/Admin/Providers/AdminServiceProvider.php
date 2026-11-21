@@ -4,9 +4,11 @@ namespace App\Domain\Admin\Providers;
 
 use App\Domain\Admin\Http\Middleware\EnsureAdminHasPermission;
 use App\Domain\Admin\Http\Middleware\EnsureAdminHasRole;
+use App\Domain\Admin\Http\Middleware\EnsureKhotabMediaScope;
 use App\Domain\Admin\Models\AdminUser;
 use App\Domain\Admin\Support\AdminDashboardModules;
 use App\Domain\Admin\Support\AdminRecordAuthorizer;
+use App\Domain\Admin\Support\Constraints\KhotabMediaScopeConstraint;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
@@ -35,11 +37,9 @@ class AdminServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(AdminRecordAuthorizer::class, fn () => new AdminRecordAuthorizer(
-            // Intentionally empty, and no Mirror constraint is planned —
-            // D1b' is closed in favour of flat mirror permissions. This
-            // stays the registration seam for any future record-scoped
-            // rule the business explicitly asks for.
-            constraints: [],
+            // OLD Khotab audio / video moderator scope — owner instruction
+            // 2026-11-17 (strict OLD parity) supersedes D1b'.
+            constraints: [new KhotabMediaScopeConstraint],
         ));
     }
 
@@ -47,6 +47,7 @@ class AdminServiceProvider extends ServiceProvider
     {
         Route::aliasMiddleware('admin.role', EnsureAdminHasRole::class);
         Route::aliasMiddleware('admin.permission', EnsureAdminHasPermission::class);
+        Route::aliasMiddleware('admin.khotab-media', EnsureKhotabMediaScope::class);
 
         // Explicit 'web' group, not loadRoutesFrom() alone — routes loaded
         // from a ServiceProvider don't get web.php's session/cookie/CSRF

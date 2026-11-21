@@ -47,12 +47,15 @@ class AnasheedNewsController
         // every pinned item, then the newest 24, both `ORDER BY mytime DESC`.
         $department = $groupId === 98 ? [98, 16] : [$groupId];
 
+        // F08 / B4: hidden items are never listed here.
         $pinnedItems = AnasheedItem::whereIn('parent_id', $department)
+            ->where('hidden', 0)
             ->where('fixed', 1)
             ->orderByDesc('mytime')
             ->get();
 
         $newestItems = AnasheedItem::whereIn('parent_id', $department)
+            ->where('hidden', 0)
             ->orderByDesc('mytime')
             ->limit(24)
             ->get();

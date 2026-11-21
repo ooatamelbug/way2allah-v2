@@ -73,9 +73,12 @@
         <button type="button" onclick="w2a_play({{ $item->id }},'{{ $module }}')" class="w2a-action-btn w2a-action-play">
             <i class="fa {{ $isVideo ? 'fa-play-circle' : 'fa-headphones' }}" aria-hidden="true"></i><span>{{ $playLabel }}</span>
         </button>
-        <a href="{{ $downloadUrl }}" target="_blank" rel="noopener" class="w2a-action-btn w2a-action-download">
-            <i class="fa fa-floppy-o" aria-hidden="true"></i><span>حفظ المادة</span>
-        </a>
+        {{-- B2 / F07-A: a null download URL (the route cannot serve the stored link) shows no «حفظ المادة». --}}
+        @if ($downloadUrl !== null && $downloadUrl !== '')
+            <a href="{{ $downloadUrl }}" target="_blank" rel="noopener" class="w2a-action-btn w2a-action-download">
+                <i class="fa fa-floppy-o" aria-hidden="true"></i><span>حفظ المادة</span>
+            </a>
+        @endif
         @if ($pdfUrl && $pdfCount !== null && (int) $pdfCount !== 0)
             <a href="{{ $pdfUrl }}" target="_blank" rel="noopener" class="w2a-action-btn w2a-action-pdf">
                 <i class="fa fa-file-pdf-o" aria-hidden="true"></i><span>ملف تفريغ</span>

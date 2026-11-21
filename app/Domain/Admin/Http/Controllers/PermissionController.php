@@ -3,6 +3,9 @@
 namespace App\Domain\Admin\Http\Controllers;
 
 use App\Domain\Admin\Models\AdminUser;
+use App\Domain\Admin\Support\AdminAuditRecorder;
+use App\Domain\Admin\Support\AdminDeactivation;
+use App\Domain\Admin\Support\AdminManagementPolicy;
 use App\Domain\Identity\Models\VbUser;
 use App\Support\Permission\Permission;
 use Illuminate\Contracts\View\View;
@@ -56,24 +59,73 @@ class PermissionController
 
         $vbUser = $admin->uid ? VbUser::find($admin->uid) : null;
 
-        return view('admin.permissions.edit', compact('admin', 'permissionsByModule', 'assigned', 'vbUser'));
+        $isDeactivated = AdminDeactivation::isDeactivated((int) $admin->getKey());
+
+        // Administrator management: what this viewer may do to this target (the actions enforce it again).
+        $viewer = self::actor();
+        $manageRefusal = AdminManagementPolicy::manageRefusal($viewer, $admin);
+        $canChangeRole = AdminManagementPolicy::roleChangeRefusal($viewer, $admin) === null;
+        $isLaravelSuperAdmin = AdminManagementPolicy::isLaravelSuperAdmin($admin);
+        $isOwner = AdminManagementPolicy::isOwner($admin);
+        $canRename = (bool) config('admin_rename.enabled', false) && AdminManagementPolicy::renameRefusal($viewer, $admin) === null;
+
+        return view('admin.permissions.edit', compact('admin', 'permissionsByModule', 'assigned', 'vbUser', 'isDeactivated', 'manageRefusal', 'canChangeRole', 'isLaravelSuperAdmin', 'isOwner', 'canRename'));
     }
 
-    public function update(Request $request, AdminUser $admin): RedirectResponse
+    private static function actor(): AdminUser
     {
+        $actor = auth('admin')->user();
+        if (! $actor instanceof AdminUser) {
+            abort(401);
+        }
+
+        return $actor;
+    }
+
+    public function update(Request $request, AdminUser $admin, AdminAuditRecorder $audit): RedirectResponse
+    {
+        if (($refusal = AdminManagementPolicy::manageRefusal(self::actor(), $admin)) !== null) {
+            return redirect()->route('admin.permissions.edit', $admin)->with('error', $refusal);
+        }
+        if (AdminDeactivation::isDeactivated((int) $admin->getKey())) {
+            return redirect()->route('admin.permissions.edit', $admin)->with('error', 'هذا المشرف معطّل؛ أعد تفعيله أولاً.');
+        }
+
         $names = array_keys(array_filter($request->input('permissions', [])));
         $permissions = Permission::where('guard_name', 'admin')->whereIn('name', $names)->get();
 
+        $before = $admin->getPermissionNames()->sort()->values()->all();
         $admin->syncPermissions($permissions);
+        $after = $permissions->pluck('name')->sort()->values()->all();
+
+        // Owner decision 16: permission edits are audited (names only — the change, not a blob).
+        $audit->record(self::actor(), 'update_permissions', 'authors', 'admin', (int) $admin->getKey(), [
+            'target_aid' => (string) $admin->aid,
+            'added' => array_values(array_diff($after, $before)),
+            'removed' => array_values(array_diff($before, $after)),
+        ], $request->ip());
 
         return redirect()->route('admin.permissions.edit', $admin)->with('success', 'تم تحديث الصلاحيات بنجاح');
     }
 
-    public function updatePassword(Request $request, AdminUser $admin): RedirectResponse
+    public function updatePassword(Request $request, AdminUser $admin, AdminAuditRecorder $audit): RedirectResponse
     {
         $request->validate(['new_password' => ['required', 'string', 'min:8']]);
 
+        if (($refusal = AdminManagementPolicy::manageRefusal(self::actor(), $admin)) !== null) {
+            return redirect()->route('admin.permissions.edit', $admin)->with('error', $refusal);
+        }
+
+        // F02: a password set here would silently re-enable a deactivated account; reactivation has its own flow.
+        if (AdminDeactivation::isDeactivated((int) $admin->getKey())) {
+            return redirect()->route('admin.permissions.edit', $admin)->with('error', 'هذا المشرف معطّل؛ استخدم «إعادة تفعيل» من قائمة المشرفين.');
+        }
+
         $admin->forceFill(['password' => Hash::make($request->string('new_password'))])->save();
+
+        $audit->record(self::actor(), 'set_password', 'authors', 'admin', (int) $admin->getKey(), [
+            'target_aid' => (string) $admin->aid,
+        ], $request->ip());
 
         return redirect()->route('admin.permissions.edit', $admin)->with('success', 'تم تعيين كلمة مرور جديدة بنجاح');
     }

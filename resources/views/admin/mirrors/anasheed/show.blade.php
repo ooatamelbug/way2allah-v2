@@ -51,6 +51,7 @@
                 <x-admin.contextual-return />
                 <label>وصف الوصلة <input type="text" name="title" value="{{ old('title') }}" maxlength="255" class="form-control"></label>
                 <label>وصلة التحميل <input type="text" name="link" value="{{ old('link') }}" dir="ltr" required class="form-control"></label>
+                @include('admin.anasheed._link-warning', ['link' => old('link')])
                 <label>الحجم (ميجا بايت) <input type="text" name="linksize_mb" value="{{ old('linksize_mb') }}" class="form-control"></label>
                 <label><input type="radio" name="vedio" value="0" @checked((string) old('vedio', (int) $item->vedio) === '0')> مادة صوتية</label>
                 <label><input type="radio" name="vedio" value="1" @checked((string) old('vedio', (int) $item->vedio) === '1')> مادة مرئية</label>

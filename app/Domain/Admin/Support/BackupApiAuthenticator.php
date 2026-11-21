@@ -34,7 +34,8 @@ class BackupApiAuthenticator
         $uid = (int) $request->input('ID');
         $admin = AdminUser::query()->where('uid', $uid)->first();
 
-        if ($admin === null || $apiKey != (string) $admin->API) {
+        // F02: a deactivated admin's key is refused (deactivation also clears `API`).
+        if ($admin === null || $apiKey != (string) $admin->API || AdminDeactivation::isDeactivated((int) $admin->getKey())) {
             return BackupApiAuthResult::error('API Error 2');
         }
 

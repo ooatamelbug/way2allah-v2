@@ -5126,6 +5126,496 @@ plan register row N6; `PROJECT-HANDOFF.md` §10 "D1 closure".
 
 ---
 
+## 140. F06 KHOTAB AUTHOR IMAGE — OPTION B — VISITOR-PARITY DEVIATION — IMPLEMENTED LOCALLY (2026-11-14)
+
+Owner approval of B1 (`docs/reports/admincp-feedback-implementation-plan.md` §F06, decision 21 = option b).
+Local code only: no production, database, commit, push or deployment change. Results:
+`docs/reports/admincp-b1-implementation-results.md`.
+
+- **Defect:** an AdminCP author-image upload (`UploadKhotabAuthorImageAction`) wrote only
+  `media/authors/{b}/{id}.jpg`, which no public page read.
+- **Decision:** a successful upload also sets `nuke_islamic_authors.author_image` to
+  `/media/authors/{b}/{id}.jpg?v={mtime}`. The value it replaces is recorded in the audit metadata. Only an upload
+  writes the column; no legacy file (`authors/sq/{id}.png`, earlier absolute `author_image` URLs) is touched.
+- **Deviation from Gen 2 visitor parity (supersedes G-13-03 for these surfaces):** the profile-photo boxes on
+  `khotab-series-{id}`, `khotab-group-{id}` and `khotab-item-{id}`, and the photo list on `/fatawa-by-authers.htm`,
+  now resolve through `Author::displayImageUrl()` (author_image first, then the unchanged `get_author_img()`
+  fallbacks). Gen 2's `series.php`, `group.php`, `item.php` and `fatawa-by-authers.php` called `get_author_img()`
+  unconditionally. Pages that already preferred `author_image` (author page, authors index and preacher card,
+  chat-room author and lesson) are unchanged. Not in scope and unchanged: `chat-room/index`, `channels/author`.
+- **Compatibility:** Gen 2's `author.php:104` and `authors.php:77` prefer `author_image` too and receive a
+  root-relative `src`.
+- **Production precondition:** `admin_khotab.media_root` must be the directory served at `media.base_url`. Run
+  `media:check-roots --expect-web-root=…`; this was verified locally only.
+- **Status:** **IMPLEMENTED LOCALLY — PENDING OWNER REVIEW.**
+
+---
+
+## 141. F08 VARIETY ITEM VISIBILITY (B4) — SUPERSEDES VISITOR PARITY A6 FOR VISITORS — IMPLEMENTED LOCALLY (2026-11-14)
+
+Owner approval "B4 Variety Visibility" (`docs/reports/admincp-feedback-implementation-plan.md` §F08). Local code
+only: no production, database, commit, push or deployment change. Results: `docs/reports/admincp-b4-implementation-results.md`.
+
+- **Decision:** a Variety (Anasheed) item with `hidden ≠ 0` is no longer public.
+  - It is absent from listings, the department news pages, home widgets, related sidebars and search. Category,
+    the `.grx` playlist, downloads and the player already excluded it.
+  - **Its direct URL is a 404 for visitors**, and comments and send-to-friend are refused.
+- **Supersedes visitor parity A6** (2026-11-04: "200 with the details suppressed") **for visitors**. A signed-in
+  administrator still opens the item page as A6 rendered it, now with a «هذه المادة مخفية عن الزوار» notice and a
+  private response. This follows `KhotabItemController::show()`'s admin-preview precedent (decision 2026-10-21).
+- **Admin control:** «إخفاء المادة» / «إظهار المادة»:
+  - `PUT admincp/anasheed/items/{id}/visibility` with the target state, behind `anasheed.editanasheed`;
+  - writes only `hidden` (0/1);
+  - audited as `hide_item` / `unhide_item`.
+- **Unchanged:** `is_published` is untouched and not reinterpreted. Legacy `hidden = 2` stays hidden until an admin
+  unhides it.
+- **Legacy exposure:** documented in the B4 report. Gen 2's Variety scripts have no hidden filter; Laravel does not
+  serve them.
+- **Owner review (2026-11-15):**
+  - **Direct-URL rule approved:** hidden items return 404 to visitors, stay manageable in AdminCP, and A6's
+    200-with-suppressed-details is superseded.
+  - **Preview restricted:** only `anasheed.editanasheed` holders and super-admins may open a hidden item or see it
+    on the group page. Other administrators get visitor behaviour, via the new `AdminViewer::can()`.
+  - **`hidden` semantics established from code:** every legacy reader tests only `== '0'`, and no code writes the
+    column. So `2`, and equally `1`, means hidden. The 32 historical `2`s are not normalized; their provenance is
+    unrecoverable.
+- **Owner final adjustment (2026-11-15):**
+  - **Approved: the 32 existing items with `hidden = 2` remain hidden.** After deployment, public Laravel pages
+    return 404 for them and they appear in no public listing or search. Authorized administrators manage them as
+    before. No `hidden` value is modified and no data migration is required.
+  - **Approved and implemented: the sub-group cards on `var-group-{id}` show the publicly visible item count** (one
+    aggregate `COUNT(*) … WHERE group_id IN (…) AND hidden = 0 GROUP BY group_id` per page) instead of the stored
+    `nuke_anasheed_groups.anasheed`, which is preserved and never written. The scope is the same: items directly in
+    the group. Locally 24 of 1,204 displayed numbers change: 9 from hidden items and 15 from pre-existing counter
+    drift. No schema, index or data change.
+- **Status:** **CLOSED LOCALLY (2026-11-15). Deployment blocked** on production routing and legacy-exposure
+  verification (B4 report §8).
+
+---
+
+## 142. F10 CUSTOM KHOTAB COVER (B5) — FILE-CONVENTION DESIGN, NO SCHEMA — IMPLEMENTED LOCALLY (2026-11-16)
+
+Owner approval "B5: Custom Khotab Cover Implementation", based on `docs/reports/admincp-b5-cover-investigation.md`.
+Local code only. Results: `docs/reports/admincp-b5-implementation-results.md`.
+
+- **Supersedes the plan's §F10 design**, which had a `khotab_custom_frames` table and overwrote the frame file.
+- **Storage:** a custom cover is a separate file, `media/khotab_covers/{floor(id/1000)}/{id}.jpg`, under
+  `admin_khotab.media_root`. The file is the only state: no column, table or migration. `frame`, `gif`,
+  `build_thumb` and `thumbnail` are untouched.
+- **Archive.org fetches** write only `khotab_frames` / `khotab_gifs`, so they never overwrite a cover.
+- **Priority:** on existing image surfaces (home, sidebars, featured cards, social image, AdminCP preview) a valid
+  cover wins, including over the animated GIF. Otherwise the existing resolution and fallbacks are unchanged.
+- **Unchanged:** the video player poster, featured eligibility, and pages without thumbnails.
+- **Scope and permission:** video items only; `khotab.edititem`; CSRF; audited `upload_cover` / `replace_cover` /
+  `remove_cover`.
+- **Processing:** content-validated JPEG / PNG / WebP up to 2 MiB, re-encoded to JPEG and fitted within 1280 px.
+  A per-item lock, atomic rename and rollback mean a failed replacement keeps the current cover; no history is kept.
+- **Legacy:** OLD and Gen 2 keep showing the archive frame (accepted). OLD `get_gif_jpg.php` remains an
+  unauthenticated frame writer (preserved risk; it cannot reach covers).
+- **Status:** **CLOSED LOCALLY (2026-11-16)**, after validation passed; not deployed. Production prerequisites are
+  in the report (§10).
+
+---
+
+## 143. F05-2 KHOTAB MP4 MIRRORS FLAGGED AUDIO PLAY AS VIDEO (B2) — GEN 2 DEVIATION — IMPLEMENTED LOCALLY (2026-11-16)
+
+Owner approval "B2 / F05-2 Implementation", based on `docs/reports/admincp-b2-investigation.md` §2.
+Local code only. Results: `docs/reports/admincp-b2-f05-2-implementation-results.md`.
+
+- **Rule** (`MediaPlayerService::khotabMirrorPlaysAsVideo()`, shared by the mirror player and the quality card): a
+  Khotab mirror is video when its own `vedio` flag says so (unchanged), **or** when the parent item has `vedio = 1`
+  **and** the mirror URL's parsed path ends in `.mp4` (case-insensitive).
+- **Why:** 601 `.mp4` mirrors of video items are stored with `vedio = 0`; they got no `<video>` and showed
+  «غير متاحة للتشغيل». Examples: mirror 834 / item 4337, 564 / 3441, 799 / 4282.
+- **Not inferred from the parent alone:** `.rmvb`, `.wmv`, `.avi`, `.mp3`, YouTube and SoundCloud mirrors keep their
+  flag; `mp4` in the query, fragment, host or elsewhere in the file name does not count.
+- **Intentional Gen 2 deviation:** Gen 2's `w2a_mada_play()` routes these mirrors to its audio branch and fails the
+  same way. Gen 2 and OLD are not changed.
+- **Unchanged:** stored flags (no data write), mirror visibility (the mirror's `hidden`; the parent's `hidden` is
+  still not consulted by the endpoint), ordering, titles, format badges, the download route, Anasheed mirrors, and
+  every non-MP4 format (the non-browser message, plan decision 20, is not approved yet).
+- **Status:** CLOSED LOCALLY (2026-11-16) after validation passed; not deployed
+
+---
+
+## 144. F05-2 PART 2 — UNSUPPORTED MEDIA FORMATS — OWNER OPTION B — IMPLEMENTED LOCALLY (2026-11-16)
+
+Owner approval "AdminCP Feedback B2 / F05-2 Part 2 — Option B". Resolves plan decision 20. Local code only.
+Results: `docs/reports/admincp-b2-f05-2-part2-results.md`.
+
+- **Supersedes** the earlier "return `null` for RealMedia / Windows Media / AVI, pending a product decision"
+  (`MediaPlayerService::renderPlayer()` docblock): still never a player or dead plug-in embed, but an explanation.
+- **Scope:** the in-page player types `khotab`, `khotab_mirror`, `anasheed`, `anasheed_mirror`. Telawat and Fatawa
+  are unchanged.
+- **Formats:** the closed list `rmvb, wmv, rm, avi, flv, wma` (`BrowserPlaybackFormat::UNSUPPORTED`), from the URL
+  **path** extension, case-insensitive. Unknown or other formats (`asf`, `3gp`, `mpg`, `ram`, `ra`, `rv`, …) keep
+  the existing empty response and generic message. No codec detection; `.mp4` keeps the `<video>` player and its
+  error handler.
+- **Message:** «هذه الصيغة غير مدعومة للتشغيل المباشر في المتصفح. يمكنك تحميل المادة وتشغيلها باستخدام برنامج يدعم
+  هذه الصيغة.» with a «تحميل المادة» button to the page's **existing** route (`/khotab-download-…`,
+  `/khotab-mirror-…`, `/var-download-…`, `/var-mirror-…`). When that route cannot serve the link the second sentence
+  becomes «لا يتوفر رابط تحميل لهذه المادة حالياً.» and no button is shown.
+- **Download availability** reproduces each route's own network-free rule: Khotab (proxied) — non-empty raw link that
+  is `http(s)://`, an existing file, or (mirrors) a YouTube / SoundCloud page; Variety (redirect) — the redirect
+  target is an absolute https URL.
+- **Unchanged:** watch buttons and their labels, download routes / authorization / capacity / rejection / logging,
+  visibility rules, data. No direct external URL is generated.
+- **Status:** CLOSED LOCALLY (2026-11-16) after validation passed; not deployed
+
+---
+
+## 145. F03-A TARGETED SERIES COUNTER REPAIR — AUDITED COMMAND — IMPLEMENTED LOCALLY; PRODUCTION REPAIR NOT RUN (2026-11-16)
+
+Owner approval "B2 / F03-A — Implement a Safe, Audited Counter Repair Command", based on
+`docs/reports/admincp-b2-f03-resolution-proposal.md`. Local code and testing only. Results:
+`docs/reports/admincp-b2-f03-counter-repair-results.md`.
+
+- **Approach A2 chosen;** «إصلاح العدادات» (A1) rejected for this purpose (counts other authors' items, rewrites
+  items' `group_id`). No read-path change (B rejected: Gen 2 / OLD divergence, wrong card counts).
+- **`php artisan khotab:repair-f03-series-counts`**:
+  - dry run by default;
+  - `--apply` / `--rollback=<file>` need `--actor` (super-admin or `khotab.editauthor`).
+- **Closed scope:** the 22 approved series, each with identity (author, group, media type, `old_id`, visible), approved
+  current count and approved repaired count (`F03SeriesCountRepair::BASELINE`); 316 own items expected. Count = own
+  items, hidden included; foreign items never counted.
+- **Safety:**
+  - re-validated under row locks in one transaction;
+  - identity- and value-conditioned `UPDATE`s, exactly 1 row each;
+  - only `count` written;
+  - per-series audit;
+  - any mismatch, a partial repair or a wrong total blocks everything;
+  - idempotent.
+- **Backup:** verified JSON row backup (checksum, baseline match) written and read back **before** the transaction;
+  failure aborts. **Rollback** restores only rows still at the repaired value; conflicts block (or are skipped
+  explicitly).
+- **Status:** command CLOSED LOCALLY (2026-11-16) after validation passed. **The production repair has not been run** (owner prerequisites in the results
+  report §7). The renumbering damage beyond the 22 rows remains a separate decision.
+
+---
+
+## 146. F03-B ADMIN VIEW OF EMPTY / HIDDEN SERIES ON KHOTAB GROUP PAGES — `khotab.editseries` — IMPLEMENTED LOCALLY (2026-11-16)
+
+Owner approval "AdminCP Feedback B2 / F03-B". Results: `docs/reports/admincp-b2-f03b-implementation-results.md`.
+
+- **Who:** super-admins and administrators holding **`khotab.editseries`** (`AdminViewer::can()`, admin session
+  only). Not all admins: the author page's standalone-series rule (`active()`) is **not** extended or changed.
+- **What:** on `khotab-group-{id}`, the group's series including hidden («++مخفي++») and stored `count ≤ 0` series,
+  same `lastupdate DESC` order. Existing per-series controls are kept, each gated by its own permission.
+- **«فارغة» definition:** no item the series page would list for the admin (author, media type, series, group;
+  hidden items included). One set-based aggregate on `idx_khotab_author_listing`; never inferred from, nor writing,
+  the stored counter (F03-A's 22 series show their stored count, not «فارغة»).
+- **Cache isolation:** the admin branch always calls `markRendered()`, so `KeepContextualPagesPrivate` sends `no-store,
+  private`. Visitor responses, their headers and SQL are unchanged; there is no application cache on this page.
+- **Deviation note:** OLD showed every series to any admin on the group page; Laravel limits it to `khotab.editseries`
+  (owner decision).
+- **Status:** CLOSED LOCALLY (2026-11-16) after validation passed; not deployed. F03-A's data repair is still not run; B2 remains open (F07).
+
+---
+
+## 147. F07-A VARIETY MALFORMED LINKS — INVALID-LINK NOTICE, HONEST DOWNLOAD BUTTONS, WARN-ONLY EDITOR CHECK, ASF/RAM/RA/MPG — IMPLEMENTED LOCALLY (2026-11-16)
+
+Owner approval "AdminCP Feedback B2 / F07-A". Basis `docs/reports/admincp-b2-f07-resolution-proposal.md`. Results:
+`docs/reports/admincp-b2-f07a-implementation-results.md`.
+
+- **Variety player:** a link that is not an absolute `http(s)://host…` (after trimming) gets «رابط تشغيل هذه المادة
+  غير صالح حاليًا. يرجى إبلاغ إدارة الموقع بالمشكلة.» and no player. An invalid link in an unsupported format keeps
+  the F05-2 explanation. File names, encoding and queries are never judged. Khotab is unchanged.
+- **Download buttons (Variety item and mirror cards):** shown only when `/var-download` / `/var-mirror` would leave
+  the site, computed exactly as the route does (Laravel `isValidUrl()`). This **supersedes the F05-2 Variety rule**,
+  which trimmed first and so mis-classified leading-space non-archive links. The routes are unchanged.
+- **AdminCP (Variety item create / edit, mirror add / edit):** a **warning, never a block**, after save and inline
+  under the field (also on redisplay). No rewrite, no network check. Khotab forms are unchanged. This resolves plan
+  decision 22 for Variety.
+- **Formats:** `BrowserPlaybackFormat::UNSUPPORTED` + `asf`, `ram`, `ra`, `mpg` (extends #144; Khotab and Variety).
+  `3gp`, `ogv`, `m4v`, `ogg` deliberately not added.
+- **Status:** CLOSED LOCALLY (2026-11-16) after validation passed; not deployed. **The original F07 complaint is not resolved** (item unknown); data corrections D1–D9
+  are not done; B2 remains open.
+
+---
+
+## 148. F07-B2 BYTE-EXACT VARIETY LINK REPAIR COMMAND, GETRIGHT FILTER, HIDDEN-MIRROR DOWNLOAD — IMPLEMENTED LOCALLY; REPAIR NOT EXECUTED (2026-11-16)
+
+Owner approval "AdminCP Feedback B2 / F07-B2". Results: `docs/reports/admincp-b2-f07b2-implementation-results.md`.
+
+- **`php artisan anasheed:repair-f07-links`** (`F07LinkRepair`):
+  - dry run by default; `--apply` / `--rollback` with an audited `--actor` (super-admin, or `anasheed.editanasheed`
+    + `anasheed.editmirror`);
+  - a closed manifest of **46 approved rows** (35 items, 11 mirrors), with old values stored as hex;
+  - verified backup before writing; one locked transaction; per-row audit with the exact original; idempotent;
+    conflict-safe rollback.
+- **Byte-exact by design:** `link` is `utf8_unicode_ci` (case-insensitive, PAD SPACE), so every read and guard uses
+  `HEX(link)` (portable across MySQL, MariaDB and SQLite). Proven on MySQL 5.7.44 and 8.0.41 with session-private
+  temporary tables (env-gated test).
+- **GetRight `.grx`:** lists only items `/var-download` can serve (the F07-A rule); format, order, visibility and
+  headers unchanged.
+- **`/var-mirror`:** also refuses a mirror whose own `hidden` flag is set (the player already did; no writer sets it;
+  0 rows). The card shows no link for it. The Khotab mirror route is unchanged.
+- **No host allowlist** (decision deferred; abandoned third-party hosts documented).
+- **Status:** implementation CLOSED LOCALLY (2026-11-16) after validation passed; not deployed. **The repair has not been executed** (local or production); the
+  MEDIUM / LOW rows remain; the original F07 complaint is not resolved; B2 remains open.
+
+---
+
+## 149. SECURITY P0-A — GEN 2 ADMINISTRATOR EDITOR TAKEOVER — CLOSED LOCALLY; NOT DEPLOYED; PRODUCTION RELEASE BLOCKERS OPEN (2026-11-16)
+
+Investigation only. Report: `docs/reports/security-p0-gen2-admin-editor-hotfix-plan.md`.
+
+- **Confirmed live:**
+  - `7amlat/admincp/authors/edit_author.php`: any admin session may rewrite any admin's legacy permissions and reset
+    any admin's `pwd`;
+  - `7amlat/admincp/backup/edit_author.php`: permissions, SQL-injectable `uid`; a plain GET overwrites the `uid = 0`
+    rows.
+  - No super-admin check, no CSRF, no audit.
+- **The 15 shared-credential accounts hold the hard-coded default password** of Gen 2's (dead) admin-creation code
+  (published in the repository). Rotation is urgent.
+- **Proposed policy:**
+  - permission edits and other-admin password resets **super-admin only**, from a **database re-read** of the session
+    admin (never a cookie or the `usertype` snapshot);
+  - self password change with current-password re-entry;
+  - POST + CSRF; integer targets that must exist;
+  - audit without secrets;
+  - dead E6 / E7 code removed;
+  - `english/` denied.
+- **Dependency:** the fix is sound only after P0 (the hardened `admincp/main.php` session-only gate and
+  `admincp/index.php` without the cookie session rebuild) is deployed; on committed `HEAD` it is bypassable.
+- **Implementation attempt (2026-11-16): BLOCKED at the authentication-dependency check; no code changed.**
+  - Gen 2 public pages call `w2a_header()` → `UserType($_COOKIE['admin_from_vb'])` → `VBUserType()`, which writes
+    `$_SESSION['w2a']->usertype` (`admin` / `superadmin`) and `->admin` from a cookie-supplied forum id. That is the
+    same PHP session the hardened `admincp/main.php` gate trusts, so a session can be **poisoned** into any admin.
+  - Login does not regenerate the session id.
+  - Proposed dependency fix D1 / D2: a credential-only `$_SESSION['w2a_admincp']` key set after the password check,
+    `session_regenerate_id(true)`, and the gate and editor helpers reading only that key. It needs approval
+    (`admincp/index.php`, `admincp/main.php`).
+  - Report: `docs/reports/security-p0-gen2-admin-editor-implementation-results.md`.
+- **Status (superseded):** awaiting owner approval; Gen 2 / OLD unchanged.
+- **D1/D2 + editor hotfix APPROVED and IMPLEMENTED LOCALLY (2026-11-16); not deployed.**
+  - **D1:** `$_SESSION['w2a_admincp'] = ['id', 'auth_at']`.
+    - Its only writer is `w2a_admincp_establish()`, called after the password check, which first runs
+      `session_regenerate_id(true)`.
+    - `main.php` re-reads `nuke_authors` by that id on every request and fails closed (missing, malformed, more than
+      12 h old, or a deleted row).
+    - Logout clears it.
+    - `$_SESSION['w2a']` is now display-only, re-synced from the DB row, and stored without credential columns or
+      forum credential fields.
+  - **D2:** `w2a_require_superadmin()` uses the current `radminsuper` from the DB.
+    - Permission edits (self included) and other-admin password resets are super-admin only.
+    - A self password change requires the current password.
+    - Writes need POST and a per-session CSRF token; target ids are strict and must exist.
+    - Permission keys are whitelisted from `menu.php`.
+    - Writes use parameterised mysqli statements, avoiding ezSQL's slow-query log, which records SQL text.
+    - Each write gets an `admin_audit_log` row in the same transaction; the editor fails closed if the table is absent.
+  - **Passwords:** a new password is written as bcrypt in `password` and md5 in `pwd`, so the previous credential
+    dies on the legacy paths. `plain`, `key` and `API` are untouched.
+  - **Also:**
+    - `main.php`'s login-POST exemption is restricted to the root `admincp/index.php` (it matched every module
+      `index.php`: a gate bypass);
+    - `RenameUser()` removed;
+    - the default-password literal removed from `authors/index.php`.
+  - **Tests:**
+    - disposable DBs and a PHP-only docroot copy (all dropped or deleted afterwards);
+    - HTTP suite **83/83**; against the pre-fix files **60 failures**, which confirms session poisoning, the editor
+      takeover, the module-index gate bypass and the all-rows SQL injection at runtime;
+    - static **28/28**; `bridge_checks` **19/19**.
+  - **Known limits:**
+    - a password reset does not end the target's other live sessions (the key holds id and timestamp only, as
+      instructed);
+    - public pages still poison `$_SESSION['w2a']` (D3 not approved), though it no longer grants AdminCP access;
+    - no per-module authorisation;
+    - `admincp/forumConfig/` and `english/` are outside the gate.
+  - **Deploy prerequisites:**
+    - `admin_audit_log` in production (migration approval);
+    - rotate the 15 default-password accounts;
+    - remove `main.php`'s `var_dump` lines;
+    - ship the git-ignored `admincp/backup/edit_author.php` manually, or delete it.
+  - Report: `docs/reports/security-p0-gen2-admin-editor-implementation-results.md`.
+- **Final review (2026-11-16):**
+  - **Audit target corrected.** Production Gen 2 runs on `w2acp_db2025-2` and Laravel on `w2acp_laravel`
+    (forensic report §20.1); `admin_audit_log` does not exist in Gen 2's schema, and Gen 2's DB user has no grant on
+    Laravel's. Audit rows now go to the existing **`nuke_islamic_logs`** (`module = gen2_admincp`, plain
+    `extrainfo`), in the same transaction as the update. Rollback was tested. No new table and no migration.
+    Approval is still needed; the alternative is `admin_audit_log` in `w2acp_db2025-2`.
+  - **Debug output:** `main.php`'s `var_dump()` lines and the dead `w2a_debug_log()` were removed, with regression
+    checks.
+  - **Backup editor:** effectively unused (its only link passes a booking id). Its whole directory has been
+    git-ignored since the initial commit. Recommendation: deny and remove it in production, or
+    `git add -f` the patched file.
+  - **Passwords:** the dual write was verified on Gen 2, the Laravel verifier and OLD's md5 paths (new password
+    works, previous one fails); no secret appears in any log. The md5 risk is documented.
+  - **Session revocation:** recommended, not implemented — a keyed credential-version digest `cv` in the key.
+  - **Tests:** HTTP **90/90**, static **31/31**, bridge **19/19**.
+  - **Release blockers:** see report §0.7.
+- **Final closure (2026-11-16): CLOSED LOCALLY — NOT DEPLOYED.**
+  - **Credential-bound AdminCP session:**
+    - the key is now `{id, auth_at, cv}`, where `cv` is an HMAC-SHA256 over id plus the current `password ?: pwd`;
+    - the secret is a dedicated `W2A_ADMINCP_SESSION_SECRET` (env, or an untracked `w2a_admincp_secret.php`), at
+      least 32 bytes and never the bridge secret;
+    - `cv` is validated on every request with `hash_equals`; a missing or invalid secret fails closed (503 at
+      login, all sessions rejected);
+    - a reset ends all of the target's AdminCP sessions; a self-change re-binds only the current session;
+    - the 12 h cap, session-id regeneration and DB-backed identity are preserved;
+    - it does **not** revoke OLD, bridge, legacy-cookie, forum or Laravel sessions.
+  - **Audit:** unchanged destination (`nuke_islamic_logs`); permission edits now log only the added/removed keys.
+  - **Backup editor:** an `admincp/backup/.htaccess` `<Files>` deny was prepared and proven on a local Apache
+    2.4.58 against path, encoding and PATH_INFO variants. The file is not deleted and production is not changed.
+  - **New pre-existing finding (D3, not changed):** `VBUserType()` stores full author rows, including hashes and the
+    API key, in public-page sessions.
+  - **Tests:** HTTP **116/116**, static **38/38**, bridge **19/19**, lint clean.
+  - **Production release blockers (owner-operated):**
+    - provision the secret;
+    - InnoDB check;
+    - rotate the 15 accounts;
+    - backup-editor deny;
+    - Laravel admin-login status;
+    - file baseline backup and diff.
+  - Report §C.
+- Hold `admin:sync-permissions` until the permission blobs are reviewed.
+
+
+## 150. ADMINCP FEEDBACK F01–F10 CLOSURE PASS — F02 LARAVEL DEACTIVATION (SWITCH OFF), F09 LINK LOCK, F03/F07 REPAIRS VERIFIED (2026-11-17)
+
+Report: `docs/reports/admincp-f01-f10-closure-results.md`. Local only; nothing committed, pushed or deployed. No
+shared-database write and no OLD change.
+
+- **F02 (Laravel side):**
+  - **Storage:** `admin_account_states` on `main` (migration added, **not run**).
+  - **Behaviour:**
+    - super-admin only; no self-deactivation; never the last active super-admin;
+    - row locks serialise mutual deactivation;
+    - credentials are neutralised and the API key cleared, with `uid` and grants kept;
+    - reactivation requires a new password.
+  - **Enforcement:** guard (session and login), backup API, CLI `--actor`, sync skip.
+  - **Audit:** deactivate and reactivate, plus permission and password edits (owner decision 16).
+  - **Switch:** `admin_deactivation.enabled`, **default OFF**; while OFF there is no query and no route.
+  - **Not cross-system:** OLD, the bridge and the Gen 2 forum hooks still need patches.
+- **F09:** OLD's post-backup link lock is restored for Khotab mirrors, enforced server-side, without OLD's
+  link-blanking bug.
+- **F03 / F07:** the repair commands were verified end to end on a disposable MySQL copy (apply, idempotent re-run,
+  byte-identical rollback). The MySQL byte suite passes 13/13.
+- **F01, F04:** owner decisions. **F05:** needs the reported item id.
+- **Validation:**
+  - **Full parallel suite INCOMPLETE:** it stalled with `RejectionArchiveTest` outstanding on one worker. That file
+    passes alone (44/44).
+  - **Recorded before the stall:** 4,005 tests: 3,950 passed, 52 skipped, 2 failed, 1 error.
+    - One failure was caused by this pass: an audit-table fixture, now fixed.
+    - The other two pass in isolation.
+  - Focused suites and PHPStan / Pint are clean.
+
+
+## 151. F04 «حفظ المادة» — OPERATED-HOST ATTACHMENT MARKER; ARCHIVE.ORG STILL NEEDS A GATEWAY DECISION (2026-11-17)
+
+Report: `docs/reports/f04-save-material-download-results.md`. Local only; nothing committed or deployed.
+
+- **What it does:** redirect-delivered save links (Variety, Telawah, Fatwa, lessons) to a host listed in
+  `download_save.attachment_query_hosts` get `w2a_save=1`.
+  - The list is set by the env `DOWNLOAD_ATTACHMENT_QUERY_HOSTS` and is **empty by default**.
+  - A host-side Apache or nginx rule turns the marker into `Content-Disposition: attachment`. It was tested on a local
+    Apache, including Range and HEAD.
+  - There is no PHP proxy. The Khotab proxy, the capacity guard and `config/downloads.php` are unchanged.
+- **The target:** `vars.way2allah.com`, about 14k Variety files.
+- **Still unsupported:** archive.org and third-party hosts; they still open in the browser.
+- **Owner decision:** option C gateway, B2 if nginx is present, or accept the limitation.
+- **Tests:** 35/35 new; 516/516 download and route suites; PHPStan 0 errors.
+
+
+## 152. F04 «حفظ المادة» — EXISTING PROTECTED PROXY EXTENDED TO VARIETY, TELAWAH, FATWA AND LESSONS (2026-11-17)
+
+Owner-approved: reuse the Khotab download infrastructure rather than a gateway. Supersedes #151's gateway decision.
+Local only; nothing committed or deployed.
+
+- **What changed:** `ProxiedDownloadResponder` applies the Khotab pattern to the five save routes.
+  - Unchanged and reused: the guard, slot, streamer, `ExternalMediaLink`, rejection and telemetry contexts, the one
+    global pool, all limits and timeouts.
+  - Visibility checks and existing URL normalisation are kept.
+  - YouTube / SoundCloud keep their redirect.
+  - Hosts listed with a verified header rule keep the direct mechanism.
+- **The only new restriction (security):** these modules proxy only http(s) URLs that are not
+  localhost / private / loopback IP literals, so no local-file read and no internal address. Anything else keeps its
+  previous redirect.
+- **Lessons:** they now follow Khotab's own hidden-item download rule.
+- **Tests:** 35 new proxy tests; 581/581 focused; 2,099/2,138 Content / Anasheed / Downloads (39 gated skips);
+  PHPStan 0 errors.
+- **Production prerequisite:** deploy the stalled-source timeout fix before this. About 6–8 % more proxy load is
+  estimated.
+
+
+## 153. F04 — DOWNLOAD HANDLERS USE THE SHARED ARCHIVE.ORG NORMALISATION (2026-11-17)
+
+Owner-approved fix of a defect found by functional verification. Local only; nothing committed or deployed.
+
+- **The defect:** the Khotab item / mirror, Telawah and lesson download routes proxied the raw stored link; links pinned
+  to retired archive.org storage nodes return 500.
+- **The fix:** they now pass `ArchiveOrgLink::normalize()` of the link, the shared component the player and Variety
+  already use.
+  - Stored data is unchanged; non-archive links are unchanged.
+  - YouTube / SoundCloud, capacity, HEAD and counters are preserved.
+  - `MediaPlayerService::khotabDownloadable()` judges the same link.
+- **Verified:** 11 new tests, 665 focused passing (38 gated skips), PHPStan 0 errors. Real network: `/khotab-mirror-
+  2432-5.htm` went from 500 to 200 attachment; 8 of 11 samples were fixed; stored links were unchanged.
+- **F04:** CODE COMPLETE LOCALLY — NOT DEPLOYED.
+
+## 154. ADMINCP ADMINISTRATOR MANAGEMENT — OLD `mod_authors` FUNCTIONAL PARITY, OWNER-PROTECTED (2026-11-17)
+
+- **Approved:** "Functional Parity First, Modern Implementation"; no permanent OLD/Laravel permission sync.
+- **Implemented locally:**
+  - extended add form (nickname, name, email, URL, initial password, permissions for super-admins, «مشرف عام» for
+    owners);
+  - profile edit (email, URL);
+  - owner-only promote / demote of Laravel's `super-admin` role;
+  - owner protection across the permission editor, profile and F02 deactivation, in one `AdminManagementPolicy`;
+  - owners determined by OLD's literal `mod_authors` rule (`config/admin_owners.php`: radminsuper 1 + name `Good` /
+    login `Admin` / `مؤمن يحب الله ورسوله`), with no configured ids; only `Good` is the protected main account;
+    reserved identities cannot be created;
+  - every change audited.
+- **Fixed in passing:** the Laravel add-admin insert always failed on the real schema (`thumb` NOT NULL, strict mode).
+- **Verified:** final pass with 240 focused tests passing and PHPStan 0. 68 / 68 functional checks through the real
+  routes on a disposable full copy.
+- **OLD module assignments:** mapped as evidence (`docs/reports/evidence/old-module-assignments-*.csv`), not
+  imported.
+- **Decisions pending:**
+  - D1: should role changes also write `radminsuper`?
+  - D2: resolved. Login rename is implemented, owner-only, behind `ADMIN_RENAME_ENABLED` (off: a rename breaks the
+    account in OLD while OLD runs). Enable it after OLD's retirement.
+  - D3: confirm that production rows satisfy OLD's owner rule; if none does, owner-only operations stay blocked.
+  - D4: implemented as `admin:migrate-old-permissions`. One-time, additive, idempotent, with dry-run. It uses
+    OLD's per-action `nuke_*_mod` tokens and withholds Khotab media-scoped keys unless both sections are set. Dry run:
+    36 admins, 462 grants, 81 unresolved items for owner decision (§11 of the report).
+  - D5: retire `admin:sync-permissions` after cutover.
+- **Khotab media scope (supersedes D1b'):** OLD's audio / video moderator split is now enforced through the existing
+  `AdminRecordAuthorizer`. The new permissions `khotab.media_audio` / `khotab.media_video` are filled by the
+  migration from OLD's flags. `uploader` → `khotab.repair`. Missing capabilities documented: category tree; Anasheed
+  rearrange; Telawah banner and comments. Report §12.
+- **Report:** `docs/reports/admincp-administrator-management-results.md`.
+- **Status:** CODE COMPLETE LOCALLY — NOT DEPLOYED.
+
+## 155. OLD ADMINCP FUNCTIONAL PARITY — PAUSED BY OWNER — RESUME AFTER UPCOMING DEPLOYMENT (2026-11-17)
+
+- **Decision (owner):** further OLD AdminCP functional-parity work is paused until after the upcoming Laravel
+  deployment.
+  - This is a **scheduling** decision. No missing, partial, unknown or unverified item is retired, abandoned or
+    completed by it.
+  - OLD and Gen 2 stay operational after the deployment.
+- **Order of work:**
+  1. Feedback fixes.
+  2. Prepare and verify the accumulated changes.
+  3. The owner deploys.
+  4. Monitor production.
+  5. Resume.
+- **State preserved:** `docs/reports/old-admincp-complete-functional-parity-audit.md` stands unchanged:
+  - 57 menu items, 213 operations;
+  - 95 verified, 9 implemented / not verified, 15 partial, 59 missing, 7 owner-retired, 28 unknown;
+  - four HIGH gaps: homepage campaigns, gallery, satellite channels, category tree.
+- **Administrator management:** complete locally (#154).
+  - Rename and deactivation stay switched off.
+  - `admin:migrate-old-permissions` and any `admin:sync-permissions` run are final-cutover steps, not part of this
+    deployment.
+- **Deployment requirement found:** re-run `AdminPermissionSeeder` with the deployment. The Khotab audio / video scope
+  is active without a flag, and Spatie throws on the unseeded `khotab.media_*` names.
+- **Checkpoint:** `docs/reports/admincp-post-deployment-resume-checkpoint.md`.
+- **Status:** **OLD ADMINCP FUNCTIONAL PARITY — PAUSED BY OWNER — RESUME AFTER UPCOMING DEPLOYMENT.**
+  Documentation only.
+
+---
+
 ## Summary
 
 All 5 pre-Wave-4 decisions from `pre-wave-4-decision-support.md` were applied or formally deferred with a precise trigger before Wave 4 began. Decision #6 (`KhotabGroup`) and decision #7 (post-Wave-4 review fixes: `CommentPosted`, `GeoIpLookup`, `W2acdController` regression) were both made during/after Wave 4. Decision #8 (a third legacy-URL-preservation pattern, `pages/social.php`) was made during the post-Wave-4 gap-closure pass (`docs/reviews/gap-closure-action-plan.md`), alongside tasks 4.10 (`radio`) and 4.11 (`chat_room`'s lesson-browsing half) — neither of the latter two needed their own decision-log entry (no new cross-module pattern, per this log's own standing bar; see IF-031/IF-032/IF-033 in `implementation-findings.md` for what was found and decided there instead). AEP-1 (`ContentGroup` hierarchy extraction, `post-wave-4-cross-wave-architecture-review.md` §9) is explicitly deferred until Wave 5 and Wave 6 are both complete — not rejected, not forgotten. Full suite as of the gap-closure pass: 207/207 tests, stable across repeated runs. PHPStan: 0 errors at level 5, zero suppressions.

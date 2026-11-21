@@ -21,7 +21,8 @@ in milliseconds.
 |---|---|---|
 | `/khotab-download-{id}.htm` | PHP proxies the stored link (`ProxiedDownloadStreamer`) | **yes** |
 | `/khotab-mirror-{id}-{m}.htm` | PHP proxies the mirror's link | **yes** |
-| `/var-download-*`, `/var-mirror-*`, `/recite-download-*`, `/fatawa-download-*`, `/mobile-file-*`, `/lesson-download-*`, `/khotab-item-pdf-*` | count, then redirect | no |
+| `/var-download-*`, `/var-mirror-*`, `/recite-download-*`, `/fatawa-download-*`, `/lesson-download-*` | **F04 (2026-11-17, local, not deployed):** PHP proxies the file through `ProxiedDownloadResponder` (Khotab pattern). Exceptions keep a redirect and take no slot: YouTube / SoundCloud pages, a host listed in `download_save.attachment_query_hosts`, and links the proxy must not fetch (non-http(s), local paths, private addresses) | **yes** |
+| `/mobile-file-*`, `/khotab-item-pdf-*` | count, then redirect | no |
 | `/albumimg-download-*` | small local image through PHP | no (sub-second) |
 | `*.grx` playlists, `POST /media-player` | short generated responses | no |
 | `/media/*` (PDF, DOCX, …), `thumbnails.php`, external mirror / CD links | Apache or the remote host | cannot be counted by Laravel |
@@ -82,7 +83,45 @@ limit as they end. Raising it is immediate.
 - If the row cannot be stored, `DOWNLOAD_REJECTION_TELEMETRY_FAILED` is logged (exception class and code only) and the
   503 stands. A broken log channel is ignored too.
 
+## Stalled sources and log volume (2026-11-10, local; not yet deployed)
+
+Incident: 400/400 slots held by PHP-CGI processes whose remote sources had sent nothing for ~50 h. The old loop
+(`while (! feof($h)) echo fread($h, 8192);`, no timeouts) never ends on a silent, still-open connection: `fread()`
+returns `false` once per socket timeout and `feof()` stays false. Reproduced locally against a real TCP server.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `DOWNLOAD_REMOTE_CONNECT_TIMEOUT` | `15` | Remote links. Applied **per operation**: the TCP/TLS connect, and each read while waiting for the response headers, again for every redirect hop (PHP default: up to 20). **Not an end-to-end deadline**: a slowly answering server or a chain of slow redirects can take longer in total, and DNS resolution is not covered. A silent source is bounded. |
+| `DOWNLOAD_REMOTE_IDLE_TIMEOUT` | `60` | Longest a source may send no bytes mid-transfer; then the transfer ends and the slot is freed. Over TLS a stall is detected after up to twice this. |
+| `DOWNLOAD_REJECTION_LOG_INTERVAL` | `60` | At most one `DOWNLOAD_CAPACITY_FULL` warning per interval, with `suppressed_since_last_log`. `0` = every refusal. The `download_rejections` row is still written for every refusal. |
+
+There is deliberately no total-duration limit: a transfer that keeps receiving bytes runs to the end. Client cancels
+are not logged. The source handle is closed and the slot released on every path. The throttle state is
+`rejection-log-throttle.state` in the slot directory.
+
+**Source validation (owner-approved, 2026-11-10).** The source is opened and checked in `stream()`, *before* any status
+line or header is sent. For a remote source the database connection is released **before** that open (a dead host must
+not pin MariaDB connections for its connect timeout), and released again before the first byte in case anything
+reconnected; for a local file the release stays just before the first byte.
+
+- Remote: the **final** response after redirects must be 2xx other than 204/205/206, and must not declare
+  `Content-Type: text/html`. No MIME allowlist. Otherwise: a real **500** "Error reading file" (legacy's answer), the
+  connection closed, the slot freed, one `DOWNLOAD_SOURCE_REJECTED` line (`reason`: `status`, `html`, `no_http_status`).
+  An open failure is a real 500 with `DOWNLOAD_SOURCE_OPEN_FAILED`. The counter has already been incremented once by the
+  controller, as before (legacy also counted before opening).
+- `Content-Length` is sent to the visitor only when trustworthy: remote — exactly one header on the final response, a
+  plain non-negative integer, no `Transfer-Encoding`, no `Content-Encoding` other than `identity`; local — `fstat()` of
+  the opened regular file. The stored database size (`linksize`) is never used.
+- With a declared size, at most that many bytes are sent (extra source bytes are dropped). A source that ends early is
+  logged once as `DOWNLOAD_SOURCE_INCOMPLETE`; the visitor's client sees a body shorter than its `Content-Length`, so
+  a stalled or cut transfer shows as failed instead of as a complete file. Stalls and read errors are logged as
+  `DOWNLOAD_SOURCE_STALLED` / `DOWNLOAD_SOURCE_READ_FAILED`, with `declared_bytes`.
+- HEAD is unchanged: the source is not contacted and no `Content-Length` is added.
+- Output compression: with `zlib.output_compression` on, PHP does not compress a response that sets `Content-Length`,
+  so the header and body stay consistent (verified locally). Apache `mod_deflate`, if it compressed these types, would
+  remove the header itself (not verified on production); the download would then behave as before (no declared size).
+
 ## Open follow-ups
 
 - No retention policy exists for `download_rejections`; it grows until one is approved.
-- A stalled remote read holds its slot until the next write reveals a gone client, or the socket times out.
+- While a source is silent nothing is written, so PHP cannot see a gone client; the idle timeout bounds that case.

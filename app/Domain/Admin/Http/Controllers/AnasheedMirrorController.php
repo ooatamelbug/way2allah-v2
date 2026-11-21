@@ -11,6 +11,7 @@ use App\Domain\Admin\Models\AdminUser;
 use App\Domain\Admin\Support\AdminRecordAuthorizer;
 use App\Domain\Content\Models\AnasheedItem;
 use App\Domain\Content\Models\AnasheedMirror;
+use App\Domain\Content\Support\VarietyMediaLink;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -64,6 +65,7 @@ class AnasheedMirrorController
     public function store(StoreAnasheedMirrorRequest $request, AnasheedItem $anasheedItem, InsertAnasheedMirrorAction $action): RedirectResponse
     {
         $mirror = $action->execute($this->actor(), $anasheedItem, $request->validated(), $request->ip());
+        $this->flashLinkWarning((int) $mirror->id);
 
         return redirect()->route('admin.mirrors.anasheed.show', $anasheedItem)
             ->with('success', "تمت إضافة الوصلة البديلة #{$mirror->id}");
@@ -82,6 +84,7 @@ class AnasheedMirrorController
     public function update(UpdateAnasheedMirrorRequest $request, AnasheedMirror $anasheedMirror, UpdateAnasheedMirrorAction $action): RedirectResponse
     {
         $action->execute($this->actor(), $anasheedMirror, $request->validated(), $request->ip());
+        $this->flashLinkWarning((int) $anasheedMirror->id);
 
         $parent = AnasheedItem::query()->find((int) $anasheedMirror->khid);
 
@@ -113,5 +116,14 @@ class AnasheedMirrorController
         abort_unless($admin instanceof AdminUser, 401);
 
         return $admin;
+    }
+
+    /** B2 / F07-A: warn (never block) when the SAVED mirror link cannot be played or downloaded as stored. */
+    private function flashLinkWarning(int $mirrorId): void
+    {
+        $warning = VarietyMediaLink::adminWarning(AnasheedMirror::query()->whereKey($mirrorId)->value('link'), 'الوصلة #'.$mirrorId);
+        if ($warning !== null) {
+            session()->flash(VarietyMediaLink::ADMIN_WARNING_FLASH, $warning);
+        }
     }
 }

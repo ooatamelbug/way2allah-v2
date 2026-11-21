@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Tests\Support\Fixtures\MainSchema;
 use Tests\Support\InMemoryConnection;
+use Tests\Support\ProxiedDownloadProbe;
 
 function useInMemoryMainConnectionForFatwaQuestionController(): void
 {
@@ -432,10 +433,10 @@ it('download: atomically increments num_download and redirects to media_link', f
         'id' => 7, 'media_link' => 'https://way2allah.com/files/answer7.mp4', 'num_download' => 2,
     ]);
 
-    $response = $this->get('/fatawa-download-7.htm');
-
-    $response->assertRedirect('https://way2allah.com/files/answer7.mp4');
-    expect(DB::connection('main')->table('nuke_fatwa_questions')->find(7)->num_download)->toBe(3);
+    // F04: the protected proxy fetches media_link; a refused download is not counted (counting on success:
+    // SaveMaterialProxyF04Test).
+    expect(ProxiedDownloadProbe::resolvedLink('/fatawa-download-7.htm'))->toBe('https://way2allah.com/files/answer7.mp4')
+        ->and(DB::connection('main')->table('nuke_fatwa_questions')->find(7)->num_download)->toBe(2);
 });
 
 it('download: 404s for a nonexistent question', function () {
@@ -453,8 +454,7 @@ it('download: an archive.org CDN-node media_link is rewritten to the canonical d
     // Real olddb shape (ids 13636/13638/13791) confirmed during the Phase 1
     // audit — the only 3 rows (of 13,353) where fix_archive_links()
     // produces a genuinely different URL than the input.
-    $this->get('/fatawa-download-8.htm')
-        ->assertRedirect('http://www.archive.org/download/fatawaa-98/24.mp4');
+    expect(ProxiedDownloadProbe::resolvedLink('/fatawa-download-8.htm'))->toBe('http://www.archive.org/download/fatawaa-98/24.mp4');
 });
 
 it('download: a media_link already in the canonical archive.org/download form passes through unchanged', function () {
@@ -463,8 +463,7 @@ it('download: a media_link already in the canonical archive.org/download form pa
         'id' => 9, 'media_link' => 'http://www.archive.org/download/fatawa_way2allah-1/001.avi', 'num_download' => 0,
     ]);
 
-    $this->get('/fatawa-download-9.htm')
-        ->assertRedirect('http://www.archive.org/download/fatawa_way2allah-1/001.avi');
+    expect(ProxiedDownloadProbe::resolvedLink('/fatawa-download-9.htm'))->toBe('http://www.archive.org/download/fatawa_way2allah-1/001.avi');
 });
 
 it('download: a non-archive.org media_link is never touched by the transformation', function () {
@@ -473,8 +472,7 @@ it('download: a non-archive.org media_link is never touched by the transformatio
         'id' => 10, 'media_link' => 'https://way2allah.com/files/answer10.mp4', 'num_download' => 0,
     ]);
 
-    $this->get('/fatawa-download-10.htm')
-        ->assertRedirect('https://way2allah.com/files/answer10.mp4');
+    expect(ProxiedDownloadProbe::resolvedLink('/fatawa-download-10.htm'))->toBe('https://way2allah.com/files/answer10.mp4');
 });
 
 it('sendToFriend: validates required fields with legacy\'s own 2-character-minimum name rule', function () {

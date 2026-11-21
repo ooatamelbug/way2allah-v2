@@ -1,0 +1,128 @@
+[
+ {
+  "section": "behaviour/cgi",
+  "name": "GET local lecture.mp3",
+  "expected": "200 audio/mpeg attachment nosniff exact-bytes +1",
+  "actual": "200 audio/mpeg attachment; filename=lecture.mp3 nosniff len=None bytes=5242880 +1",
+  "ok": true
+ },
+ {
+  "section": "behaviour/cgi",
+  "name": "GET local lecture.mp4",
+  "expected": "200 video/mp4 attachment nosniff exact-bytes +1",
+  "actual": "200 video/mp4 attachment; filename=lecture.mp4 nosniff len=None bytes=3145728 +1",
+  "ok": true
+ },
+ {
+  "section": "behaviour/cgi",
+  "name": "GET local transcript.pdf",
+  "expected": "200 application/pdf attachment nosniff exact-bytes +1",
+  "actual": "200 application/pdf attachment; filename=transcript.pdf nosniff len=None bytes=204800 +1",
+  "ok": true
+ },
+ {
+  "section": "behaviour/cgi",
+  "name": "GET local archive.rar",
+  "expected": "200 application/octet-stream attachment nosniff exact-bytes +1",
+  "actual": "200 application/octet-stream attachment; filename=archive.rar nosniff len=None bytes=307200 +1",
+  "ok": true
+ },
+ {
+  "section": "behaviour/cgi",
+  "name": "HEAD local mp3",
+  "expected": "200 audio/mpeg attachment, no body, no Content-Length, counter unchanged",
+  "actual": "200 audio/mpeg cl=None bytes=0 +0",
+  "ok": true
+ },
+ {
+  "section": "behaviour/cgi",
+  "name": "local mirror GET+HEAD",
+  "expected": "200  GET +1 hits, HEAD +0",
+  "actual": "GET 200  +1; HEAD 200 +0",
+  "ok": true
+ },
+ {
+  "section": "behaviour/cgi",
+  "name": "YouTube mirror GET+HEAD",
+  "expected": "302 https://www.youtube.com/watch?v=abc123&list=PL9 GET +1 hits, HEAD +0",
+  "actual": "GET 302 https://www.youtube.com/watch?v=abc123&list=PL9 +1; HEAD 302 +0",
+  "ok": true
+ },
+ {
+  "section": "behaviour/cgi",
+  "name": "SoundCloud mirror GET+HEAD",
+  "expected": "302 https://soundcloud.com/way2allah/lecture-1 GET +1 hits, HEAD +0",
+  "actual": "GET 302 https://soundcloud.com/way2allah/lecture-1 +1; HEAD 302 +0",
+  "ok": true
+ },
+ {
+  "section": "behaviour/cgi",
+  "name": "look-alike HTML mirror GET+HEAD",
+  "expected": "500  GET +1 hits, HEAD +0",
+  "actual": "GET 500  +1; HEAD 200 +0",
+  "ok": true
+ },
+ {
+  "section": "behaviour/cgi",
+  "name": "missing local file",
+  "expected": "404, downcount +1 (legacy)",
+  "actual": "404 +1",
+  "ok": true
+ },
+ {
+  "section": "behaviour/cgi",
+  "name": "remote fast (signed URL, upstream says x-upstream-says-this)",
+  "expected": "200 audio/mpeg CL=5242880 exact bytes",
+  "actual": "200 audio/mpeg cl=None bytes=5242880",
+  "ok": false
+ },
+ {
+  "section": "behaviour/cgi",
+  "name": "upstream text/html",
+  "expected": "500 before any download header",
+  "actual": "500 disp=None",
+  "ok": true
+ },
+ {
+  "section": "behaviour/cgi",
+  "name": "upstream 404",
+  "expected": "500 before any download header",
+  "actual": "500 disp=None",
+  "ok": true
+ },
+ {
+  "section": "behaviour/cgi",
+  "name": "stalled upstream",
+  "expected": "200, CL=10485760, body 524288, ends after idle timeout, slot freed",
+  "actual": "200 cl=None bytes=524288 in 10.423s; slots free after 0.48s",
+  "ok": true
+ },
+ {
+  "section": "behaviour/cgi",
+  "name": "upstream closes early (truncated)",
+  "expected": "200, CL=10485760, short body ~1 MiB, slot freed",
+  "actual": "200 cl=None bytes=1048576 in 0.412s; slots free after 0.47s",
+  "ok": true
+ },
+ {
+  "section": "behaviour/cgi",
+  "name": "upstream reset (read failure)",
+  "expected": "200, CL=10485760, short body ~1 MiB, slot freed",
+  "actual": "200 cl=None bytes=620616 in 0.411s; slots free after 0.47s",
+  "ok": true
+ },
+ {
+  "section": "behaviour/cgi",
+  "name": "slow client on slow upstream",
+  "expected": "200, all 2097152 bytes, exact",
+  "actual": "200 bytes=2097152 in 32.337s",
+  "ok": true
+ },
+ {
+  "section": "behaviour/cgi",
+  "name": "slots after behaviour block",
+  "expected": "occupied 0 with evidence",
+  "actual": "{'status': 'ok', 'occupied': 0, 'limit': 20, 'visibility': 'probe_visible', 'oldest_held_seconds': None, 'holders': []}",
+  "ok": true
+ }
+]

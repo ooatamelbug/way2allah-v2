@@ -13,9 +13,9 @@ use Tests\Support\InMemoryConnection;
  * the audit log.
  */
 it('keeps the download_rejections fixture and its migration in exact column agreement', function () {
-    $migration = file_get_contents(
-        base_path('database/migrations/2026_10_22_130000_create_download_rejections_table.php')
-    );
+    // The creating migration plus every later additive one (Phase 3D: resource_title).
+    $migration = file_get_contents(base_path('database/migrations/2026_10_22_130000_create_download_rejections_table.php'))
+        .file_get_contents(base_path('database/migrations/2026_11_11_300000_add_resource_title_to_download_rejections.php'));
 
     preg_match_all("/\\\$table->[a-zA-Z]+\('([a-z_]+)'/", $migration, $matches);
     $migrationColumns = collect($matches[1])->unique()->sort()->values()->all();

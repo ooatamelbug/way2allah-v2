@@ -71,8 +71,14 @@
 
     <div class="row service-box margin-bottom-40 w2a-media-layout sh-w2a-block">
         <div class="col-lg-9 col-md-8 col-sm-7 nopadding flex flex-column gap-5">
-            {{-- OLD Detailes(): a hidden item (hidden ≠ 0) renders no details, player, actions, mirrors or comments —
-                 for every viewer; the chrome, admin panel and sidebar stay (visitor parity A6). --}}
+            {{-- OLD Detailes(): a hidden item (hidden ≠ 0) renders no details, player, actions, mirrors or comments;
+                 the chrome, admin panel and sidebar stay (visitor parity A6). F08 / B4: only a signed-in administrator
+                 reaches this page for a hidden item (visitors get a 404). --}}
+            @if ($isHidden)
+                <div class="alert alert-warning w2a-hidden-item-notice" role="status">
+                    <i class="fa fa-eye-slash" aria-hidden="true"></i> هذه المادة مخفية عن الزوار
+                </div>
+            @endif
             @unless ($isHidden)
             <div class="portlet box blue">
                 <div class="portlet-title">
@@ -84,7 +90,7 @@
                         : ''" :size="\App\Domain\Content\Support\LegacyFileSizeFormatter::format(
                         (int) ($anasheedItem->linksize ?? 0),
                     )"
-                        :download-url="'/var-download-' . $anasheedItem->id . '.htm'"
+                        :download-url="\App\Domain\Content\Support\VarietyMediaLink::isDownloadable($anasheedItem->link) ? '/var-download-' . $anasheedItem->id . '.htm' : null"
                         :notes="$anasheedItem->notes" notes-label="تعليق على المادة" />
                 </div>
             </div>

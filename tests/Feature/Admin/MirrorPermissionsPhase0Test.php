@@ -3,6 +3,7 @@
 use App\Domain\Admin\Models\AdminUser;
 use App\Domain\Admin\Support\AdminRecordAuthorizer;
 use App\Domain\Admin\Support\AdminRecordConstraint;
+use App\Domain\Admin\Support\Constraints\KhotabMediaScopeConstraint;
 use App\Domain\Admin\Support\PermissionLabels;
 use App\Support\Permission\Permission;
 use App\Support\Permission\Role;
@@ -169,11 +170,12 @@ it('keeps the super-admin bypass intact for records and for bare permissions', f
     }
 });
 
-it('registers the authorizer as a singleton with a deliberately empty constraint list', function () {
+it('registers the authorizer as a singleton with exactly the Khotab media-scope constraint (owner 2026-11-17, superseding D1b\')', function () {
     $authorizer = app(AdminRecordAuthorizer::class);
 
-    expect($authorizer)->toBe(app(AdminRecordAuthorizer::class));
-    expect($authorizer->constraints())->toBe([]);
+    expect($authorizer)->toBe(app(AdminRecordAuthorizer::class))
+        ->and($authorizer->constraints())->toHaveCount(1)
+        ->and($authorizer->constraints()[0])->toBeInstanceOf(KhotabMediaScopeConstraint::class);
 });
 
 it('consults a registered record constraint, and denies when it refuses', function () {

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Support\Downloads\Telemetry\DownloadTelemetry;
 use App\Support\Http\CanonicalUrl;
 use Illuminate\Contracts\Routing\UrlGenerator;
 use Illuminate\Support\ServiceProvider;
@@ -13,7 +14,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Phase 3A download telemetry recorder: one per request (off unless DOWNLOAD_TELEMETRY_EVENTS=on and the spool is enabled).
+        $this->app->scoped(DownloadTelemetry::class, fn () => new DownloadTelemetry);
     }
 
     /**

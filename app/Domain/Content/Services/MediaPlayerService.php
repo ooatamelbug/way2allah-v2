@@ -8,6 +8,9 @@ use App\Domain\Content\Models\FatwaQuestion;
 use App\Domain\Content\Models\KhotabItem;
 use App\Domain\Content\Models\Mirror;
 use App\Domain\Content\Models\TelawahItem;
+use App\Domain\Content\Support\BrowserPlaybackFormat;
+use App\Domain\Content\Support\VarietyMediaLink;
+use App\Support\Downloads\ExternalMediaLink;
 use App\Support\Media\ArchiveOrgLink;
 
 /**
@@ -70,7 +73,80 @@ class MediaPlayerService
             return null;
         }
 
-        return $this->renderPlayer($media->title, $media->link, $media->video);
+        // B2 / F07-A (decision-log #147): a Variety link that is not an absolute http(s) URL with a host (bare or
+        // concatenated file names, a character before the scheme, host-less paths, empty) would only start a player
+        // whose request fails on this site. Say so instead, without any player. A link in an unsupported format keeps
+        // the F05-2 explanation below (it already tells the visitor no download is available for such a link).
+        if (in_array($type, ['anasheed', 'anasheed_mirror'], true)
+            && ! VarietyMediaLink::isPlayable($media->link) && ! BrowserPlaybackFormat::isUnsupported($media->link)) {
+            return '<div class="w2a-player-status w2a-player-invalid-link" role="status"><p>'.e(self::INVALID_LINK_MESSAGE).'</p></div>';
+        }
+
+        $player = $this->renderPlayer($media->title, $media->link, $media->video);
+
+        // B2 / F05-2 Part 2 (Option B, decision-log #144): Khotab and Variety only (the branches that carry a
+        // `download` resolver). A format no browser plays gets an explanation instead of the generic «غير متاحة»,
+        // and no player. Every other unrenderable link (unknown formats included) keeps the existing empty response.
+        if ($player === null && isset($media->download) && BrowserPlaybackFormat::isUnsupported($media->link)) {
+            return $this->unsupportedFormatNotice(($media->download)());
+        }
+
+        return $player;
+    }
+
+    public const UNSUPPORTED_FORMAT_MESSAGE = 'هذه الصيغة غير مدعومة للتشغيل المباشر في المتصفح.';
+
+    public const UNSUPPORTED_FORMAT_DOWNLOAD_HINT = 'يمكنك تحميل المادة وتشغيلها باستخدام برنامج يدعم هذه الصيغة.';
+
+    public const UNSUPPORTED_FORMAT_NO_DOWNLOAD = 'لا يتوفر رابط تحميل لهذه المادة حالياً.';
+
+    /** F07-A: owner-approved wording for a Variety link that cannot be played as stored. */
+    public const INVALID_LINK_MESSAGE = 'رابط تشغيل هذه المادة غير صالح حاليًا. يرجى إبلاغ إدارة الموقع بالمشكلة.';
+
+    /**
+     * The owner-approved explanation (Option B). The download action is the page's own existing download route,
+     * shown only when that route can serve the link; otherwise the second sentence promises nothing.
+     */
+    private function unsupportedFormatNotice(?string $downloadUrl): string
+    {
+        if ($downloadUrl === null) {
+            return '<div class="w2a-player-status w2a-player-unsupported" role="status"><p>'
+                .e(self::UNSUPPORTED_FORMAT_MESSAGE.' '.self::UNSUPPORTED_FORMAT_NO_DOWNLOAD).'</p></div>';
+        }
+
+        return '<div class="w2a-player-status w2a-player-unsupported" role="status"><p>'
+            .e(self::UNSUPPORTED_FORMAT_MESSAGE.' '.self::UNSUPPORTED_FORMAT_DOWNLOAD_HINT).'</p>'
+            .'<a href="'.e($downloadUrl).'" download class="w2a-action-btn w2a-action-download">'
+            .'<i class="fa fa-download" aria-hidden="true"></i> <span>تحميل المادة</span></a></div>';
+    }
+
+    /**
+     * Whether `/khotab-download-…` / `/khotab-mirror-…` can serve a stored link — the exact, network-free 404 rule of
+     * `ProxiedDownloadStreamer::stream()` (empty link, or neither `http(s)://` nor an existing file), on the link that
+     * route uses: the stored link after ArchiveOrgLink normalisation (F04 fix, 2026-11-17). The mirror route also answers YouTube / SoundCloud page links by redirect.
+     * A remote source that fails later cannot be known without contacting it (never done here).
+     */
+    private static function khotabDownloadable(?string $link, bool $mirror): bool
+    {
+        if ($mirror && $link !== null && ExternalMediaLink::classify($link) !== null) {
+            return true;
+        }
+
+        // F04 fix (2026-11-17): the route now fetches the normalised archive.org URL, so judge that same link.
+        $link = $link === null ? null : ArchiveOrgLink::normalize($link);
+
+        return $link !== null && $link !== ''
+            && (str_starts_with($link, 'http://') || str_starts_with($link, 'https://') || is_file($link));
+    }
+
+    /**
+     * Whether `/var-download-…` / `/var-mirror-…` can serve the link: F07-A moved this rule to
+     * {@see VarietyMediaLink::isDownloadable()}, which now mirrors the route exactly (Laravel's own URL validation, so a
+     * leading space on a non-archive.org link — redirected into this site — is no longer offered).
+     */
+    private static function anasheedDownloadable(?string $link): bool
+    {
+        return VarietyMediaLink::isDownloadable($link);
     }
 
     /**
@@ -128,14 +204,18 @@ class MediaPlayerService
             return null;
         }
 
+        // F05-1 (owner-approved, 2026-11-14): the same render-time archive.org normalisation as the Anasheed
+        // branches (retired storage nodes and http → https://archive.org/download/…). The stored link is not
+        // changed; other hosts and the file name/extension pass through untouched.
         return (object) [
             'title' => (string) $item->title,
-            'link' => (string) $item->link,
+            'link' => ArchiveOrgLink::normalize((string) $item->link),
             'video' => (bool) $item->vedio,
+            'download' => fn (): ?string => self::khotabDownloadable($item->link, false) ? '/khotab-download-'.$item->id.'.htm' : null,
         ];
     }
 
-    /** `get_w2a_mada()`'s own aliased `comment AS title` for mirrors. */
+    /** `get_w2a_mada()`'s own aliased `comment AS title` for mirrors; archive.org links normalised as above (F05-1). */
     private function fromMirror(int $id): ?object
     {
         $mirror = Mirror::where('hidden', 0)->find($id);
@@ -144,11 +224,42 @@ class MediaPlayerService
             return null;
         }
 
+        // B2 / F05-2: the parent's flag is read only for the one case it can change (an audio-flagged `.mp4`), and
+        // without a `hidden` filter — visibility is decided exactly as before, by the mirror lookup above.
+        $video = (bool) $mirror->vedio;
+        if (! $video && BrowserPlaybackFormat::pathExtension((string) $mirror->link) === 'mp4') {
+            $video = self::khotabMirrorPlaysAsVideo($mirror->vedio, KhotabItem::whereKey($mirror->khid)->value('vedio'), (string) $mirror->link);
+        }
+
         return (object) [
             'title' => (string) $mirror->comment,
-            'link' => (string) $mirror->link,
-            'video' => (bool) $mirror->vedio,
+            'link' => ArchiveOrgLink::normalize((string) $mirror->link),
+            'video' => $video,
+            'download' => fn (): ?string => self::khotabDownloadable($mirror->link, true) ? '/khotab-mirror-'.$mirror->khid.'-'.$mirror->id.'.htm' : null,
         ];
+    }
+
+    /**
+     * B2 / F05-2 (owner-approved 2026-11-16, decision-log #143) — whether a Khotab mirror plays (and is presented) as
+     * video. The single rule shared by `fromMirror()` and the quality card (`media-quality-list`):
+     *
+     * - the mirror's own `vedio` flag, when it says video (unchanged);
+     * - otherwise **video only when BOTH** the parent item is a video item (`vedio = 1`) **and** the mirror's URL
+     *   path ends in `.mp4` (case-insensitive). 601 such `.mp4` mirrors of video items are flagged audio in the data,
+     *   so they got no `<video>` and showed «غير متاحة للتشغيل».
+     *
+     * The parent type alone never makes a mirror video (an `.rmvb`, `.wmv` or `.mp3` mirror keeps its flag), and `mp4`
+     * elsewhere in the URL (query string, host, a file named `…mp4.wmv`) does not count. Render-time only: no stored
+     * flag changes. **Intentionally differs from Gen 2**, whose `w2a_mada_play()` routes these mirrors to its audio
+     * branch and fails the same way.
+     */
+    public static function khotabMirrorPlaysAsVideo(mixed $mirrorVedio, mixed $itemVedio, string $link): bool
+    {
+        if ((bool) $mirrorVedio) {
+            return true;
+        }
+
+        return (int) $itemVedio === 1 && BrowserPlaybackFormat::pathExtension($link) === 'mp4';
     }
 
     private function fromAnasheedItem(int $id): ?object
@@ -164,6 +275,7 @@ class MediaPlayerService
             'title' => (string) $item->title,
             'link' => ArchiveOrgLink::normalize((string) $item->link),
             'video' => (bool) $item->vedio,
+            'download' => fn (): ?string => self::anasheedDownloadable($item->link) ? '/var-download-'.$item->id.'.htm' : null,
         ];
     }
 
@@ -185,6 +297,8 @@ class MediaPlayerService
             'title' => (string) $mirror->title,
             'link' => ArchiveOrgLink::normalize((string) $mirror->link),
             'video' => (bool) $mirror->vedio,
+            // The player already required the item to be visible, as `/var-mirror-…` does.
+            'download' => fn (): ?string => self::anasheedDownloadable($mirror->link) ? '/var-mirror-'.$mirror->khid.'-'.$mirror->id.'.htm' : null,
         ];
     }
 
@@ -249,7 +363,10 @@ class MediaPlayerService
      * these formats — material, not negligible; see the implementation
      * report for the full breakdown. Returns `null` for these (and any
      * other unrecognized format) rather than embedding dead technology or
-     * inventing a fallback UI.
+     * inventing a fallback UI. (B2 / F05-2 Part 2, decision-log #144: for the
+     * Khotab and Variety types, `play()` then answers the approved list of
+     * these formats with an explanation and the existing download route —
+     * still never a player.)
      */
     private function renderPlayer(string $title, string $link, bool $video): ?string
     {

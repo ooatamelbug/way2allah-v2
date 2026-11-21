@@ -114,7 +114,8 @@ it('H1: the homepage HTML carries no hidden title or link; the three widgets sti
         ->toContain('أحدث المرئيات على مدار الساعة')->toContain('جديد الصوتيات')->toContain('أحدث المواد المفرغة');
 });
 
-it('A6 preserved: hidden Anasheed items still appear in the homepage Anasheed widgets (owner-approved listing behaviour)', function () {
+// F08 / B4 (owner-approved, 2026-11-14) supersedes "A6 preserved": hidden Anasheed items no longer appear.
+it('B4: hidden Anasheed items no longer appear in the homepage Anasheed widgets', function () {
     $db = DB::connection('main');
     $db->table('nuke_anasheed_groups')->insert(['id' => 1, 'title' => 'قسم', 'parent_id' => 57]);
     $db->table('nuke_anasheed_anasheed')->insert([
@@ -125,8 +126,8 @@ it('A6 preserved: hidden Anasheed items still appear in the homepage Anasheed wi
 
     $html = $this->get('/')->assertOk()->getContent();
 
-    expect($html)->toContain('نشيد مخفي في تشاهدون الآن')->toContain('/var-item-1.htm')
-        ->toContain('كارتون مخفي')->toContain('/var-item-2.htm');
+    expect($html)->not->toContain('نشيد مخفي في تشاهدون الآن')->not->toContain('/var-item-1.htm')
+        ->not->toContain('كارتون مخفي')->not->toContain('/var-item-2.htm');
 });
 
 it('T1 unchanged: the homepage Telawah widget still lists the newest recitations (no hidden predicate — the fixture has no such column)', function () {

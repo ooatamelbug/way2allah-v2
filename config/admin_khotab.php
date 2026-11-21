@@ -21,4 +21,7 @@
 return [
     'media_root' => env('KHOTAB_MEDIA_ROOT', public_path('media')),
     'archive_timeout' => (int) env('KHOTAB_ARCHIVE_TIMEOUT', 20),
+
+    // F10 / B5: how long a custom-cover upload or removal waits for another one on the same item (seconds).
+    'cover_lock_wait' => (int) env('KHOTAB_COVER_LOCK_WAIT', 10),
 ];

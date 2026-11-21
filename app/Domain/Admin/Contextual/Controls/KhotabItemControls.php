@@ -76,6 +76,11 @@ final class KhotabItemControls
         // «سحب الصور» — OLD get_gif_jpg.php?id=, as an authorized POST (owner, 2026-10-21).
         $controls[] = ContextualControl::action('سحب الصور', 'fa-picture-o', 'admin.khotab.items.images', $own, 'POST');
 
+        // F10 / B5: the custom cover page — video items only.
+        if ((int) $item->getAttribute('vedio') === 1) {
+            $controls[] = ContextualControl::link('صورة الغلاف', 'fa-file-image-o', 'admin.khotab.items.cover', $own, returns: false);
+        }
+
         // Detailes:1011 — "move the picked mirror here" — Phase 1 re-parent.
         $picked = session(KhotabMirrorController::CLIPBOARD_KEY);
         if ($picked !== null) {

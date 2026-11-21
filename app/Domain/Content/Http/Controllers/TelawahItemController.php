@@ -4,8 +4,13 @@ namespace App\Domain\Content\Http\Controllers;
 
 use App\Domain\Content\Models\TelawahItem;
 use App\Domain\Content\Services\ContentSidebarWidget;
+use App\Support\Downloads\DownloadRejectionContext;
+use App\Support\Downloads\ProxiedDownloadResponder;
+use App\Support\Downloads\Telemetry\DownloadTelemetryContext;
+use App\Support\Media\ArchiveOrgLink;
 use Illuminate\Contracts\View\View;
-use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Replaces `telawah/item.php` — Roadmap task 4.8.
@@ -29,12 +34,18 @@ class TelawahItemController
         return view('telawah.item', compact('telawahItem', 'mostDownloaded', 'mostRecent'));
     }
 
-    public function download(int $telawah): RedirectResponse
+    /** F04 (owner-approved 2026-11-17): the Khotab pattern through the shared protected proxy. The item page has no visibility filter; neither does this. */
+    public function download(int $telawah, Request $request, ProxiedDownloadResponder $responder): Response
     {
-        $telawahItem = TelawahItem::select(['id', 'link'])->findOrFail($telawah);
+        $telawahItem = TelawahItem::select(['id', 'link', 'linksize', 'title'])->findOrFail($telawah);
+        // F04 fix: the normalised archive.org URL (ArchiveOrgLink, as the player); other links unchanged.
+        $link = ArchiveOrgLink::normalize((string) $telawahItem->link);
 
-        $telawahItem->incrementDownloadCount();
-
-        return redirect($telawahItem->link);
+        return $responder->respond($request, $link,
+            new DownloadTelemetryContext('telawah', 'telawah_item', (int) $telawahItem->id, 'primary'),
+            fn () => $telawahItem->incrementDownloadCount(),
+            fn () => new DownloadRejectionContext(module: 'telawah', resourceType: 'telawah_item', resourceId: (int) $telawahItem->id,
+                variant: 'primary', resolvedDownloadUrl: $link, storedSize: (int) $telawahItem->linksize, resourceTitle: $telawahItem->title),
+            $telawahItem->getConnectionName());
     }
 }

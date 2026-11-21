@@ -209,7 +209,9 @@ class MobileController
         if (! MobileSite::downloadAvailable($material->url)) {
             return response()->view('mobile.unavailable', ['material' => $material], 410);
         }
-        DB::connection('main')->table('nuke_downloads_downloads')->where('lid', $lid)->increment('hits');
+        if (! request()->isMethod('HEAD')) {   // HEAD (Phase 3B.1): same redirect, no counter.
+            DB::connection('main')->table('nuke_downloads_downloads')->where('lid', $lid)->increment('hits');
+        }
 
         return redirect()->away(trim($material->url));
     }

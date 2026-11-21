@@ -1,0 +1,108 @@
+[
+ {
+  "section": "disconnect/fcgid [FcgidOutputBufferSize=65536]",
+  "name": "client leaves a slow remote transfer (512 KiB of 100 MiB)",
+  "expected": "slot freed promptly (stall: within idle timeout); exactly one terminal event; upstream socket closed",
+  "actual": "read 548864B in 4.659s; held right after close: occupied=1; slot free after 1.83s; terminal=['transfer_finished:client_aborted:shutdown_fallback:b=770048']; upstream=['CLOSE 17 /slow/104857600/131072/big.mp4 sent=786432 reason=client_closed']",
+  "ok": true,
+  "slot_free_seconds": 1.83,
+  "terminal": [
+   "transfer_finished:client_aborted:shutdown_fallback:b=770048"
+  ],
+  "upstream": [
+   "1794424951.265 CLOSE 17 /slow/104857600/131072/big.mp4 sent=786432 reason=client_closed"
+  ]
+ },
+ {
+  "section": "disconnect/fcgid [FcgidOutputBufferSize=65536]",
+  "name": "client leaves a fast local transfer (64 KiB of 5 MiB, small receive buffer)",
+  "expected": "slot freed promptly (stall: within idle timeout); exactly one terminal event; upstream socket closed",
+  "actual": "read 68416B in 0.044s; held right after close: occupied=0; slot free after 0.48s; terminal=['transfer_finished:client_aborted:shutdown_fallback:b=475136']; upstream=['file)']",
+  "ok": true,
+  "slot_free_seconds": 0.48,
+  "terminal": [
+   "transfer_finished:client_aborted:shutdown_fallback:b=475136"
+  ],
+  "upstream": [
+   "(local file)"
+  ]
+ },
+ {
+  "section": "disconnect/fcgid [FcgidOutputBufferSize=65536]",
+  "name": "client leaves while the upstream is STALLED (after 512 KiB)",
+  "expected": "slot freed promptly (stall: within idle timeout); exactly one terminal event; upstream socket closed",
+  "actual": "read 524288B in 10.086s; held right after close: occupied=0; slot free after 0.42s; terminal=['transfer_finished:stalled::b=524288']; upstream=['CLOSE 18 /stall/10485760/524288/stall.mp4 sent=524288 reason=stalled_client_closed']",
+  "ok": true,
+  "slot_free_seconds": 0.42,
+  "terminal": [
+   "transfer_finished:stalled::b=524288"
+  ],
+  "upstream": [
+   "1794424966.173 CLOSE 18 /stall/10485760/524288/stall.mp4 sent=524288 reason=stalled_client_closed"
+  ]
+ },
+ {
+  "section": "disconnect/fcgid [FcgidOutputBufferSize=65536]",
+  "name": "slow client (8 KiB rcvbuf, 4 KiB / 50 ms) leaves after 256 KiB",
+  "expected": "slot freed promptly (stall: within idle timeout); exactly one terminal event; upstream socket closed",
+  "actual": "read 263123B in 3.775s; held right after close: occupied=1; slot free after 1.09s; terminal=['transfer_finished:client_aborted:shutdown_fallback:b=622592']; upstream=['CLOSE 19 /slow/104857600/131072/big.mp4 sent=638976 reason=client_closed']",
+  "ok": true,
+  "slot_free_seconds": 1.09,
+  "terminal": [
+   "transfer_finished:client_aborted:shutdown_fallback:b=622592"
+  ],
+  "upstream": [
+   "1794424973.696 CLOSE 19 /slow/104857600/131072/big.mp4 sent=638976 reason=client_closed"
+  ]
+ },
+ {
+  "section": "disconnect/cgi [FcgidOutputBufferSize=65536]",
+  "name": "client leaves a slow remote transfer (512 KiB of 100 MiB)",
+  "expected": "slot freed promptly (stall: within idle timeout); exactly one terminal event; upstream socket closed",
+  "actual": "read 524288B in 4.419s; held right after close: occupied=1; slot free after 0.47s; terminal=[]; upstream=['CLOSE 20 /slow/104857600/131072/big.mp4 sent=589824 reason=client_closed']",
+  "ok": false,
+  "slot_free_seconds": 0.47,
+  "terminal": [],
+  "upstream": [
+   "1794424980.915 CLOSE 20 /slow/104857600/131072/big.mp4 sent=589824 reason=client_closed"
+  ]
+ },
+ {
+  "section": "disconnect/cgi [FcgidOutputBufferSize=65536]",
+  "name": "client leaves a fast local transfer (64 KiB of 5 MiB, small receive buffer)",
+  "expected": "slot freed promptly (stall: within idle timeout); exactly one terminal event; upstream socket closed",
+  "actual": "read 68441B in 0.559s; held right after close: occupied=0; slot free after 0.41s; terminal=[]; upstream=['file)']",
+  "ok": false,
+  "slot_free_seconds": 0.41,
+  "terminal": [],
+  "upstream": [
+   "(local file)"
+  ]
+ },
+ {
+  "section": "disconnect/cgi [FcgidOutputBufferSize=65536]",
+  "name": "client leaves while the upstream is STALLED (after 512 KiB)",
+  "expected": "slot freed promptly (stall: within idle timeout); exactly one terminal event; upstream socket closed",
+  "actual": "read 524288B in 0.536s; held right after close: occupied=1; slot free after 9.94s; terminal=['transfer_finished:stalled::b=524288']; upstream=['CLOSE 21 /stall/10485760/524288/stall.mp4 sent=524288 reason=stalled_client_closed']",
+  "ok": true,
+  "slot_free_seconds": 9.94,
+  "terminal": [
+   "transfer_finished:stalled::b=524288"
+  ],
+  "upstream": [
+   "1794424996.579 CLOSE 21 /stall/10485760/524288/stall.mp4 sent=524288 reason=stalled_client_closed"
+  ]
+ },
+ {
+  "section": "disconnect/cgi [FcgidOutputBufferSize=65536]",
+  "name": "slow client (8 KiB rcvbuf, 4 KiB / 50 ms) leaves after 256 KiB",
+  "expected": "slot freed promptly (stall: within idle timeout); exactly one terminal event; upstream socket closed",
+  "actual": "read 262144B in 3.697s; held right after close: occupied=0; slot free after 0.43s; terminal=[]; upstream=['CLOSE 22 /slow/104857600/131072/big.mp4 sent=475136 reason=client_closed']",
+  "ok": false,
+  "slot_free_seconds": 0.43,
+  "terminal": [],
+  "upstream": [
+   "1794425002.639 CLOSE 22 /slow/104857600/131072/big.mp4 sent=475136 reason=client_closed"
+  ]
+ }
+]

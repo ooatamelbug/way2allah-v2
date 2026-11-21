@@ -1,0 +1,567 @@
+{
+ "note": "40 random visible Way2Allah archive.org .mp3/.mp4 links (local 2025 DB copy), normalised like ArchiveOrgLink; one 1-byte range GET each with an Origin header, 2026-11-14. URLs omitted.",
+ "run1": [
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp3",
+   "status": "206",
+   "final_cors": true,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp3",
+   "status": "206",
+   "final_cors": true,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp3",
+   "status": "206",
+   "final_cors": true,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp3",
+   "status": "206",
+   "final_cors": true,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  }
+ ],
+ "run2": [
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp3",
+   "status": "206",
+   "final_cors": true,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp3",
+   "status": "206",
+   "final_cors": true,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "khotab",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp3",
+   "status": "206",
+   "final_cors": true,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp3",
+   "status": "206",
+   "final_cors": true,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  },
+  {
+   "module": "anasheed",
+   "ext": "mp4",
+   "status": "206",
+   "final_cors": false,
+   "node_kind": "dn*.ca"
+  }
+ ]
+}

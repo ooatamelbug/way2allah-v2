@@ -17,6 +17,10 @@
                 @endif
                 @if ($frame !== null)
                     <hr>الصورة الثابتة للمادة : <br><img src="{{ $frame }}" alt="" style="max-width:100%"><br>
+                    {{-- F10 / B5: the archive frame is stored even when a custom cover exists; the site shows the cover. --}}
+                    @if (\App\Domain\Content\Support\KhotabCover::url((int) $item->id) !== null)
+                        <p class="help-block">لهذه المادة صورة غلاف مخصصة، والموقع يعرضها بدلاً من صورة الأرشيف.</p>
+                    @endif
                 @else
                     <br>لا يوجد صور ثابتة لهذه المادة<br>
                 @endif

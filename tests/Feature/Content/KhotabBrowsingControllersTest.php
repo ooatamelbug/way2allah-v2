@@ -220,37 +220,43 @@ it('group show: the series list uses premium cards without nested channel links'
 
 // ---- G-13-03 (media/visual parity phase): the "الملف الشخصي" author-photo box was missing entirely on series/group ----
 
-it('series show: G-13-03 — renders the previously-missing "الملف الشخصي" author-photo box, ignoring author_image (series.php\'s own unconditional get_author_img())', function () {
-    // id 999999 is deliberately far outside any real bucket in the now-populated
+it('series show: G-13-03 / F06 — the "الملف الشخصي" author-photo box prefers author_image, then get_author_img() (owner-approved deviation from series.php)', function () {
+    // ids 999999/999998 are deliberately far outside any real bucket in the now-populated
     // media library (authors/ only has bucket 0/), so this can't collide with a
     // genuine media/authors/sq/{id}.png and silently take the "real file" branch.
     DB::connection('main')->table('nuke_islamic_authors')->insert([
-        'id' => 999999, 'name' => 'Author', 'author_image' => 'https://example.com/custom.png',
+        ['id' => 999999, 'name' => 'Author', 'author_image' => 'https://example.com/custom.png'],
+        ['id' => 999998, 'name' => 'No Image', 'author_image' => null],
     ]);
     DB::connection('main')->table('nuke_islamic_series')->insert([
-        'id' => 10, 'author_id' => 999999, 'title' => 'A Series', 'vedio' => 1, 'hidden' => 0,
+        ['id' => 10, 'author_id' => 999999, 'title' => 'A Series', 'vedio' => 1, 'hidden' => 0],
+        ['id' => 11, 'author_id' => 999998, 'title' => 'B Series', 'vedio' => 1, 'hidden' => 0],
     ]);
 
     $content = $this->get('/khotab-series-10.htm')->assertOk()->getContent();
 
     expect($content)->toContain('الملف الشخصي')
-        ->and($content)->not->toContain('https://example.com/custom.png')
-        ->and($content)->toContain('/media/authors/no_author_image.png');
+        ->and($content)->toContain('<img src="https://example.com/custom.png" alt="">');
+    expect($this->get('/khotab-series-11.htm')->assertOk()->getContent())
+        ->toContain('<img src="/media/authors/no_author_image.png" alt="">');
 });
 
-it('group show: G-13-03 — renders the previously-missing "الملف الشخصي" author-photo box, ignoring author_image (group.php\'s own unconditional get_author_img())', function () {
+it('group show: G-13-03 / F06 — the "الملف الشخصي" author-photo box prefers author_image, then get_author_img() (owner-approved deviation from group.php)', function () {
     DB::connection('main')->table('nuke_islamic_authors')->insert([
-        'id' => 999999, 'name' => 'Author', 'author_image' => 'https://example.com/custom.png',
+        ['id' => 999999, 'name' => 'Author', 'author_image' => 'https://example.com/custom.png'],
+        ['id' => 999998, 'name' => 'No Image', 'author_image' => null],
     ]);
     DB::connection('main')->table('nuke_islamic_groups')->insert([
-        'id' => 20, 'author_id' => 999999, 'title' => 'A Group', 'vedio' => 1, 'hidden' => 0,
+        ['id' => 20, 'author_id' => 999999, 'title' => 'A Group', 'vedio' => 1, 'hidden' => 0],
+        ['id' => 21, 'author_id' => 999998, 'title' => 'B Group', 'vedio' => 1, 'hidden' => 0],
     ]);
 
     $content = $this->get('/khotab-group-20.htm')->assertOk()->getContent();
 
     expect($content)->toContain('الملف الشخصي')
-        ->and($content)->not->toContain('https://example.com/custom.png')
-        ->and($content)->toContain('/media/authors/no_author_image.png');
+        ->and($content)->toContain('<img src="https://example.com/custom.png" class="img-responsive" alt="">');
+    expect($this->get('/khotab-group-21.htm')->assertOk()->getContent())
+        ->toContain('<img src="/media/authors/no_author_image.png" class="img-responsive" alt="">');
 });
 
 // ---- Full Design Parity Pass (khotab-group-{id}.htm) ----

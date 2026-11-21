@@ -5,6 +5,7 @@ namespace App\Domain\Admin\Http\Controllers;
 use App\Domain\Admin\Actions\Anasheed\AnasheedItemComments;
 use App\Domain\Admin\Actions\Anasheed\AnasheedItemGroups;
 use App\Domain\Admin\Actions\Anasheed\DeleteAnasheedItemAction;
+use App\Domain\Admin\Actions\Anasheed\SetAnasheedItemVisibilityAction;
 use App\Domain\Admin\Actions\Anasheed\UpdateAnasheedItemAction;
 use App\Domain\Admin\Actions\Anasheed\UploadAnasheedItemFrameAction;
 use App\Domain\Admin\Contextual\ContextualReturn;
@@ -16,6 +17,7 @@ use App\Domain\Admin\Models\AdminUser;
 use App\Domain\Content\Models\AnasheedComment;
 use App\Domain\Content\Models\AnasheedGroup;
 use App\Domain\Content\Models\AnasheedItem;
+use App\Domain\Content\Support\VarietyMediaLink;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -84,12 +86,33 @@ class AnasheedItemAdminController
     {
         $action->execute($this->actor(), $anasheedItem, $request->validated(), $request->ip());
 
+        // B2 / F07-A: warn (never block) when the SAVED link cannot be played or downloaded as stored.
+        $warning = VarietyMediaLink::adminWarning(AnasheedItem::query()->whereKey($anasheedItem->getKey())->value('link'), 'المادة #'.(int) $anasheedItem->id);
+        if ($warning !== null) {
+            session()->flash(VarietyMediaLink::ADMIN_WARNING_FLASH, $warning);
+        }
+
         $target = ContextualReturn::safeTarget($request->input(ContextualReturn::PARAM), $request);
         if ($target !== null) {
             return redirect()->to($target)->with(ContextualReturn::FLASH, 'تم تعديل المادة');
         }
 
         return $this->toItem((int) $anasheedItem->id, 'تم تعديل المادة');
+    }
+
+    /**
+     * F08 / B4 «إخفاء المادة» / «إظهار المادة»: PUT with the TARGET state (`hidden` = 1 or 0), so a stale or repeated
+     * submit cannot flip the item the wrong way. Back to the item page, which the admin can still open.
+     */
+    public function setVisibility(Request $request, AnasheedItem $anasheedItem, SetAnasheedItemVisibilityAction $action): RedirectResponse
+    {
+        $hidden = (int) $request->validate(['hidden' => ['required', 'in:0,1']])['hidden'] === 1;
+
+        $changed = $action->execute($this->actor(), $anasheedItem, $hidden, $request->ip());
+
+        $message = ! $changed ? 'لم يتغير شيء' : ($hidden ? 'تم إخفاء المادة عن الزوار' : 'تم إظهار المادة للزوار');
+
+        return $this->toItem((int) $anasheedItem->id, $message);
     }
 
     /** «حذف المادة» — OLD DeleteAnasheed()'s confirmation page, with what the delete removes. */

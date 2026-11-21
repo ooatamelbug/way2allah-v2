@@ -15,6 +15,8 @@ use App\Domain\Admin\Http\Requests\Anasheed\UpdateAnasheedGroupRequest;
 use App\Domain\Admin\Http\Requests\Anasheed\UploadAnasheedGroupIconRequest;
 use App\Domain\Admin\Models\AdminUser;
 use App\Domain\Content\Models\AnasheedGroup;
+use App\Domain\Content\Models\AnasheedItem;
+use App\Domain\Content\Support\VarietyMediaLink;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -96,7 +98,13 @@ class AnasheedGroupAdminController
 
     public function storeItem(StoreAnasheedItemRequest $request, AnasheedGroup $anasheedGroup, InsertAnasheedItemAction $action): RedirectResponse
     {
-        $action->execute($this->actor(), $anasheedGroup, $request->validated(), $request->ip());
+        $id = $action->execute($this->actor(), $anasheedGroup, $request->validated(), $request->ip());
+
+        // B2 / F07-A: warn (never block) when the SAVED link cannot be played or downloaded as stored.
+        $warning = VarietyMediaLink::adminWarning(AnasheedItem::query()->whereKey($id)->value('link'), 'المادة #'.$id);
+        if ($warning !== null) {
+            session()->flash(VarietyMediaLink::ADMIN_WARNING_FLASH, $warning);
+        }
 
         return $this->toGroup((int) $anasheedGroup->id, 'تمت إضافة المادة');
     }

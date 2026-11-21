@@ -32,6 +32,23 @@ final class MediaUrl
     }
 
     /**
+     * Append a cache-busting `v` parameter (the project's `?v={filemtime}` convention) to an already-built URL,
+     * keeping any query string it already has. For files replaced in place under the same name (an author's
+     * `media/authors/{b}/{id}.jpg`): without it a browser keeps showing its cached copy, as Apache sends no
+     * Cache-Control for media and browsers then cache heuristically (author-image feedback, 2026-11-18).
+     */
+    public static function withVersion(string $url, int $version): string
+    {
+        $fragment = '';
+        if (($hash = strpos($url, '#')) !== false) {
+            $fragment = substr($url, $hash);
+            $url = substr($url, 0, $hash);
+        }
+
+        return $url.(str_contains($url, '?') ? '&' : '?').'v='.$version.$fragment;
+    }
+
+    /**
      * Prefix an already-built legacy query string with the configured
      * thumbnail endpoint. Query construction intentionally stays with each
      * caller so its established parameter order and source-path encoding do

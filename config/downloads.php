@@ -27,6 +27,12 @@ $setting = function (string $generic, string $legacy, mixed $default): mixed {
     return $default;
 };
 
+$seconds = function (string $name, float $default): float {
+    $value = env($name);
+
+    return is_numeric($value) && (float) $value > 0 ? (float) $value : $default;
+};
+
 return [
     // Kill switch. false = no slot is taken and no download is ever refused
     // for capacity. Off unless enabled.
@@ -45,6 +51,29 @@ return [
     // application log is written either way. A failure to store the row never
     // changes the refusal itself.
     'rejection_log' => (bool) $setting('DOWNLOAD_REJECTION_LOG', 'KHOTAB_DOWNLOAD_REJECTION_LOG', true),
+
+    // Remote proxied sources (ProxiedDownloadStreamer), in seconds. Two
+    // separate limits — and deliberately no total-duration limit, because
+    // large files over slow links legitimately take a long time:
+    //  - connect: PHP's http wrapper applies it PER OPERATION — to the TCP/TLS
+    //    connect and to EACH read while waiting for the response headers,
+    //    again for every redirect hop. It is not an end-to-end deadline: a
+    //    slowly answering server or a chain of slow redirects can take longer
+    //    in total, and DNS resolution is not covered. A silent source is
+    //    bounded;
+    //  - idle: the longest the source may send NO bytes mid-transfer before
+    //    the transfer is ended and its slot freed (up to twice this over TLS,
+    //    where PHP waits up to one timeout to fill a read buffer).
+    // Empty, zero, negative or non-numeric values mean the default.
+    'remote_connect_timeout' => $seconds('DOWNLOAD_REMOTE_CONNECT_TIMEOUT', 15),
+    'remote_idle_timeout' => $seconds('DOWNLOAD_REMOTE_IDLE_TIMEOUT', 60),
+
+    // Application-log volume control for refusals (DownloadRejectionLogThrottle):
+    // at most one DOWNLOAD_CAPACITY_FULL warning per this many seconds, each
+    // carrying how many were suppressed since the previous one. 0 = log every
+    // refusal (the earlier behaviour). The `download_rejections` row above is
+    // not affected.
+    'rejection_log_interval' => in_array(env('DOWNLOAD_REJECTION_LOG_INTERVAL'), [null, ''], true) ? 60 : (int) env('DOWNLOAD_REJECTION_LOG_INTERVAL'),
 
     // Where the slot lock files live. Must be on the same host (flock is per
     // host) and writable by PHP. The files are reusable placeholders: a slot

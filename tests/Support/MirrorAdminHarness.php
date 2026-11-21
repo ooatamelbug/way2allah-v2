@@ -51,7 +51,7 @@ final class MirrorAdminHarness
         $admin->assignRole('admin');
 
         if ($permissions !== []) {
-            $admin->givePermissionTo($permissions);
+            $admin->givePermissionTo(KhotabMediaScope::withBothSectionsIfUnspecified($permissions));
         }
 
         return $admin->fresh();
