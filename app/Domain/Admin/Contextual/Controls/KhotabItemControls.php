@@ -86,10 +86,12 @@ final class KhotabItemControls
         if ($picked !== null) {
             $mirror = Mirror::query()->find((int) $picked);
             if ($mirror !== null && (int) $mirror->khid !== (int) $item->id) {
+                // The route checks the picked mirror's section; the destination (this item) travels in a field, so its
+                // section is declared here — the same two checks MoveKhotabMirrorAction makes (2026-11-21).
                 $controls[] = ContextualControl::action(
                     "نقل الوصلة #{$mirror->id} إلى هذه المادة", 'fa-arrows', 'admin.mirrors.khotab.move', ['mirror' => $mirror->id], 'POST',
                     ['target_item_id' => (int) $item->id], "نقل الوصلة #{$mirror->id} إلى هذه المادة؟",
-                );
+                )->alsoAuthorize('khotab.editmirror', $item);
             }
             $controls[] = ContextualControl::action('إلغاء اختيار الوصلة', 'fa-times', 'admin.mirrors.khotab.clipboard.clear', [], 'POST');
         }

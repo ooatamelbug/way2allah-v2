@@ -76,13 +76,21 @@ final class ContextualAdminHarness
         config(['admin_audit.legacy_compatibility_writes' => false]);
     }
 
-    /** @param list<string> $permissions */
+    /** Both Khotab sections, for a test that means "a moderator of audio AND video" — passed explicitly, never implied. */
+    public const BOTH_SECTIONS = ['khotab.media_audio', 'khotab.media_video'];
+
+    /**
+     * An administrator holding EXACTLY $permissions — as the AdminCP permission editor creates one: no role, and no
+     * Khotab section key unless the test passes `khotab.media_audio` / `khotab.media_video` itself (AUTH-03,
+     * 2026-11-21: the earlier silent `admin` role and both-section grant hid AUTH-01 from the whole suite).
+     *
+     * @param  list<string>  $permissions
+     */
     public static function admin(array $permissions = [], string $aid = 'ctx-admin'): AdminUser
     {
         $admin = AdminUser::on('main')->create(['aid' => $aid, 'password' => 'x']);
-        $admin->assignRole('admin');
         if ($permissions !== []) {
-            $admin->givePermissionTo(KhotabMediaScope::withBothSectionsIfUnspecified($permissions));
+            $admin->givePermissionTo($permissions);
         }
 
         return $admin->fresh();

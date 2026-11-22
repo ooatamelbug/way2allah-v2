@@ -3,9 +3,7 @@
 namespace App\Domain\Admin\Http\Middleware;
 
 use App\Domain\Admin\Models\AdminUser;
-use App\Domain\Admin\Support\AdminRecordAuthorizer;
-use App\Domain\Admin\Support\Constraints\KhotabMediaScopeConstraint;
-use App\Domain\Admin\Support\Constraints\KhotabMediaTarget;
+use App\Domain\Admin\Support\KhotabMediaScopeGate;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,7 +18,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class EnsureKhotabMediaScope
 {
-    public function __construct(private readonly AdminRecordAuthorizer $authorizer) {}
+    public function __construct(private readonly KhotabMediaScopeGate $gate) {}
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -30,28 +28,8 @@ class EnsureKhotabMediaScope
             return $next($request);
         }
 
-        $keys = [];
-        foreach ($route->gatherMiddleware() as $middleware) {
-            if (is_string($middleware) && preg_match('/^(?:admin\.permission|.*EnsureAdminHasPermission):(.+)$/', $middleware, $m) === 1) {
-                $keys = array_merge($keys, explode(',', $m[1]));
-            }
-        }
-        $scoped = array_values(array_intersect($keys, KhotabMediaScopeConstraint::SCOPED));
-        if (count($keys) !== 1 || count($scoped) !== 1) {
-            return $next($request);
-        }
-
-        $record = null;
-        foreach (['item', 'group', 'series', 'mirror'] as $name) {
-            if (is_object($route->parameter($name))) {
-                $record = $route->parameter($name);
-                break;
-            }
-        }
-        if ($record === null && is_string($route->parameter('media'))) {
-            $record = KhotabMediaTarget::fromMedia($route->parameter('media'));
-        }
-        if ($record !== null && ! $this->authorizer->allows($admin, $scoped[0], $record)) {
+        // The rule lives in KhotabMediaScopeGate, shared with contextual-control visibility (AUTH-01, 2026-11-21).
+        if (! $this->gate->allowsRoute($admin, $route)) {
             abort(403);
         }
 

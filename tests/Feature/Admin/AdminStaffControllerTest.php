@@ -63,7 +63,9 @@ it('the create page uses real Metronic form-control/btn classes, matching author
 
     $content = $this->get(route('admin.staff.create'))->assertOk()->getContent();
 
-    expect($content)->toContain('name="vbuid" required class="form-control"')
+    // Owner decision 2026-11-21: the forum member id is optional (empty = standalone administrator).
+    expect($content)->toContain('name="vbuid" inputmode="numeric" class="form-control"')
+        ->not->toContain('name="vbuid" required')
         ->toContain('class="btn green"');
 });
 
@@ -171,7 +173,7 @@ it('forum database failing on the nickname-collision lookup: same controlled ref
         ->and(DB::connection('main')->table('admin_audit_log')->count())->toBe(0);
 });
 
-it('the forum member id must be a positive integer (clear Arabic message, nothing looked up or created)', function (mixed $vbuid, string $message) {
+it('a GIVEN forum member id must be a positive integer (clear Arabic message, nothing looked up or created)', function (mixed $vbuid, string $message) {
     $this->actingAs(staffAdder(), 'admin');
     makeForumDatabaseUnavailable(); // proves validation runs before any forum lookup
 
@@ -181,11 +183,11 @@ it('the forum member id must be a positive integer (clear Arabic message, nothin
 
     expect(AdminUser::on('main')->count())->toBe(1);
 })->with([
-    'empty' => ['', 'من فضلك أدخل رقم العضو بالمنتدى'],
+    // 'empty' is no longer an error: it selects the standalone mode (AdminStandaloneCreationTest).
     'letters' => ['abc', 'رقم العضو بالمنتدى يجب أن يكون رقمًا صحيحًا'],
     'decimal' => ['1.5', 'رقم العضو بالمنتدى يجب أن يكون رقمًا صحيحًا'],
-    'zero' => ['0', 'رقم العضو بالمنتدى يجب أن يكون رقمًا صحيحًا موجبًا'],
-    'negative' => ['-5', 'رقم العضو بالمنتدى يجب أن يكون رقمًا صحيحًا موجبًا'],
+    'zero' => ['0', 'رقم العضو بالمنتدى يجب أن يكون رقمًا صحيحًا موجبًا، أو اتركه فارغًا لإضافة مشرف مستقل'],
+    'negative' => ['-5', 'رقم العضو بالمنتدى يجب أن يكون رقمًا صحيحًا موجبًا، أو اتركه فارغًا لإضافة مشرف مستقل'],
 ]);
 
 it('unchanged: a valid member is added; the same member again, an existing admin and a nonexistent member are refused with their messages', function () {

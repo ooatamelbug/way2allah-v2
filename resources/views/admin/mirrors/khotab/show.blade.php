@@ -23,10 +23,10 @@
             <p><a href="{{ route('admin.link-quality.khotab.item', $item) }}">صحة الروابط وإعادة الفحص ←</a></p>
         @endif
 
-        @if ($clipboard && $canEdit)
+        @if ($clipboard && $canUseClipboard)
             <div class="alert alert-info">
                 الوصلة #{{ $clipboard->id }} ({{ $clipboard->comment }}) جاهزة للنقل.
-                @if ((int) $clipboard->khid !== (int) $item->id)
+                @if ((int) $clipboard->khid !== (int) $item->id && $canMoveClipboard)
                     <form method="post" action="{{ route('admin.mirrors.khotab.move', $clipboard) }}" style="display:inline">
                         @csrf
                         <x-admin.contextual-return />

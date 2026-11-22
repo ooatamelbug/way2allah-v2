@@ -9,6 +9,7 @@ use App\Domain\Admin\Models\AdminUser;
 use App\Domain\Admin\Support\AdminDashboardModules;
 use App\Domain\Admin\Support\AdminRecordAuthorizer;
 use App\Domain\Admin\Support\Constraints\KhotabMediaScopeConstraint;
+use App\Domain\Admin\Support\KhotabMediaScopeGate;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
@@ -41,6 +42,8 @@ class AdminServiceProvider extends ServiceProvider
             // 2026-11-17 (strict OLD parity) supersedes D1b'.
             constraints: [new KhotabMediaScopeConstraint],
         ));
+        // One per request: it memoises record lookups for contextual-control visibility (AUTH-01).
+        $this->app->scoped(KhotabMediaScopeGate::class);
     }
 
     public function boot(): void

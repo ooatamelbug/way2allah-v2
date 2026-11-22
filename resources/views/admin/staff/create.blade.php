@@ -32,20 +32,27 @@
         @endif
         <form method="post" action="{{ route('admin.staff.store') }}" autocomplete="off">
             @csrf
+            {{-- Owner decision (2026-11-21): the forum member id is optional. Empty = a standalone administrator with its own
+                 login name, name, email and password (the controller enforces these; there is no forum lookup). --}}
+            <div class="alert alert-info" data-admin-create-modes>
+                <div><strong>مشرف مرتبط بالمنتدى:</strong> أدخل رقم العضو بالمنتدى، وتُملأ الحقول الفارغة من بيانات العضو.</div>
+                <div><strong>مشرف مستقل:</strong> اترك رقم العضو فارغًا، وأدخل الكنية والإسم والبريد الالكتروني وكلمة المرور (كلها مطلوبة). لا يُنشأ حساب بالمنتدى، ويدخل المشرف بالكنية وكلمة المرور.</div>
+            </div>
             <div class="form-group">
-                <label>رقم العضو بالمنتدى <input type="text" name="vbuid" required class="form-control" value="{{ old('vbuid') }}"></label>
+                <label>رقم العضو بالمنتدى (اختياري) <input type="text" name="vbuid" inputmode="numeric" class="form-control" value="{{ old('vbuid') }}"></label>
+                <span class="help-block">اتركه فارغًا لإضافة مشرف مستقل بدون عضوية بالمنتدى.</span>
             </div>
             <div class="form-group">
                 <label>الكنية (اسم الدخول) <input type="text" name="aid" maxlength="25" class="form-control" value="{{ old('aid') }}"></label>
-                <span class="help-block">اتركها فارغة لاستخدام اسم العضو بالمنتدى.</span>
+                <span class="help-block">مطلوبة للمشرف المستقل. للمشرف المرتبط: اتركها فارغة لاستخدام اسم العضو بالمنتدى.</span>
             </div>
             <div class="form-group">
                 <label>الإسم <input type="text" name="name" maxlength="50" class="form-control" value="{{ old('name') }}"></label>
-                <span class="help-block">اتركه فارغًا لاستخدام اسم العضو بالمنتدى. لا يمكن تعديله بعد الإضافة.</span>
+                <span class="help-block">مطلوب للمشرف المستقل. للمشرف المرتبط: اتركه فارغًا لاستخدام اسم العضو بالمنتدى. لا يمكن تعديله بعد الإضافة.</span>
             </div>
             <div class="form-group">
                 <label>البريد الالكتروني <input type="email" name="email" maxlength="255" class="form-control" value="{{ old('email') }}"></label>
-                <span class="help-block">اتركه فارغًا لاستخدام بريد العضو بالمنتدى.</span>
+                <span class="help-block">مطلوب للمشرف المستقل. للمشرف المرتبط: اتركه فارغًا لاستخدام بريد العضو بالمنتدى.</span>
             </div>
             <div class="form-group">
                 <label>الرابط <input type="url" name="url" maxlength="255" class="form-control" value="{{ old('url') }}"></label>
@@ -53,7 +60,7 @@
             <div class="form-group">
                 <label>كلمة المرور <input type="password" name="new_password" minlength="8" maxlength="72" class="form-control" autocomplete="new-password"></label>
                 <label>تأكيد كلمة المرور <input type="password" name="new_password_confirmation" minlength="8" maxlength="72" class="form-control" autocomplete="new-password"></label>
-                <span class="help-block">اختيارية. إن تُركت فارغة يُنشأ الحساب بكلمة مرور عشوائية لا يعرفها أحد، وتُعيَّن لاحقًا من صفحة الصلاحيات.</span>
+                <span class="help-block">مطلوبة للمشرف المستقل (8 أحرف على الأقل). للمشرف المرتبط اختيارية: إن تُركت فارغة يُنشأ الحساب بكلمة مرور عشوائية لا يعرفها أحد، وتُعيَّن لاحقًا من صفحة الصلاحيات.</span>
             </div>
             @if ($canGrantSuperAdmin)
                 <div class="form-group">

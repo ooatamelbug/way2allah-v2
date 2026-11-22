@@ -58,6 +58,9 @@ class AdminStaffController
     /** Serialises Laravel admin creation (duplicate checks + insert). */
     public const CREATE_LOCK = 'admin-staff-create';
 
+    /** Gen 2's default admin image: a forum member without an avatar, and every standalone administrator. */
+    public const DEFAULT_AVATAR = 'https://way2allah.com/new/login-logo.png';
+
     public function index(): View
     {
         // `thumb` added — AdminCP Final 12-Route Browser Visual Evidence
@@ -168,9 +171,13 @@ class AdminStaffController
      * nickname (`aid`, OLD «الكنية», the login name), the name (OLD «الإسم»), email, URL, an optional initial
      * password, module permissions (super-admin actors) and the super-admin flag (owner actors). Every field is
      * optional and defaults to the forum account (Gen 2 behaviour), so a vbuid-only request behaves as before.
-     * Forum identity is preserved: the row is always linked to the forum member by `uid`; a nickname that differs
-     * from the member's forum username must not be ANOTHER forum member's username, and nickname / name must be
-     * unique among admins. Audited as `create_admin` inside the creation transaction.
+     * Forum-linked mode (a member id given): the row is linked to the forum member by `uid`; a nickname that differs
+     * from the member's forum username must not be ANOTHER forum member's username.
+     * Standalone mode (owner decision 2026-11-21, no member id): no forum lookup at all; login name, name, email and
+     * password are required; `uid = 0` (the column is NOT NULL, and 0 is how OLD's AddAuthor left unlinked admins).
+     * In both modes nickname / name must be unique among admins, reserved owner identities are refused, nothing is
+     * granted unless requested by an authorised actor, and the creation is audited as `create_admin` inside the
+     * creation transaction. Admin login never depends on the forum (AdminGuard: `aid` + password).
      *
      * Admin grant safety (owner-approved 2026-11-08):
      *  - One application lock serialises Laravel admin creation, so two concurrent requests cannot both pass the
@@ -187,19 +194,25 @@ class AdminStaffController
      */
     public function store(Request $request, AdminGrantInspector $grants, AdminAuditRecorder $audit): RedirectResponse
     {
+        // Owner decision (2026-11-21): the forum member id is OPTIONAL. Empty → a standalone administrator (`uid = 0`,
+        // no forum lookup), which needs its own login name, name, email and password; given → the forum-linked flow,
+        // unchanged. `0` is not "empty": it is refused like any other non-positive id.
         $data = $request->validate([
-            'vbuid' => ['required', 'integer', 'min:1'],
-            'aid' => ['nullable', 'string', 'max:25', 'not_regex:/[<>\x00-\x1F]/'],
-            'name' => ['nullable', 'string', 'max:50', 'not_regex:/[<>\x00-\x1F]/'],
-            'email' => ['nullable', 'email', 'max:255'],
+            'vbuid' => ['nullable', 'integer', 'min:1'],
+            'aid' => ['required_without:vbuid', 'nullable', 'string', 'max:25', 'not_regex:/[<>\x00-\x1F]/'],
+            'name' => ['required_without:vbuid', 'nullable', 'string', 'max:50', 'not_regex:/[<>\x00-\x1F]/'],
+            'email' => ['required_without:vbuid', 'nullable', 'email', 'max:255'],
             'url' => ['nullable', 'url:http,https', 'max:255'],
-            'new_password' => ['nullable', 'string', 'min:8', 'max:72', 'confirmed'],
+            'new_password' => ['required_without:vbuid', 'nullable', 'string', 'min:8', 'max:72', 'confirmed'],
             'permissions' => ['nullable', 'array'],
             'make_super_admin' => ['nullable', 'boolean'],
         ], [
-            'vbuid.required' => 'من فضلك أدخل رقم العضو بالمنتدى',
             'vbuid.integer' => 'رقم العضو بالمنتدى يجب أن يكون رقمًا صحيحًا',
-            'vbuid.min' => 'رقم العضو بالمنتدى يجب أن يكون رقمًا صحيحًا موجبًا',
+            'vbuid.min' => 'رقم العضو بالمنتدى يجب أن يكون رقمًا صحيحًا موجبًا، أو اتركه فارغًا لإضافة مشرف مستقل',
+            'aid.required_without' => 'الكنية (اسم الدخول) مطلوبة عند إضافة مشرف مستقل بدون رقم عضو بالمنتدى',
+            'name.required_without' => 'الإسم مطلوب عند إضافة مشرف مستقل بدون رقم عضو بالمنتدى',
+            'email.required_without' => 'البريد الالكتروني مطلوب عند إضافة مشرف مستقل بدون رقم عضو بالمنتدى',
+            'new_password.required_without' => 'كلمة المرور مطلوبة عند إضافة مشرف مستقل بدون رقم عضو بالمنتدى',
         ], [
             'vbuid' => 'رقم العضو بالمنتدى', 'aid' => 'الكنية', 'name' => 'الإسم', 'email' => 'البريد الالكتروني', 'url' => 'الرابط', 'new_password' => 'كلمة المرور',
         ]);
@@ -221,22 +234,25 @@ class AdminStaffController
             return back()->withInput($request->except('new_password', 'new_password_confirmation'))->with('error', 'صلاحية غير معروفة.');
         }
 
-        $vbUserId = (int) $data['vbuid'];
+        // Forum-linked mode only: both forum lookups run before the creation lock / transaction, so a forum-database
+        // failure writes nothing. Standalone mode never touches the forum database.
+        $vbUser = null;
+        if (isset($data['vbuid'])) {
+            try {
+                $vbUser = DB::connection('vbulletin')->table('user')->where('userid', (int) $data['vbuid'])->first(['userid', 'username', 'email', 'avatarid']);
+            } catch (QueryException|PDOException $e) {
+                return self::forumUnavailable($request, 'member_lookup', $e);
+            }
 
-        // Both forum lookups run before the creation lock / transaction, so a forum-database failure writes nothing.
-        try {
-            $vbUser = DB::connection('vbulletin')->table('user')->where('userid', $vbUserId)->first(['userid', 'username', 'email', 'avatarid']);
-        } catch (QueryException|PDOException $e) {
-            return self::forumUnavailable($request, 'member_lookup', $e);
+            if ($vbUser === null) {
+                return back()->withInput($request->except('new_password', 'new_password_confirmation'))->with('error', 'هذا العضو غير موجود بالمنتدى');
+            }
         }
 
-        if ($vbUser === null) {
-            return back()->with('error', 'هذا العضو غير موجود بالمنتدى');
-        }
-
-        $aid = trim((string) ($data['aid'] ?? '')) !== '' ? trim((string) $data['aid']) : (string) $vbUser->username;
-        $name = trim((string) ($data['name'] ?? '')) !== '' ? trim((string) $data['name']) : (string) $vbUser->username;
-        $email = trim((string) ($data['email'] ?? '')) !== '' ? trim((string) $data['email']) : (string) $vbUser->email;
+        // Standalone: the validated fields themselves (all required above). Linked: each empty field defaults to the forum account.
+        $aid = trim((string) ($data['aid'] ?? '')) !== '' ? trim((string) $data['aid']) : (string) ($vbUser->username ?? '');
+        $name = trim((string) ($data['name'] ?? '')) !== '' ? trim((string) $data['name']) : (string) ($vbUser->username ?? '');
+        $email = trim((string) ($data['email'] ?? '')) !== '' ? trim((string) $data['email']) : (string) ($vbUser->email ?? '');
         $url = trim((string) ($data['url'] ?? ''));
         $password = (string) ($data['new_password'] ?? '');
 
@@ -251,8 +267,8 @@ class AdminStaffController
         if (AdminOwners::isReservedIdentity($aid, $name)) {
             return back()->withInput($request->except('new_password', 'new_password_confirmation'))->with('error', 'هذه الكنية أو هذا الإسم محجوز لحسابات الملاك؛ اختر غيره.');
         }
-        // Forum identity: a nickname other than the member's own username must not be another member's username.
-        if ($aid !== (string) $vbUser->username) {
+        // Forum identity (linked mode): a nickname other than the member's own username must not be another member's username.
+        if ($vbUser !== null && $aid !== (string) $vbUser->username) {
             try {
                 $nicknameTaken = DB::connection('vbulletin')->table('user')->where('username', $aid)->where('userid', '!=', $vbUser->userid)->exists();
             } catch (QueryException|PDOException $e) {
@@ -272,7 +288,8 @@ class AdminStaffController
         }
 
         try {
-            if (AdminUser::on('main')->where('uid', $vbUser->userid)->exists()) {
+            // Linked mode only: `uid = 0` is shared by every standalone administrator and is never a duplicate.
+            if ($vbUser !== null && AdminUser::on('main')->where('uid', $vbUser->userid)->exists()) {
                 return back()->with('error', 'هذا العضو متواجد بالفعل في قائمة المشرفين');
             }
 
@@ -289,12 +306,13 @@ class AdminStaffController
 
             try {
                 $admin = AdminUser::on('main')->create([
-                    'uid' => $vbUser->userid,
+                    // `nuke_authors.uid` is INT NOT NULL with no default: 0 = no forum account (as OLD's AddAuthor left it).
+                    'uid' => $vbUser !== null ? (int) $vbUser->userid : 0,
                     'aid' => $aid,
                     'name' => $name,
                     'email' => $email,
                     'url' => $url,
-                    'thumb' => self::forumAvatar($vbUser),
+                    'thumb' => $vbUser !== null ? self::forumAvatar($vbUser) : self::DEFAULT_AVATAR,
                     'password' => Hash::make($password !== '' ? $password : Str::random(32)),
                     'radminsuper' => 0,
                 ]);
@@ -304,8 +322,9 @@ class AdminStaffController
                 if ($existing['roles'] + $existing['permissions'] === 0) {
                     $audit->record($viewer, 'create_admin', 'authors', 'admin', (int) $admin->getKey(), [
                         'target_aid' => $aid,
-                        'forum_uid' => (int) $vbUser->userid,
-                        'nickname_is_forum_username' => $aid === (string) $vbUser->username,
+                        'forum_uid' => $vbUser !== null ? (int) $vbUser->userid : null,
+                        'standalone' => $vbUser === null,
+                        'nickname_is_forum_username' => $vbUser !== null && $aid === (string) $vbUser->username,
                         'initial_password_set' => $password !== '',
                         'permissions' => $permissions->pluck('name')->sort()->values()->all(),
                         'super_admin' => $makeSuperAdmin,
@@ -441,7 +460,7 @@ class AdminStaffController
     /** Gen 2's add-flow avatar (`backup/index.php`): the forum avatar, else the site's default image. Read-only lookup. */
     private static function forumAvatar(object $vbUser): string
     {
-        $default = 'https://way2allah.com/new/login-logo.png';
+        $default = self::DEFAULT_AVATAR;
         if ((int) ($vbUser->avatarid ?? 0) <= 0) {
             return $default;
         }

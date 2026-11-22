@@ -131,7 +131,7 @@ it('shows each admin only the controls their permissions reach; «مواد لم 
         ->not->toContain(authorRoute('edit'))->not->toContain(authorRoute('repair-counts'))->not->toContain(authorRoute('delete'))
         ->not->toContain(authorRoute('groups.create'))->not->toContain(authorRoute('series.create'))->not->toContain(authorRoute('items.create'));
 
-    $editor = H::contextualMarkup($this->withSession(H::session(H::admin(['khotab.editauthor', 'khotab.addgroup'], 'ed')))->get($this->video)->getContent());
+    $editor = H::contextualMarkup($this->withSession(H::session(H::admin(['khotab.editauthor', 'khotab.addgroup', ...H::BOTH_SECTIONS], 'ed')))->get($this->video)->getContent());
     expect($editor)->toContain(authorRoute('edit'))->toContain(authorRoute('repair-counts'))->toContain(authorRoute('groups.create'))
         ->not->toContain(authorRoute('delete'))->not->toContain(authorRoute('series.create'))->not->toContain(authorRoute('items.create'));
 });
@@ -220,7 +220,7 @@ it('image upload stores a JPG under 1 MB at OLD\'s path and refuses anything els
 // ─── إضافة مجموعة / سلسلة / مادة ─────────────────────────────────────────────
 
 it('add group inserts OLD\'s columns with count 0 and the page\'s media type, refusing a duplicate title', function () {
-    $session = H::session(H::admin(['khotab.addgroup'], 'g'));
+    $session = H::session(H::admin(['khotab.addgroup', ...H::BOTH_SECTIONS], 'g'));
     $this->withSession($session)->get(authorRoute('groups.create'))->assertOk()->assertSee('name="Channel"', false);
 
     $this->withSession($session)->post(authorRoute('groups.store'), ['Title' => 'مجموعة ظاهرة'])->assertSessionHasErrors('Title');
@@ -242,7 +242,7 @@ it('add group inserts OLD\'s columns with count 0 and the page\'s media type, re
 });
 
 it('add series creates a standalone series (group 0) with the chosen channel', function () {
-    $session = H::session(H::admin(['khotab.addseries'], 's'));
+    $session = H::session(H::admin(['khotab.addseries', ...H::BOTH_SECTIONS], 's'));
     $this->withSession($session)->get(authorRoute('series.create', 'audio'))->assertOk()->assertSee('بدون مجموعة');
 
     $this->withSession($session)->post(authorRoute('series.store', 'audio'), ['title' => 'سلسلة جديدة', 'Channel' => 3, 'MoreInfo' => 'ت'])->assertRedirect($this->audio);
@@ -255,7 +255,7 @@ it('add series creates a standalone series (group 0) with the chosen channel', f
 });
 
 it('add item creates a standalone item: author counter + 1, no series or group, the chosen channel, the author\'s location', function () {
-    $session = H::session(H::admin(['khotab.additem'], 'i'));
+    $session = H::session(H::admin(['khotab.additem', ...H::BOTH_SECTIONS], 'i'));
     $this->withSession($session)->get(authorRoute('items.create'))->assertOk()->assertSee('name="Channel"', false)->assertSee('بدون سلسلة');
 
     $this->withSession($session)->post(authorRoute('items.store'), ['link' => 'l', 'title' => 'ab'])->assertSessionHasErrors('title');

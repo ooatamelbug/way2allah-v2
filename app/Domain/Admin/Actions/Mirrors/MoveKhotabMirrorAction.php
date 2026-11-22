@@ -31,6 +31,14 @@ use Illuminate\Validation\ValidationException;
  * controller. This action needs no clipboard at all: it takes the mirror
  * and the target explicitly (3E.1 I-11).
  *
+ * **Both sections** (owner decision 2026-11-21): the move is authorized as
+ * `khotab.editmirror` on the mirror (its current item's audio / video
+ * section) AND on the target item (the section it is moved into), through
+ * the same AdminRecordAuthorizer / KhotabMediaScopeConstraint every Khotab
+ * mirror operation uses. OLD's `MoveMirror` checked no section at all; the
+ * route's `admin.khotab-media` middleware sees only `{mirror}`, so the
+ * target is checked here, before anything is written, on every path.
+ *
  * Orphan-safe: a mirror whose current parent no longer exists can be moved
  * onto a real item, which is the only way OLD could ever rescue one. The
  * source decrement is simply skipped.
@@ -44,7 +52,8 @@ final class MoveKhotabMirrorAction
 
     public function execute(AdminUser $actor, Mirror $mirror, KhotabItem $target, ?string $ip = null): Mirror
     {
-        $this->authorizer->authorize($actor, 'khotab.editmirror', $mirror);
+        $this->authorizer->authorize($actor, 'khotab.editmirror', $mirror);   // source section
+        $this->authorizer->authorize($actor, 'khotab.editmirror', $target);   // destination section
 
         return DB::connection('main')->transaction(function () use ($actor, $mirror, $target, $ip) {
             /** @var Mirror $locked */

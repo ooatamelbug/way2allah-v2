@@ -20,7 +20,7 @@ beforeEach(function () {
     H::setUp();
     H::insert('nuke_islamic_authors', ['id' => 7, 'name' => 'الشيخ', 'prename' => '']);
     $this->item = H::insert('nuke_islamic_khotab', ['author' => 7, 'title' => 'درس', 'vedio' => 1, 'hidden' => 0, 'mirror' => 0, 'advfile' => 0]);
-    $this->editor = H::admin(['khotab.addmirror', 'khotab.editmirror', 'khotab.delmirror']);
+    $this->editor = H::admin(['khotab.addmirror', 'khotab.editmirror', 'khotab.delmirror', ...H::BOTH_SECTIONS]);
 });
 
 function storeMirror($test, array $extra = [])

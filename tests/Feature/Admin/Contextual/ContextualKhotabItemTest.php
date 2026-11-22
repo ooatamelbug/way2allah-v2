@@ -60,7 +60,7 @@ it('denies the direct routes to an admin without the permission', function () {
 });
 
 it('puts edit / pick / delete beside each mirror for a mirror admin', function () {
-    $html = khotabPage($this, H::admin(['khotab.addmirror', 'khotab.editmirror', 'khotab.delmirror']));
+    $html = khotabPage($this, H::admin(['khotab.addmirror', 'khotab.editmirror', 'khotab.delmirror', ...H::BOTH_SECTIONS]));
 
     expect($html)->toContain('href="'.route('admin.mirrors.khotab.show', $this->item).'?'.$this->back.'"');
 
@@ -83,7 +83,7 @@ it('puts edit / pick / delete beside each mirror for a mirror admin', function (
 });
 
 it('shows add-mirror only to an admin who may add, even though the page it opens accepts edit/delete holders', function () {
-    $html = khotabPage($this, H::admin(['khotab.delmirror']));
+    $html = khotabPage($this, H::admin(['khotab.delmirror', ...H::BOTH_SECTIONS]));
 
     expect($html)->not->toContain('href="'.route('admin.mirrors.khotab.show', $this->item))
         ->toContain('action="'.route('admin.mirrors.khotab.destroy', $this->m1).'"')
@@ -93,7 +93,7 @@ it('shows add-mirror only to an admin who may add, even though the page it opens
 it('offers "move the picked mirror here" only when another item\'s mirror is picked', function () {
     $other = H::insert('nuke_islamic_khotab', ['author' => 7, 'title' => 'آخر', 'vedio' => 1, 'hidden' => 0]);
     $picked = H::insert('nuke_islamic_mirror', ['khid' => $other, 'link' => 'https://x/c.mp4', 'comment' => 'ج', 'vedio' => 1]);
-    $admin = H::admin(['khotab.editmirror']);
+    $admin = H::admin(['khotab.editmirror', ...H::BOTH_SECTIONS]);
 
     $html = $this->withSession(H::session($admin) + [KhotabMirrorController::CLIPBOARD_KEY => $picked])->get($this->url)->assertOk()->getContent();
     expect($html)->toContain('action="'.route('admin.mirrors.khotab.move', $picked).'"')

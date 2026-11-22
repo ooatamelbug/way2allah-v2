@@ -319,3 +319,35 @@ it('a missing op also returns an empty 200 response after successful auth', func
 it('only POST is registered for /backup.php', function () {
     $this->get('/backup.php')->assertMethodNotAllowed();
 });
+
+// ---- uid = 0 (standalone administrators, owner decision 2026-11-21) ----
+
+it('never authenticates ID 0, even when uid-0 admins hold a matching key and full rights — no session is created', function () {
+    // two standalone administrators share uid 0 (and OLD-created unlinked admins do too)
+    createBackupAdmin(['aid' => 'standalone-a', 'uid' => 0, 'name' => 'A', 'radminsuper' => true, 'API' => str_repeat('a', 32)]);
+    createBackupAdmin(['aid' => 'standalone-b', 'uid' => 0, 'name' => 'B', 'radminsuper' => true, 'API' => str_repeat('c', 32)]);
+
+    foreach ([str_repeat('a', 32), str_repeat('c', 32)] as $key) {
+        postBackupApiBody(['op' => 'CreateSession', 'ID' => 0, 'APIKey' => $key])->assertOk()->assertSee('API Error 2', false);
+    }
+
+    expect(DB::connection('main')->table('nuke_backup_sessions')->count())->toBe(0);
+});
+
+it('refuses a missing, non-numeric or negative ID before any lookup (they cast to <= 0)', function (mixed $id) {
+    createBackupAdmin(['aid' => 'standalone-a', 'uid' => 0, 'radminsuper' => true]);
+    $body = ['op' => 'CreateSession', 'APIKey' => str_repeat('a', 32)];
+    if ($id !== null) {
+        $body['ID'] = $id;
+    }
+
+    postBackupApiBody($body)->assertOk()->assertSee('API Error 2', false);
+    expect(DB::connection('main')->table('nuke_backup_sessions')->count())->toBe(0);
+})->with(['missing' => [null], 'letters' => ['abc'], 'negative' => [-1], 'empty' => ['']]);
+
+it('a forum-linked admin still authenticates when uid-0 admins exist', function () {
+    createBackupAdmin(['aid' => 'standalone-a', 'uid' => 0, 'radminsuper' => true, 'API' => str_repeat('a', 32)]);
+    createBackupAdmin(['aid' => 'linked', 'uid' => 1, 'name' => 'Linked', 'radminsuper' => true, 'API' => str_repeat('d', 32)]);
+
+    postBackupApiBody(['op' => 'CreateSession', 'ID' => 1, 'APIKey' => str_repeat('d', 32)])->assertOk()->assertSee('<w2abackupspacer>', false);
+});

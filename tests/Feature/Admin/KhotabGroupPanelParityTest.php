@@ -99,7 +99,7 @@ it('shows each admin only the controls their permissions reach; «مواد لم 
         ->not->toContain(route('admin.khotab.groups.delete', $this->group))
         ->not->toContain('admin.khotab.items.detach');
 
-    $editor = $this->withSession(H::session(H::admin(['khotab.editgroup', 'khotab.moveitem'], 'ed')))->get($this->url)->getContent();
+    $editor = $this->withSession(H::session(H::admin(['khotab.editgroup', 'khotab.moveitem', ...H::BOTH_SECTIONS], 'ed')))->get($this->url)->getContent();
     expect($editor)->toContain(route('admin.khotab.groups.edit', $this->group))
         ->toContain('action="'.route('admin.khotab.items.detach', $this->a).'"')
         ->toContain('action="'.route('admin.khotab.series.detach', $this->series).'"')
@@ -351,7 +351,7 @@ it('«مواد لم تصنف» pages at 50, as OLD', function () {
 // ─── 8. / 9. the detach icons ────────────────────────────────────────────────
 
 it('per-series detach takes the series and its items out of the group, with no counter change (OLD UpSeries)', function () {
-    $this->withSession(H::session(H::admin(['khotab.moveitem'])))->post(route('admin.khotab.series.detach', $this->series))
+    $this->withSession(H::session(H::admin(['khotab.moveitem', ...H::BOTH_SECTIONS])))->post(route('admin.khotab.series.detach', $this->series))
         ->assertRedirect($this->url);
 
     expect((int) grp('nuke_islamic_series', $this->series, 'group_id'))->toBe(0)
@@ -364,7 +364,7 @@ it('per-series detach takes the series and its items out of the group, with no c
 it('per-item detach takes a group item out of the group: count - 1, then the group location recount (OLD UpKhotab)', function () {
     H::insert('nuke_islamic_groups_location', ['group_id' => $this->group, 'location_id' => 5, 'count' => 1]);
 
-    $this->withSession(H::session(H::admin(['khotab.moveitem'])))
+    $this->withSession(H::session(H::admin(['khotab.moveitem', ...H::BOTH_SECTIONS])))
         ->post(route('admin.khotab.items.detach', $this->a), ['return_to' => $this->url])
         ->assertRedirect($this->url)->assertSessionHas('contextual_admin_success', "تم نقل المادة '' أ '' خارج المجموعة الحالية");
 

@@ -37,12 +37,25 @@ final readonly class ContextualControl
         public ?string $returnTo = null,
         public bool $returns = true,
         public ?string $gateRoute = null,
+        /** @var list<array{0: string, 1: object}> extra record authorizations (see alsoAuthorize()) */
+        public array $recordChecks = [],
     ) {}
 
     /** @param array<string, mixed> $parameters */
     public static function link(string $label, string $icon, string $routeName, array $parameters = [], bool $returns = true, ?string $gateRoute = null): self
     {
         return new self($label, $icon, $routeName, $parameters, returns: $returns, gateRoute: $gateRoute);
+    }
+
+    /**
+     * A copy that also requires `$permission` on `$record` — for a record the target route cannot see because it
+     * travels in a form field (e.g. the destination item of a mirror move). Checked by ContextualAdmin::visible()
+     * through AdminRecordAuthorizer, the same authorizer the action uses.
+     */
+    public function alsoAuthorize(string $permission, object $record): self
+    {
+        return new self($this->label, $this->icon, $this->routeName, $this->parameters, $this->method, $this->fields,
+            $this->confirm, $this->returnTo, $this->returns, $this->gateRoute, [...$this->recordChecks, [$permission, $record]]);
     }
 
     /** @return list<string> every route whose authorization the admin must pass */

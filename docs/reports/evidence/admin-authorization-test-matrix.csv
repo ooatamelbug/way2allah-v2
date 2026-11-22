@@ -1,0 +1,134 @@
+permission,admin (grant),"grant_via_editor (http, stored)",pages_rendered,own_controls_visible,executed_ok(299),executed_403,other,hidden_after_revoke,direct_access_after_revoke,unauthorised_controls_shown
+anasheed.addanasheed,standalone uid=0: [anasheed.addanasheed],302 ['anasheed.addanasheed'],1,1,1,0,0,yes,403,0
+anasheed.addanasheed,"forum-linked: [anasheed.addanasheed, khotab.media_audio, khotab.media_video]","302 ['anasheed.addanasheed', 'khotab.media_audio', 'khotab.media_video']",1,1,1,0,0,yes,403,0
+anasheed.addbanner,standalone uid=0: [anasheed.addbanner],302 ['anasheed.addbanner'],1,1,1,0,0,yes,403,0
+anasheed.addbanner,"forum-linked: [anasheed.addbanner, khotab.media_audio, khotab.media_video]","302 ['anasheed.addbanner', 'khotab.media_audio', 'khotab.media_video']",1,1,1,0,0,yes,403,0
+anasheed.addcat,standalone uid=0: [anasheed.addcat],302 ['anasheed.addcat'],1,2,2,0,0,yes,403,0
+anasheed.addcat,"forum-linked: [anasheed.addcat, khotab.media_audio, khotab.media_video]","302 ['anasheed.addcat', 'khotab.media_audio', 'khotab.media_video']",1,2,2,0,0,yes,403,0
+anasheed.addcomment,standalone uid=0: [anasheed.addcomment],302 ['anasheed.addcomment'],3,2,2,0,0,yes,403,0
+anasheed.addcomment,"forum-linked: [anasheed.addcomment, khotab.media_audio, khotab.media_video]","302 ['anasheed.addcomment', 'khotab.media_audio', 'khotab.media_video']",3,2,2,0,0,yes,403,0
+anasheed.addgroup,standalone uid=0: [anasheed.addgroup],302 ['anasheed.addgroup'],1,1,1,0,0,yes,403,0
+anasheed.addgroup,"forum-linked: [anasheed.addgroup, khotab.media_audio, khotab.media_video]","302 ['anasheed.addgroup', 'khotab.media_audio', 'khotab.media_video']",1,1,1,0,0,yes,403,0
+anasheed.addicon,standalone uid=0: [anasheed.addicon],302 ['anasheed.addicon'],1,1,1,0,0,yes,403,0
+anasheed.addicon,"forum-linked: [anasheed.addicon, khotab.media_audio, khotab.media_video]","302 ['anasheed.addicon', 'khotab.media_audio', 'khotab.media_video']",1,1,1,0,0,yes,403,0
+anasheed.addmirror,standalone uid=0: [anasheed.addmirror],302 ['anasheed.addmirror'],1,1,1,0,0,yes,403,0
+anasheed.addmirror,"forum-linked: [anasheed.addmirror, khotab.media_audio, khotab.media_video]","302 ['anasheed.addmirror', 'khotab.media_audio', 'khotab.media_video']",1,1,1,0,0,yes,403,0
+anasheed.delanasheed,standalone uid=0: [anasheed.delanasheed],302 ['anasheed.delanasheed'],1,1,1,0,0,yes,403,0
+anasheed.delanasheed,"forum-linked: [anasheed.delanasheed, khotab.media_audio, khotab.media_video]","302 ['anasheed.delanasheed', 'khotab.media_audio', 'khotab.media_video']",1,1,1,0,0,yes,403,0
+anasheed.delgroup,standalone uid=0: [anasheed.delgroup],302 ['anasheed.delgroup'],1,1,1,0,0,yes,403,0
+anasheed.delgroup,"forum-linked: [anasheed.delgroup, khotab.media_audio, khotab.media_video]","302 ['anasheed.delgroup', 'khotab.media_audio', 'khotab.media_video']",1,1,1,0,0,yes,403,0
+anasheed.delmirror,standalone uid=0: [anasheed.delmirror],302 ['anasheed.delmirror'],3,1,1,0,0,yes,403,0
+anasheed.delmirror,"forum-linked: [anasheed.delmirror, khotab.media_audio, khotab.media_video]","302 ['anasheed.delmirror', 'khotab.media_audio', 'khotab.media_video']",3,1,1,0,0,yes,403,0
+anasheed.editanasheed,standalone uid=0: [anasheed.editanasheed],302 ['anasheed.editanasheed'],1,2,2,0,0,yes,403,0
+anasheed.editanasheed,"forum-linked: [anasheed.editanasheed, khotab.media_audio, khotab.media_video]","302 ['anasheed.editanasheed', 'khotab.media_audio', 'khotab.media_video']",1,2,2,0,0,yes,403,0
+anasheed.editgroup,standalone uid=0: [anasheed.editgroup],302 ['anasheed.editgroup'],1,1,1,0,0,yes,403,0
+anasheed.editgroup,"forum-linked: [anasheed.editgroup, khotab.media_audio, khotab.media_video]","302 ['anasheed.editgroup', 'khotab.media_audio', 'khotab.media_video']",1,1,1,0,0,yes,403,0
+anasheed.editmirror,standalone uid=0: [anasheed.editmirror],302 ['anasheed.editmirror'],3,1,1,0,0,yes,403,0
+anasheed.editmirror,"forum-linked: [anasheed.editmirror, khotab.media_audio, khotab.media_video]","302 ['anasheed.editmirror', 'khotab.media_audio', 'khotab.media_video']",3,1,1,0,0,yes,403,0
+fatwa.manage,standalone uid=0: [fatwa.manage],302 ['fatwa.manage'],3,11,11,0,0,yes,403,0
+fatwa.manage,"forum-linked: [fatwa.manage, khotab.media_audio, khotab.media_video]","302 ['fatwa.manage', 'khotab.media_audio', 'khotab.media_video']",3,11,11,0,0,yes,403,0
+khotab.addadv,standalone uid=0: [khotab.addadv],302 ['khotab.addadv'],3,4,4,0,0,yes,403,0
+khotab.addadv,"forum-linked: [khotab.addadv, khotab.media_audio, khotab.media_video]","302 ['khotab.addadv', 'khotab.media_audio', 'khotab.media_video']",3,4,4,0,0,yes,403,0
+khotab.addauthor,standalone uid=0: [khotab.addauthor],302 ['khotab.addauthor'],2,2,2,0,0,yes,403,0
+khotab.addauthor,"forum-linked: [khotab.addauthor, khotab.media_audio, khotab.media_video]","302 ['khotab.addauthor', 'khotab.media_audio', 'khotab.media_video']",2,2,2,0,0,yes,403,0
+khotab.addcat,standalone uid=0: [khotab.addcat],302 ['khotab.addcat'],6,58,58,0,0,yes,403,0
+khotab.addcat,"forum-linked: [khotab.addcat, khotab.media_audio, khotab.media_video]","302 ['khotab.addcat', 'khotab.media_audio', 'khotab.media_video']",6,58,58,0,0,yes,403,0
+khotab.adddocx,standalone uid=0: [khotab.adddocx],302 ['khotab.adddocx'],2,2,2,0,0,yes,403,0
+khotab.adddocx,"forum-linked: [khotab.adddocx, khotab.media_audio, khotab.media_video]","302 ['khotab.adddocx', 'khotab.media_audio', 'khotab.media_video']",2,2,2,0,0,yes,403,0
+khotab.addgroup,standalone uid=0: [khotab.addgroup],302 ['khotab.addgroup'],2,2,0,2,0,yes,403,0
+khotab.addgroup,"forum-linked: [khotab.addgroup, khotab.media_audio, khotab.media_video]","302 ['khotab.addgroup', 'khotab.media_audio', 'khotab.media_video']",2,2,2,0,0,yes,403,0
+khotab.additem,standalone uid=0: [khotab.additem],302 ['khotab.additem'],6,6,0,6,0,yes,403,0
+khotab.additem,"forum-linked: [khotab.additem, khotab.media_audio, khotab.media_video]","302 ['khotab.additem', 'khotab.media_audio', 'khotab.media_video']",6,6,6,0,0,yes,403,0
+khotab.addmirror,standalone uid=0: [khotab.addmirror],302 ['khotab.addmirror'],2,2,2,0,0,yes,403,0
+khotab.addmirror,"forum-linked: [khotab.addmirror, khotab.media_audio, khotab.media_video]","302 ['khotab.addmirror', 'khotab.media_audio', 'khotab.media_video']",2,2,2,0,0,yes,403,0
+khotab.addseries,standalone uid=0: [khotab.addseries],302 ['khotab.addseries'],4,4,0,4,0,yes,403,0
+khotab.addseries,"forum-linked: [khotab.addseries, khotab.media_audio, khotab.media_video]","302 ['khotab.addseries', 'khotab.media_audio', 'khotab.media_video']",4,4,4,0,0,yes,403,0
+khotab.approvecomment,standalone uid=0: [khotab.approvecomment],302 ['khotab.approvecomment'],7,5,5,0,0,yes,403,0
+khotab.approvecomment,"forum-linked: [khotab.approvecomment, khotab.media_audio, khotab.media_video]","302 ['khotab.approvecomment', 'khotab.media_audio', 'khotab.media_video']",7,5,5,0,0,yes,403,0
+khotab.delauthor,standalone uid=0: [khotab.delauthor],302 ['khotab.delauthor'],2,2,2,0,0,yes,403,0
+khotab.delauthor,"forum-linked: [khotab.delauthor, khotab.media_audio, khotab.media_video]","302 ['khotab.delauthor', 'khotab.media_audio', 'khotab.media_video']",2,2,2,0,0,yes,403,0
+khotab.delcomment,standalone uid=0: [khotab.delcomment],302 ['khotab.delcomment'],7,4,4,0,0,yes,403,0
+khotab.delcomment,"forum-linked: [khotab.delcomment, khotab.media_audio, khotab.media_video]","302 ['khotab.delcomment', 'khotab.media_audio', 'khotab.media_video']",7,4,4,0,0,yes,403,0
+khotab.deletedocx,standalone uid=0: [khotab.deletedocx],302 ['khotab.deletedocx'],5,1,1,0,0,yes,403,0
+khotab.deletedocx,"forum-linked: [khotab.deletedocx, khotab.media_audio, khotab.media_video]","302 ['khotab.deletedocx', 'khotab.media_audio', 'khotab.media_video']",5,1,1,0,0,yes,403,0
+khotab.delgroup,standalone uid=0: [khotab.delgroup],302 ['khotab.delgroup'],2,2,0,2,0,yes,403,0
+khotab.delgroup,"forum-linked: [khotab.delgroup, khotab.media_audio, khotab.media_video]","302 ['khotab.delgroup', 'khotab.media_audio', 'khotab.media_video']",2,2,2,0,0,yes,403,0
+khotab.delitem,standalone uid=0: [khotab.delitem],302 ['khotab.delitem'],2,2,0,2,0,yes,403,0
+khotab.delitem,"forum-linked: [khotab.delitem, khotab.media_audio, khotab.media_video]","302 ['khotab.delitem', 'khotab.media_audio', 'khotab.media_video']",2,2,2,0,0,yes,403,0
+khotab.delmirror,standalone uid=0: [khotab.delmirror],302 ['khotab.delmirror'],3,3,0,3,0,yes,403,0
+khotab.delmirror,"forum-linked: [khotab.delmirror, khotab.media_audio, khotab.media_video]","302 ['khotab.delmirror', 'khotab.media_audio', 'khotab.media_video']",3,3,3,0,0,yes,403,0
+khotab.delseries,standalone uid=0: [khotab.delseries],302 ['khotab.delseries'],2,2,0,2,0,yes,403,0
+khotab.delseries,"forum-linked: [khotab.delseries, khotab.media_audio, khotab.media_video]","302 ['khotab.delseries', 'khotab.media_audio', 'khotab.media_video']",2,2,2,0,0,yes,403,0
+khotab.editauthor,standalone uid=0: [khotab.editauthor],302 ['khotab.editauthor'],4,6,6,0,0,yes,403,0
+khotab.editauthor,"forum-linked: [khotab.editauthor, khotab.media_audio, khotab.media_video]","302 ['khotab.editauthor', 'khotab.media_audio', 'khotab.media_video']",4,6,6,0,0,yes,403,0
+khotab.editgroup,standalone uid=0: [khotab.editgroup],302 ['khotab.editgroup'],2,2,0,2,0,yes,403,0
+khotab.editgroup,"forum-linked: [khotab.editgroup, khotab.media_audio, khotab.media_video]","302 ['khotab.editgroup', 'khotab.media_audio', 'khotab.media_video']",2,2,2,0,0,yes,403,0
+khotab.edititem,standalone uid=0: [khotab.edititem],302 ['khotab.edititem'],2,5,0,5,0,yes,403,0
+khotab.edititem,"forum-linked: [khotab.edititem, khotab.media_audio, khotab.media_video]","302 ['khotab.edititem', 'khotab.media_audio', 'khotab.media_video']",2,5,5,0,0,yes,403,0
+khotab.editmirror,standalone uid=0: [khotab.editmirror],302 ['khotab.editmirror'],3,6,0,6,0,yes,403,0
+khotab.editmirror,"forum-linked: [khotab.editmirror, khotab.media_audio, khotab.media_video]","302 ['khotab.editmirror', 'khotab.media_audio', 'khotab.media_video']",3,6,6,0,0,yes,403,0
+khotab.editseries,standalone uid=0: [khotab.editseries],302 ['khotab.editseries'],2,2,0,2,0,yes,403,0
+khotab.editseries,"forum-linked: [khotab.editseries, khotab.media_audio, khotab.media_video]","302 ['khotab.editseries', 'khotab.media_audio', 'khotab.media_video']",2,2,2,0,0,yes,403,0
+khotab.moveitem,standalone uid=0: [khotab.moveitem],302 ['khotab.moveitem'],6,21,0,21,0,yes,403,0
+khotab.moveitem,"forum-linked: [khotab.moveitem, khotab.media_audio, khotab.media_video]","302 ['khotab.media_audio', 'khotab.media_video', 'khotab.moveitem']",6,21,21,0,0,yes,403,0
+khotab.repair,standalone uid=0: [khotab.repair],302 ['khotab.repair'],5,5,5,0,0,yes,403,0
+khotab.repair,"forum-linked: [khotab.repair, khotab.media_audio, khotab.media_video]","302 ['khotab.media_audio', 'khotab.media_video', 'khotab.repair']",5,5,5,0,0,yes,403,0
+khotab.requestbanner,standalone uid=0: [khotab.requestbanner],302 ['khotab.requestbanner'],2,2,2,0,0,yes,403,0
+khotab.requestbanner,"forum-linked: [khotab.requestbanner, khotab.media_audio, khotab.media_video]","302 ['khotab.media_audio', 'khotab.media_video', 'khotab.requestbanner']",2,2,2,0,0,yes,403,0
+khotab.sortitems,standalone uid=0: [khotab.sortitems],302 ['khotab.sortitems'],4,4,4,0,0,yes,403,0
+khotab.sortitems,"forum-linked: [khotab.sortitems, khotab.media_audio, khotab.media_video]","302 ['khotab.media_audio', 'khotab.media_video', 'khotab.sortitems']",4,4,4,0,0,yes,403,0
+khotab.uploadbanner,standalone uid=0: [khotab.uploadbanner],302 ['khotab.uploadbanner'],6,7,7,0,0,yes,403,0
+khotab.uploadbanner,"forum-linked: [khotab.uploadbanner, khotab.media_audio, khotab.media_video]","302 ['khotab.media_audio', 'khotab.media_video', 'khotab.uploadbanner']",6,7,7,0,0,yes,403,0
+khotab.uploadpdf,standalone uid=0: [khotab.uploadpdf],302 ['khotab.uploadpdf'],6,7,7,0,0,yes,403,0
+khotab.uploadpdf,"forum-linked: [khotab.uploadpdf, khotab.media_audio, khotab.media_video]","302 ['khotab.media_audio', 'khotab.media_video', 'khotab.uploadpdf']",6,7,7,0,0,yes,403,0
+mobile.managedownloads,standalone uid=0: [mobile.managedownloads],302 ['mobile.managedownloads'],1,25,25,0,0,yes,403,0
+mobile.managedownloads,"forum-linked: [mobile.managedownloads, khotab.media_audio, khotab.media_video]","302 ['khotab.media_audio', 'khotab.media_video', 'mobile.managedownloads']",1,25,25,0,0,yes,403,0
+polls.managepolls,standalone uid=0: [polls.managepolls],302 ['polls.managepolls'],2,148,148,0,0,yes,403,0
+polls.managepolls,"forum-linked: [polls.managepolls, khotab.media_audio, khotab.media_video]","302 ['khotab.media_audio', 'khotab.media_video', 'polls.managepolls']",2,148,148,0,0,yes,403,0
+telawah.addgroup,standalone uid=0: [telawah.addgroup],302 ['telawah.addgroup'],2,2,2,0,0,yes,403,0
+telawah.addgroup,"forum-linked: [telawah.addgroup, khotab.media_audio, khotab.media_video]","302 ['khotab.media_audio', 'khotab.media_video', 'telawah.addgroup']",2,2,2,0,0,yes,403,0
+telawah.addtelawah,standalone uid=0: [telawah.addtelawah],302 ['telawah.addtelawah'],1,1,1,0,0,yes,403,0
+telawah.addtelawah,"forum-linked: [telawah.addtelawah, khotab.media_audio, khotab.media_video]","302 ['khotab.media_audio', 'khotab.media_video', 'telawah.addtelawah']",1,1,1,0,0,yes,403,0
+telawah.delgroup,standalone uid=0: [telawah.delgroup],302 ['telawah.delgroup'],1,1,1,0,0,yes,403,0
+telawah.delgroup,"forum-linked: [telawah.delgroup, khotab.media_audio, khotab.media_video]","302 ['khotab.media_audio', 'khotab.media_video', 'telawah.delgroup']",1,1,1,0,0,yes,403,0
+telawah.delmirror,standalone uid=0: [telawah.delmirror],302 ['telawah.delmirror'],1,1,1,0,0,yes,403,0
+telawah.delmirror,"forum-linked: [telawah.delmirror, khotab.media_audio, khotab.media_video]","302 ['khotab.media_audio', 'khotab.media_video', 'telawah.delmirror']",1,1,1,0,0,yes,403,0
+telawah.deltelawah,standalone uid=0: [telawah.deltelawah],302 ['telawah.deltelawah'],1,1,1,0,0,yes,403,0
+telawah.deltelawah,"forum-linked: [telawah.deltelawah, khotab.media_audio, khotab.media_video]","302 ['khotab.media_audio', 'khotab.media_video', 'telawah.deltelawah']",1,1,1,0,0,yes,403,0
+telawah.editgroup,standalone uid=0: [telawah.editgroup],302 ['telawah.editgroup'],1,1,1,0,0,yes,403,0
+telawah.editgroup,"forum-linked: [telawah.editgroup, khotab.media_audio, khotab.media_video]","302 ['khotab.media_audio', 'khotab.media_video', 'telawah.editgroup']",1,1,1,0,0,yes,403,0
+telawah.editmirror,standalone uid=0: [telawah.editmirror],302 ['telawah.editmirror'],1,1,1,0,0,yes,403,0
+telawah.editmirror,"forum-linked: [telawah.editmirror, khotab.media_audio, khotab.media_video]","302 ['khotab.media_audio', 'khotab.media_video', 'telawah.editmirror']",1,1,1,0,0,yes,403,0
+telawah.edittelawah,standalone uid=0: [telawah.edittelawah],302 ['telawah.edittelawah'],1,2,2,0,0,yes,403,0
+telawah.edittelawah,"forum-linked: [telawah.edittelawah, khotab.media_audio, khotab.media_video]","302 ['khotab.media_audio', 'khotab.media_video', 'telawah.edittelawah']",1,2,2,0,0,yes,403,0
+telawah.repair,standalone uid=0: [telawah.repair],302 ['telawah.repair'],1,1,1,0,0,yes,403,0
+telawah.repair,"forum-linked: [telawah.repair, khotab.media_audio, khotab.media_video]","302 ['khotab.media_audio', 'khotab.media_video', 'telawah.repair']",1,1,1,0,0,yes,403,0
+w2acd.managecds,standalone uid=0: [w2acd.managecds],302 ['w2acd.managecds'],4,14,14,0,0,yes,403,0
+w2acd.managecds,"forum-linked: [w2acd.managecds, khotab.media_audio, khotab.media_video]","302 ['khotab.media_audio', 'khotab.media_video', 'w2acd.managecds']",4,14,14,0,0,yes,403,0
+ads.manageads,standalone uid=0 (AdminCP route admin.ads.index),editor,0,-,1,0,0,-,403,0
+ads.manageads,standalone uid=0 (AdminCP route admin.ads.create),editor,0,-,1,0,0,-,403,0
+ads.manageads,standalone uid=0 (AdminCP route admin.ads.store),editor,0,-,1,0,0,-,403,0
+ads.manageads,standalone uid=0 (AdminCP route admin.ads.reports),editor,0,-,1,0,0,-,403,0
+authors.addstuff,standalone uid=0 (AdminCP route admin.staff.create),editor,0,-,1,0,0,-,403,0
+authors.addstuff,standalone uid=0 (AdminCP route admin.staff.store),editor,0,-,1,0,0,-,403,0
+authors.liststuff,standalone uid=0 (AdminCP route admin.staff.index),editor,0,-,1,0,0,-,403,0
+banners_ads.managebanners,standalone uid=0 (AdminCP route admin.banners_ads.index),editor,0,-,1,0,0,-,403,0
+banners_ads.managebanners,standalone uid=0 (AdminCP route admin.banners_ads.update),editor,0,-,1,0,0,-,403,0
+broadcasting.editstream,standalone uid=0 (AdminCP route admin.broadcasting.index),editor,0,-,1,0,0,-,403,0
+khotab.uploaders,standalone uid=0 (AdminCP route admin.uploaders.index),editor,0,-,1,0,0,-,403,0
+khotab.uploaders,standalone uid=0 (AdminCP route admin.uploaders.recompute),editor,0,-,1,0,0,-,403,0
+khotab.uploaders,standalone uid=0 (AdminCP route admin.uploaders.vblink),editor,0,-,1,0,0,-,403,0
+locations.add_location,standalone uid=0 (AdminCP route admin.locations.index),editor,0,-,1,0,0,-,403,0
+locations.add_location,standalone uid=0 (AdminCP route admin.locations.create),editor,0,-,1,0,0,-,403,0
+locations.add_location,standalone uid=0 (AdminCP route admin.locations.store),editor,0,-,1,0,0,-,403,0
+locations.del_location,standalone uid=0 (AdminCP route admin.locations.index),editor,0,-,1,0,0,-,403,0
+questionnaire.listallquest,standalone uid=0 (AdminCP route admin.questionnaire.index),editor,0,-,1,0,0,-,403,0
+questionnaire.listquest,standalone uid=0 (AdminCP route admin.questionnaire.index),editor,0,-,1,0,0,-,403,0
+report_ads.managereports,standalone uid=0 (AdminCP route admin.report_ads.index),editor,0,-,1,0,0,-,403,0
+soundcloud.update_soundcloud,standalone uid=0 (AdminCP route admin.soundcloud.edit),editor,0,-,1,0,0,-,403,0
+soundcloud.update_soundcloud,standalone uid=0 (AdminCP route admin.soundcloud.update),editor,0,-,1,0,0,-,403,0
+survey.modsurvey,standalone uid=0 (AdminCP route admin.survey.index),editor,0,-,1,0,0,-,403,0
+survey.modsurvey,standalone uid=0 (AdminCP route admin.survey.create),editor,0,-,1,0,0,-,403,0
+survey.modsurvey,standalone uid=0 (AdminCP route admin.survey.store),editor,0,-,1,0,0,-,403,0
+youtube.update_youtube,standalone uid=0 (AdminCP route admin.youtube.edit),editor,0,-,1,0,0,-,403,0
+youtube.update_youtube,standalone uid=0 (AdminCP route admin.youtube.store),editor,0,-,1,0,0,-,403,0

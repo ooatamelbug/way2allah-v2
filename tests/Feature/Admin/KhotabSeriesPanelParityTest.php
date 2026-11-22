@@ -106,7 +106,7 @@ it('shows each admin only the controls their permissions reach; «مواد لم 
         ->not->toContain(route('admin.khotab.series.delete', $this->series))
         ->not->toContain('إخراج المادة من السلسلة');
 
-    $editor = $this->withSession(H::session(H::admin(['khotab.editseries', 'khotab.moveitem'], 'ed')))->get($this->url)->getContent();
+    $editor = $this->withSession(H::session(H::admin(['khotab.editseries', 'khotab.moveitem', ...H::BOTH_SECTIONS], 'ed')))->get($this->url)->getContent();
     expect($editor)->toContain(route('admin.khotab.series.edit', $this->series))
         ->toContain('action="'.route('admin.khotab.items.detach', $this->a).'"')
         ->not->toContain(route('admin.khotab.series.delete', $this->series))
@@ -401,7 +401,7 @@ it('«مواد لم تصنف» lists every item WHERE ser_id = X (hidden and off
 it('per-item detach takes the item out of the series only: series location recount, count - 1 (OLD UpKhotab)', function () {
     H::insert('nuke_islamic_series_location', ['series_id' => $this->series, 'location_id' => 5, 'count' => 0]);
 
-    $this->withSession(H::session(H::admin(['khotab.moveitem'])))
+    $this->withSession(H::session(H::admin(['khotab.moveitem', ...H::BOTH_SECTIONS])))
         ->post(route('admin.khotab.items.detach', $this->a), ['return_to' => $this->url])
         ->assertRedirect($this->url)->assertSessionHas('contextual_admin_success', "تم نقل المادة '' أ '' خارج السلسلة الحالية");
 

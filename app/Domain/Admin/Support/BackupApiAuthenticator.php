@@ -31,7 +31,13 @@ class BackupApiAuthenticator
             return BackupApiAuthResult::error('API Error 1:'.strlen($apiKey));
         }
 
+        // The backup tool identifies the admin by forum member id. `uid = 0` means "no forum account" and is shared by
+        // every standalone administrator (and OLD-created ones), so it identifies nobody: refused before any lookup,
+        // with the same answer as an unknown id (owner decision 2026-11-21). A non-numeric ID casts to 0 as before.
         $uid = (int) $request->input('ID');
+        if ($uid <= 0) {
+            return BackupApiAuthResult::error('API Error 2');
+        }
         $admin = AdminUser::query()->where('uid', $uid)->first();
 
         // F02: a deactivated admin's key is refused (deactivation also clears `API`).

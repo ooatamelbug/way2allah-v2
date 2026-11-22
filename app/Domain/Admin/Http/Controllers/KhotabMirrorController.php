@@ -65,14 +65,25 @@ class KhotabMirrorController
     {
         $admin = $this->actor();
         $clipboardId = session(self::CLIPBOARD_KEY);
+        $clipboard = $clipboardId ? Mirror::query()->find((int) $clipboardId) : null;
 
+        // AUTH-01 (AdminCP, 2026-11-21): the per-mirror edit / pick / delete controls are authorized against THIS item —
+        // every listed mirror belongs to it, so it is the same audio / video section the server checks on each mirror
+        // (`EnsureKhotabMediaScope` and the actions, through AdminRecordAuthorizer). Without the record the Khotab
+        // section scope was skipped and a moderator of the other section saw controls that answered 403.
         return view('admin.mirrors.khotab.show', [
             'item' => $khotabItem,
             'mirrors' => $khotabItem->mirrors()->orderBy('id')->get(),
-            'clipboard' => $clipboardId ? Mirror::query()->find((int) $clipboardId) : null,
+            'clipboard' => $clipboard,
             'canAdd' => $this->authorizer->allows($admin, 'khotab.addmirror'),
-            'canEdit' => $this->authorizer->allows($admin, 'khotab.editmirror'),
-            'canDelete' => $this->authorizer->allows($admin, 'khotab.delmirror'),
+            'canEdit' => $this->authorizer->allows($admin, 'khotab.editmirror', $khotabItem),
+            'canDelete' => $this->authorizer->allows($admin, 'khotab.delmirror', $khotabItem),
+            // The clipboard box: «إلغاء» has no record (permission only); «نقل الوصلة هنا» needs the PICKED mirror's section
+            // and this item's (the destination) — exactly MoveKhotabMirrorAction's two checks.
+            'canUseClipboard' => $this->authorizer->allows($admin, 'khotab.editmirror'),
+            'canMoveClipboard' => $clipboard !== null
+                && $this->authorizer->allows($admin, 'khotab.editmirror', $clipboard)
+                && $this->authorizer->allows($admin, 'khotab.editmirror', $khotabItem),
         ]);
     }
 
@@ -91,7 +102,8 @@ class KhotabMirrorController
             'item' => KhotabItem::query()->find((int) $mirror->khid),
             // An orphan has no item page, so the edit page is the only
             // place its delete can be offered from.
-            'canDelete' => $this->authorizer->allows($this->actor(), 'khotab.delmirror'),
+            // AUTH-01 (AdminCP): authorized against this mirror, as DeleteKhotabMirrorAction does.
+            'canDelete' => $this->authorizer->allows($this->actor(), 'khotab.delmirror', $mirror),
             // F09: OLD's post-backup link lock (enforced again in the action).
             'linkEditable' => UpdateKhotabMirrorAction::linkEditable($this->actor(), $mirror),
         ]);

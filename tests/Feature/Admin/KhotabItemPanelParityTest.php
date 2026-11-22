@@ -169,7 +169,7 @@ it('gives each admin only the controls their permissions reach; the stats block 
         ->not->toContain(route('admin.khotab.items.images', $this->item))->not->toContain('إضافة تعليق إداري')
         ->not->toContain(route('admin.khotab.comments.edit', $this->c1))->not->toContain(route('admin.link-quality.khotab.item', $this->item));
 
-    $editor = page($this, $this->item, H::admin(['khotab.edititem', 'khotab.delcomment'], 'ed'))->getContent();
+    $editor = page($this, $this->item, H::admin(['khotab.edititem', 'khotab.delcomment', ...H::BOTH_SECTIONS], 'ed'))->getContent();
     expect($editor)->toContain(route('admin.khotab.items.edit', $this->item))->toContain('action="'.route('admin.khotab.items.images', $this->item).'"')
         ->toContain(route('admin.khotab.comments.edit', $this->c1))   // hide alone reaches the comment page
         ->not->toContain(route('admin.khotab.items.move', $this->item))->not->toContain('إضافة تعليق إداري')
@@ -307,7 +307,7 @@ it('edit shows OLD\'s form and writes OLD\'s fields, trial = 0, and the location
 
 it('edit locks the link of a downloaded item for everyone but a super-admin, and sets the channel only for a free item', function () {
     $free = H::insert('nuke_islamic_khotab', ['author' => 7, 'vedio' => 1, 'title' => 'فردية', 'down' => 1, 'link' => 'https://a/1.mp4', 'linksize' => 100]);
-    $editor = H::session(H::admin(['khotab.edititem'], 'ed'));
+    $editor = H::session(H::admin(['khotab.edititem', ...H::BOTH_SECTIONS], 'ed'));
 
     expect($this->withSession($editor)->get(route('admin.khotab.items.edit', $free))->getContent())
         ->toContain('name="khotab_link" class="form-control" value="https://a/1.mp4" type="text" disabled')->toContain('name="Channel"');
@@ -338,7 +338,7 @@ it('move offers OLD\'s selects and their dependent reloads', function () {
 });
 
 it('move refuses OLD\'s errors and otherwise writes OLD\'s counters and locations', function () {
-    $session = H::session(H::admin(['khotab.moveitem'], 'mover'));
+    $session = H::session(H::admin(['khotab.moveitem', ...H::BOTH_SECTIONS], 'mover'));
 
     $this->withSession($session)->put(route('admin.khotab.items.move.save', $this->item), ['author_id' => 99, 'group_id' => $this->audioGroup, 'ser_id' => $this->series])
         ->assertSessionHasErrors('author_id');
@@ -542,7 +542,7 @@ it('«سحب الصور» stores the archive.org GIF and middle thumbnail, sets 
         'archive.org/download/myitem/a.thumbs/a_000002.jpg' => Http::response('JPG', 200),
         '*' => Http::response('NO', 404),
     ]);
-    $session = H::session(H::admin(['khotab.edititem'], 'ed'));
+    $session = H::session(H::admin(['khotab.edititem', ...H::BOTH_SECTIONS], 'ed'));
 
     $this->withSession($session)->get(route('admin.khotab.items.edit', $this->item))->assertOk();   // the GET is the edit form, nothing leeched
     $this->get(route('admin.khotab.items.images', $this->item))->assertStatus(405);   // no GET route at all
