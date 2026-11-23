@@ -82,6 +82,10 @@
                     <li><i class="fa fa-envelope-o"></i><span><a href="https://way2allah.com/english/" target="_blank">English</a></span></li>
                 </ul>
             </div>
+            {{-- Admin session indicator (2026-11-23): centred, only for a signed-in administrator; visitors get nothing. --}}
+            @contextualAdmin
+                <x-admin.session-indicator variant="bar" />
+            @endcontextualAdmin
             <div class="col-md-6 col-sm-6 social-media">
                 <ul class="social-footer list-unstyled list-inline pull-right">
                     <li><a href="https://www.facebook.com/Way2allahCom" target="_blank"><i class="fa fa-facebook"></i></a></li>
@@ -103,6 +107,10 @@
         {{-- legacy: href="/index.php" — adapted to "/", Laravel's own root route, not the unported legacy home page --}}
         <a class="site-logo" href="/"><img id="logo-light" src="/logo-light.png" alt="الطريق إلى الله"></a>
 
+        {{-- Admin session indicator, mobile (the top bar is hidden <= 767px): compact dropdown beside the menu button. --}}
+        @contextualAdmin
+            <x-admin.session-indicator variant="menu" />
+        @endcontextualAdmin
         <button type="button" class="mobi-toggler" aria-controls="w2a-primary-navigation" aria-expanded="false" aria-label="فتح القائمة الرئيسية">
             <i class="fa fa-bars" aria-hidden="true"></i>
         </button>

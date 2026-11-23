@@ -2,6 +2,7 @@
 
 namespace App\Domain\Admin\Http\Controllers;
 
+use App\Domain\Admin\Contextual\ContextualReturn;
 use App\Domain\Admin\Models\AdminUser;
 use App\Domain\Admin\Support\AdminDashboardModules;
 use App\Domain\Admin\Support\AdminLoginThrottle;
@@ -121,13 +122,22 @@ class AdminAuthController
      * the guard's own session-ID regeneration, not a duplicate of it —
      * confirmed by reading `Illuminate\Session\Store`'s two separate
      * methods before adding this).
+     *
+     * Admin session indicator (2026-11-23): an optional `return_to` sends the
+     * administrator back to the public page they logged out from. It is
+     * validated by `ContextualReturn::safeTarget()` (same host only, never
+     * /admincp or /deploy, no scheme / credential / port tricks); anything
+     * else falls back to the AdminCP login page exactly as before. Only the
+     * admin key leaves the session — forum (vBulletin) cookies are untouched.
      */
     public function logout(Request $request): RedirectResponse
     {
+        $returnTo = ContextualReturn::safeTarget($request->input(ContextualReturn::PARAM), $request);
+
         Auth::guard('admin')->logout();
 
         $request->session()->regenerateToken();
 
-        return redirect()->route('admin.entry');
+        return $returnTo !== null ? redirect()->to($returnTo) : redirect()->route('admin.entry');
     }
 }

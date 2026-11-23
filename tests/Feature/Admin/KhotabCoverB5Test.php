@@ -17,6 +17,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -146,6 +147,7 @@ it('2 & 4: a valid cover wins on every surface, including over the animated GIF;
     }
 
     auth('admin')->forgetUser();
+    Auth::forgetGuards();   // a visitor request: the guard built by actingAs() holds the test's session-less request
     expect($this->get('/')->assertOk()->getContent())->toContain(e(KhotabCover::url(B5_VIDEO)));
 });
 
@@ -393,6 +395,7 @@ it('16: the video player is unchanged — no poster, no cover', function () {
     $this->actingAs(H::admin(['khotab.edititem']), 'admin');
     b5Store(B5_VIDEO);
     auth('admin')->forgetUser();
+    Auth::forgetGuards();   // a visitor request: the guard built by actingAs() holds the test's session-less request
 
     $html = $this->post('/media-player', ['id' => B5_VIDEO, 'type' => 'khotab'])->assertOk()->getContent();
 

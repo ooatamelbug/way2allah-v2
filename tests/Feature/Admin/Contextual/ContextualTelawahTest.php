@@ -27,6 +27,8 @@ it('shows a visitor nothing, and an admin without telawah.repair nothing', funct
 it('links the link-health page for a Telawah repair admin and a super-admin, without return_to', function () {
     foreach ([H::admin(['telawah.repair']), H::superAdmin()] as $admin) {
         $html = $this->withSession(H::session($admin))->get($this->url)->assertOk()->getContent();
+        // (the admin session indicator's logout form carries its own validated return_to — 2026-11-23; leave it out)
+        $html = preg_replace(['#<div class="w2a-admin-session".*?</form>\s*</div>#s', '#<details class="w2a-admin-session-menu[^"]*".*?</details>#s'], '', $html);
         expect($html)->toContain('href="'.route('admin.link-quality.telawah.item', $this->item).'"')->not->toContain('return_to');
     }
 });
