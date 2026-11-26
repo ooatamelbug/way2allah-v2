@@ -38,6 +38,47 @@ final class KhotabArchiveImages
         return $flags;
     }
 
+    /**
+     * Multi-author creation (2026-11-25): give each copy its own file, copied from what the primary item stored, so
+     * archive.org is fetched once whatever the number of copies. Only the kinds the primary actually has are copied;
+     * a failed copy leaves that copy's flag at 0 («سحب الصور» recovers it, per item).
+     *
+     * @param  array{gif?: int, frame?: int}  $sourceFlags
+     * @param  list<int>  $targetIds
+     * @return array<int, array{gif?: int, frame?: int}> target id => the flags to set on it
+     */
+    public function copyFromItem(int $sourceId, array $sourceFlags, array $targetIds): array
+    {
+        $kinds = ['gif' => ['khotab_gifs', 'gif'], 'frame' => ['khotab_frames', 'jpg']];
+        $result = [];
+
+        foreach ($targetIds as $targetId) {
+            $result[$targetId] = [];
+            foreach ($kinds as $flag => [$folder, $extension]) {
+                if (! isset($sourceFlags[$flag])) {
+                    continue;
+                }
+                $source = $this->absolute(MediaPathResolver::path($folder, $sourceId, $extension));
+                $target = $this->absolute(MediaPathResolver::path($folder, $targetId, $extension));
+                $directory = dirname($target);
+
+                if (is_file($source)
+                    && (is_dir($directory) || @mkdir($directory, 0775, true) || is_dir($directory))
+                    && @copy($source, $target)) {
+                    $result[$targetId][$flag] = 1;
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    /** @param string $relative `media/…` as MediaPathResolver builds it */
+    private function absolute(string $relative): string
+    {
+        return rtrim((string) config('admin_khotab.media_root'), '/').'/'.substr($relative, strlen('media/'));
+    }
+
     /** @param string $relative `media/…` as MediaPathResolver builds it */
     private function download(string $url, string $relative): bool
     {

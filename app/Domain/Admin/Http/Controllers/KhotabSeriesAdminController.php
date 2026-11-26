@@ -5,6 +5,7 @@ namespace App\Domain\Admin\Http\Controllers;
 use App\Domain\Admin\Actions\Khotab\DeleteKhotabSeriesAction;
 use App\Domain\Admin\Actions\Khotab\FastCopyKhotabSeriesCategoriesAction;
 use App\Domain\Admin\Actions\Khotab\InsertKhotabSeriesItemAction;
+use App\Domain\Admin\Actions\Khotab\KhotabAdditionalAuthorCopies;
 use App\Domain\Admin\Actions\Khotab\KhotabSeriesContext;
 use App\Domain\Admin\Actions\Khotab\ReArrangeKhotabSeriesItemsAction;
 use App\Domain\Admin\Actions\Khotab\UpdateKhotabSeriesAction;
@@ -169,14 +170,16 @@ class KhotabSeriesAdminController
             'channels' => $selectable ? $main->table('nuke_sat_channels')->orderByRaw($this->byTitle())->get(['id', 'title']) : collect(),
             'fixedChannel' => (int) $series->channel_id > 0 ? $main->table('nuke_sat_channels')->where('id', $series->channel_id)->first(['id', 'title']) : null,
             'locations' => $main->table('nuke_islamic_locations')->orderByRaw($this->byTitle())->get(['id', 'title']),
+            'additionalAuthors' => KhotabAdditionalAuthorCopies::selectedForForm(old('additional_authors'), (int) $series->author_id),
         ]);
     }
 
     public function storeItem(StoreKhotabSeriesItemRequest $request, Series $series, InsertKhotabSeriesItemAction $action): RedirectResponse
     {
-        $action->execute($this->actor(), $series, $request->validated(), $request->ip());
+        $result = $action->execute($this->actor(), $series, $request->validated(), $request->ip());
 
-        return $this->toSeries($series, 'تمت إضافة المادة');
+        return KhotabAdditionalAuthorCopies::withImageWarning(
+            $this->toSeries($series, KhotabAdditionalAuthorCopies::successMessage($result)), $result);
     }
 
     /** OLD's `author = A AND ser_id = X AND group_id = G` item set. */

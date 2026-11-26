@@ -49,6 +49,12 @@ use Throwable;
  * the image downloads are bounded by a timeout and limited to archive.org
  * URLs — OLD fetched any URL posted in the hidden fields. A failed image
  * download leaves `gif`/`frame` at 0 (OLD would `die()` half-way).
+ *
+ * Multi-author creation and the author-lock protocol (2026-11-25): the author
+ * row(s) are locked before the duplicate-link check, and optional additional
+ * sheikhs get independent standalone copies in the same transaction
+ * ({@see KhotabAdditionalAuthorCopies}). Without additional sheikhs the item,
+ * counters, audit row and messages are exactly as before.
  */
 final class InsertKhotabItemAction
 {
@@ -58,17 +64,19 @@ final class InsertKhotabItemAction
         private readonly AdminRecordAuthorizer $authorizer,
         private readonly AdminAuditRecorder $audit,
         private readonly KhotabLocationCounts $locations,
+        private readonly KhotabAdditionalAuthorCopies $copies,
     ) {}
 
     /**
      * @param  array<string, mixed>  $data  the validated form
-     * @return int the new item id
      *
      * @throws ValidationException OLD's refusals, as field errors
      */
-    public function execute(AdminUser $actor, KhotabGroup $group, array $data, ?string $ip = null): int
+    public function execute(AdminUser $actor, KhotabGroup $group, array $data, ?string $ip = null): KhotabItemCreation
     {
         $this->authorizer->authorize($actor, 'khotab.additem', $group);
+        $additional = KhotabAdditionalAuthorCopies::requestedIds($data);
+        $this->copies->authorize($actor, (int) $group->vedio, $additional);
 
         $title = (string) ($data['title'] ?? '');
         if (strlen(trim($title)) < 3) {
@@ -80,17 +88,25 @@ final class InsertKhotabItemAction
 
         $link = trim((string) ($data['link'] ?? ''));
 
-        $id = DB::connection('main')->transaction(function () use ($actor, $group, $data, $title, $link, $ip) {
+        [$id, $copies] = KhotabAdditionalAuthorCopies::transaction(function () use ($actor, $group, $data, $title, $link, $ip, $additional) {
             $main = DB::connection('main');
             $row = $main->table('nuke_islamic_groups')->where('id', $group->id)->lockForUpdate()->first(['id', 'author_id', 'vedio']);
             abort_if($row === null, 404);
 
-            $existing = $main->table('nuke_islamic_khotab')->where('link', $link)->where('author', $row->author_id)->first(['id', 'title']);
-            if ($existing !== null) {
-                throw ValidationException::withMessages(['link' => 'هذه الوصلة مضافة بقاعدة بيانات الموقع في المادة : #'.$existing->id.' '.$existing->title]);
+            // Author rows locked before the duplicate check (locking reads only so far — see KhotabAdditionalAuthorCopies).
+            $locked = $this->copies->lockAuthors((int) $row->author_id, $additional);
+
+            if ($additional === []) {
+                $existing = $main->table('nuke_islamic_khotab')->where('link', $link)->where('author', $row->author_id)->first(['id', 'title']);
+                if ($existing !== null) {
+                    throw ValidationException::withMessages(['link' => 'هذه الوصلة مضافة بقاعدة بيانات الموقع في المادة : #'.$existing->id.' '.$existing->title]);
+                }
+            } else {
+                $this->copies->assertSelectable((int) $row->author_id, $additional, $locked);
+                $this->copies->assertLinkFree($link, (int) $row->author_id, $additional, $locked);
             }
 
-            $authorId = (int) $main->table('nuke_islamic_authors')->where('id', $row->author_id)->lockForUpdate()->value('id');
+            $authorId = isset($locked[(int) $row->author_id]) ? (int) $row->author_id : 0;
             if ($authorId < 1) {
                 throw ValidationException::withMessages(['title' => 'الداعية غير موجود']);
             }
@@ -105,7 +121,7 @@ final class InsertKhotabItemAction
             $main->table('nuke_islamic_authors')->where('id', $authorId)
                 ->update([$vedio === 1 ? 'vedio' : 'audio' => DB::raw(($vedio === 1 ? 'vedio' : 'audio').' + 1')]);
 
-            $id = (int) $main->table('nuke_islamic_khotab')->insertGetId([
+            $columns = [
                 'title' => $title,
                 'description' => (string) ($data['description'] ?? ''),
                 'meta_keywords' => (string) ($data['meta_keywords'] ?? ''),
@@ -126,7 +142,8 @@ final class InsertKhotabItemAction
                 'channel_id' => 0,
                 'location_id' => $location,
                 'lastmirror' => $now,
-            ]);
+            ];
+            $id = (int) $main->table('nuke_islamic_khotab')->insertGetId($columns);
 
             $main->table('nuke_islamic_groups')->where('id', $row->id)
                 ->update(['count' => DB::raw('count + 1'), 'lastupdate' => $now]);
@@ -147,7 +164,7 @@ final class InsertKhotabItemAction
                 'title' => AuditText::digest($title),
             ], $ip);
 
-            return $id;
+            return [$id, $this->copies->insert($actor, $columns, $id, $additional, $ip)];
         });
 
         // OLD downloaded the images after its database writes, outside any
@@ -163,7 +180,7 @@ final class InsertKhotabItemAction
             DB::connection('main')->table('nuke_islamic_khotab')->where('id', $id)->update($flags);
         }
 
-        return $id;
+        return $copies === [] ? new KhotabItemCreation($id) : $this->copies->finishImages($id, $flags, $copies, $data);
     }
 
     /** @param string $relative `media/…` as MediaPathResolver builds it */

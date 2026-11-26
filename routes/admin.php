@@ -22,6 +22,7 @@ use App\Domain\Admin\Http\Controllers\FatwaAdminController;
 use App\Domain\Admin\Http\Controllers\FatwaGeneralQuestionAdminController;
 use App\Domain\Admin\Http\Controllers\FatwaTopicAdminController;
 use App\Domain\Admin\Http\Controllers\KhotabAuthorAdminController;
+use App\Domain\Admin\Http\Controllers\KhotabAuthorSearchController;
 use App\Domain\Admin\Http\Controllers\KhotabGroupAdminController;
 use App\Domain\Admin\Http\Controllers\KhotabItemAdminController;
 use App\Domain\Admin\Http\Controllers\KhotabItemCoverController;
@@ -628,6 +629,9 @@ Route::middleware(['admin.role'])->prefix('admincp')->name('admin.')->group(func
 
         Route::get('/archive-metadata', [KhotabGroupAdminController::class, 'archive'])
             ->middleware(['admin.permission:khotab.additem'])->name('archive');
+        // Multi-author creation (2026-11-25): the additional-sheikh search of the three «إضافة مادة» forms (JSON).
+        Route::get('/author-search/{media}', KhotabAuthorSearchController::class)->where('media', 'video|audio')
+            ->middleware(['admin.permission:khotab.additem', 'throttle:60,1'])->name('author-search');
 
         Route::middleware(['admin.permission:khotab.moveitem'])->group(function () {
             Route::post('/series/{series}/detach', [KhotabGroupAdminController::class, 'detachSeries'])->whereNumber('series')->name('series.detach');

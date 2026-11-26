@@ -6,6 +6,7 @@ use App\Domain\Admin\Actions\Khotab\DeleteKhotabAuthorAction;
 use App\Domain\Admin\Actions\Khotab\InsertKhotabAuthorGroupAction;
 use App\Domain\Admin\Actions\Khotab\InsertKhotabAuthorItemAction;
 use App\Domain\Admin\Actions\Khotab\InsertKhotabAuthorSeriesAction;
+use App\Domain\Admin\Actions\Khotab\KhotabAdditionalAuthorCopies;
 use App\Domain\Admin\Actions\Khotab\RepairKhotabAuthorCountersAction;
 use App\Domain\Admin\Actions\Khotab\UpdateKhotabAuthorAction;
 use App\Domain\Admin\Actions\Khotab\UploadKhotabAuthorImageAction;
@@ -131,14 +132,16 @@ class KhotabAuthorAdminController
             'media' => $media,
             'channels' => $main->table('nuke_sat_channels')->orderByRaw($this->byTitle())->get(['id', 'title']),
             'locations' => $main->table('nuke_islamic_locations')->orderByRaw($this->byTitle())->get(['id', 'title']),
+            'additionalAuthors' => KhotabAdditionalAuthorCopies::selectedForForm(old('additional_authors'), (int) $author->id),
         ]);
     }
 
     public function storeItem(StoreKhotabAuthorItemRequest $request, Author $author, string $media, InsertKhotabAuthorItemAction $action): RedirectResponse
     {
-        $action->execute($this->actor(), $author, $this->vedio($media), $request->validated(), $request->ip());
+        $result = $action->execute($this->actor(), $author, $this->vedio($media), $request->validated(), $request->ip());
 
-        return $this->toAuthor($author, $media, 'تمت إضافة المادة');
+        return KhotabAdditionalAuthorCopies::withImageWarning(
+            $this->toAuthor($author, $media, KhotabAdditionalAuthorCopies::successMessage($result)), $result);
     }
 
     /** «حذف الداعية» — OLD DeleteAuthor()'s confirmation page. */

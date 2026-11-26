@@ -9,6 +9,7 @@ use App\Domain\Admin\Actions\Khotab\DetachKhotabSeriesAction;
 use App\Domain\Admin\Actions\Khotab\FastCopyKhotabCategoriesAction;
 use App\Domain\Admin\Actions\Khotab\InsertKhotabItemAction;
 use App\Domain\Admin\Actions\Khotab\InsertKhotabSeriesAction;
+use App\Domain\Admin\Actions\Khotab\KhotabAdditionalAuthorCopies;
 use App\Domain\Admin\Actions\Khotab\ReArrangeKhotabItemsAction;
 use App\Domain\Admin\Actions\Khotab\UpdateKhotabGroupAction;
 use App\Domain\Admin\Contextual\ContextualReturn;
@@ -169,14 +170,16 @@ class KhotabGroupAdminController
             'group' => $group,
             'author' => $main->table('nuke_islamic_authors')->where('id', $group->author_id)->first(['id', 'prename', 'name']),
             'locations' => $main->table('nuke_islamic_locations')->orderByRaw('BINARY title ASC')->get(['id', 'title']),
+            'additionalAuthors' => KhotabAdditionalAuthorCopies::selectedForForm(old('additional_authors'), (int) $group->author_id),
         ]);
     }
 
     public function storeItem(StoreKhotabItemRequest $request, KhotabGroup $group, InsertKhotabItemAction $action): RedirectResponse
     {
-        $action->execute($this->actor(), $group, $request->validated(), $request->ip());
+        $result = $action->execute($this->actor(), $group, $request->validated(), $request->ip());
 
-        return $this->toGroup($group, 'تمت إضافة المادة');
+        return KhotabAdditionalAuthorCopies::withImageWarning(
+            $this->toGroup($group, KhotabAdditionalAuthorCopies::successMessage($result)), $result);
     }
 
     /** OLD `KhotabLeechImages` — the «التالي» AJAX step of the add-item form. */

@@ -2,6 +2,7 @@
 
 namespace App\Domain\Admin\Http\Requests\Khotab;
 
+use App\Domain\Admin\Actions\Khotab\KhotabAdditionalAuthorCopies;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -39,6 +40,22 @@ class StoreKhotabItemRequest extends FormRequest
             'meta_follow' => ['nullable'],
             'archive_gif' => ['nullable', 'string', 'max:2048'],
             'archive_frame' => ['nullable', 'string', 'max:2048'],
+            // Multi-author creation (2026-11-25): optional; existence, visibility and "not the primary" are checked
+            // by the action under the author locks (KhotabAdditionalAuthorCopies).
+            'additional_authors' => ['nullable', 'array', 'max:'.KhotabAdditionalAuthorCopies::max()],
+            'additional_authors.*' => ['integer', 'min:1', 'distinct'],
+        ];
+    }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return [
+            'additional_authors.array' => 'قائمة الدعاة المشاركين غير صحيحة.',
+            'additional_authors.max' => 'يمكن اختيار '.KhotabAdditionalAuthorCopies::max().' دعاة مشاركين على الأكثر.',
+            'additional_authors.*.integer' => 'قائمة الدعاة المشاركين غير صحيحة.',
+            'additional_authors.*.min' => 'قائمة الدعاة المشاركين غير صحيحة.',
+            'additional_authors.*.distinct' => 'تم اختيار داعية أكثر من مرة.',
         ];
     }
 }

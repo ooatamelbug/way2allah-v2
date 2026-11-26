@@ -88,6 +88,9 @@
                                 <label><input type="checkbox" name="meta_follow" value="1" @checked(old('meta_follow', ! $errors->any()))> Follow</label>
                             </fieldset>
 
+                            {{-- Multi-author creation (2026-11-25): optional additional sheikhs, and the submit protection. --}}
+                            @include('admin.khotab._additional-authors', ['primaryAuthorId' => $series->author_id, 'media' => (int) $series->vedio === 1 ? 'video' : 'audio', 'selected' => $additionalAuthors ?? []])
+
                             <br><br>
                             <center><button type="submit" class="btn green">أضف</button></center>
                         </div>
@@ -104,28 +107,62 @@
     <script>
         // OLD js/inc.js getarchivedata() / setframe(): the archive fragment fills the side
         // column, its size block replaces #more_info, and its hidden inputs join the form.
+        // Since 2026-11-26 (owner-approved): «أضف» waits for the lookup (w2a:archive-start / -end, see
+        // _additional-authors); each lookup is numbered, so an answer for a link that has since been edited is
+        // ignored; editing the link discards everything archive.org supplied (images, frame, size) and offers
+        // «التالي» again; a lookup that never answers is abandoned after the server's own bound plus a margin.
         (function () {
             var next = document.getElementById('next_button');
             var form = document.getElementById('w2a-add-item');
             var feed = document.getElementById('archive_feed');
+            var link = document.getElementById('khotab_url');
+            var moreInfo = document.getElementById('more_info');
+            var manualInfo = moreInfo.innerHTML;
+            var limit = {{ (2 * max(1, (int) config('admin_khotab.archive_timeout', 20)) + 15) * 1000 }};
+            var lookup = 0, pending = false, loaded = false;
+            function settle() {
+                if (! pending) { return; }
+                pending = false;
+                form.dispatchEvent(new CustomEvent('w2a:archive-end'));
+            }
             next.addEventListener('click', function () {
+                var id = ++lookup;
                 next.style.display = 'none';
                 document.getElementById('more_data').style.display = 'block';
-                var url = {{ \Illuminate\Support\Js::from(route('admin.khotab.archive')) }} + '?url=' + encodeURIComponent(document.getElementById('khotab_url').value);
-                fetch(url, {credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'}})
+                pending = true;
+                form.dispatchEvent(new CustomEvent('w2a:archive-start'));
+                var controller = typeof AbortController === 'function' ? new AbortController() : null;
+                var timer = controller ? setTimeout(function () { controller.abort(); }, limit) : null;
+                var url = {{ \Illuminate\Support\Js::from(route('admin.khotab.archive')) }} + '?url=' + encodeURIComponent(link.value);
+                fetch(url, {credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'}, signal: controller ? controller.signal : undefined})
                     .then(function (r) { if (! r.ok) { throw new Error(); } return r.text(); })
                     .then(function (html) {
+                        if (id !== lookup) { return; }          // the link was edited meanwhile: stale answer
                         feed.innerHTML = html;
                         var info = feed.querySelector('#more_info_feed');
                         if (info) {
-                            document.getElementById('more_info').innerHTML = info.innerHTML;
+                            moreInfo.innerHTML = info.innerHTML;
                             info.innerHTML = '';
                         }
                         feed.querySelectorAll('input[type=hidden]').forEach(function (input) {
+                            input.setAttribute('data-w2a-archive', '');
                             form.appendChild(input);
                         });
+                        loaded = true;
                     })
-                    .catch(function () { alert('error'); });
+                    .catch(function () { if (id === lookup) { alert('error'); } })
+                    .then(function () { clearTimeout(timer); if (id === lookup) { settle(); } });
+            });
+            link.addEventListener('input', function () {
+                lookup++;                                       // any answer still on its way is now stale
+                if (loaded || pending) {
+                    feed.innerHTML = '';
+                    moreInfo.innerHTML = manualInfo;
+                    form.querySelectorAll('[data-w2a-archive]').forEach(function (input) { input.remove(); });
+                    loaded = false;
+                }
+                next.style.display = '';
+                settle();
             });
             feed.addEventListener('click', function (event) {
                 var img = event.target.closest('img.archive_frame');
